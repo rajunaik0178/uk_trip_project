@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:linear-gradient(135deg,#3a7bd5,#00d2ff);
+}
+
+.container{
+background:white;
+width:360px;
+padding:40px;
+border-radius:10px;
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
+text-align:center;
+}
+
+h2{
+margin-bottom:20px;
+}
+
+.switch{
+position:relative;
+display:flex;
+background:#eee;
+border-radius:30px;
+margin-bottom:20px;
+overflow:hidden;
+}
+
+.switch button{
+flex:1;
+padding:10px;
+border:none;
+background:transparent;
+cursor:pointer;
+font-weight:bold;
+z-index:2;
+}
+
+.slider{
+position:absolute;
+width:50%;
+height:100%;
+background:#2e7d32;
+border-radius:30px;
+left:0;
+transition:0.3s;
+}
+
+.switch button.active{
+color:white;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-top:10px;
+border:1px solid #ccc;
+border-radius:5px;
+}
+
+.login-btn{
+width:100%;
+padding:10px;
+margin-top:15px;
+background:#2e7d32;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+font-size:16px;
+}
+
+a{
+display:block;
+margin-top:15px;
+color:#333;
+}
+
+</style>
+
+<script>
+
+function switchLogin(role){
+
+document.getElementById("role").value = role;
+
+let slider = document.getElementById("slider");
+
+if(role=="admin"){
+slider.style.left="50%";
+document.getElementById("adminBtn").classList.add("active");
+document.getElementById("userBtn").classList.remove("active");
+}
+else{
+slider.style.left="0";
+document.getElementById("userBtn").classList.add("active");
+document.getElementById("adminBtn").classList.remove("active");
+}
+
+}
+
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Login</h2>
+
+<div class="switch">
+
+<div class="slider" id="slider"></div>
+
+<button id="userBtn" class="active" onclick="switchLogin('user')" type="button">
+User
+</button>
+
+<button id="adminBtn" onclick="switchLogin('admin')" type="button">
+Admin
+</button>
+
+</div>
+
+<form action="/login" method="post">
+
+<input type="hidden" name="role" id="role" value="user">
+
+<input type="text" name="username" placeholder="Username" required>
+
+<input type="password" name="password" placeholder="Password" required>
+
+<button class="login-btn">Login</button>
+
+</form>
+
+<a href="/register">Create Account</a>
+
+</div>
+
+</body>
+</html>

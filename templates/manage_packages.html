@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Manage Packages</title>
+</head>
+
+<body>
+
+<h2>Add Travel Package</h2>
+
+<form action="/add_package" method="post">
+
+Category<br>
+<input name="category">
+
+<br><br>
+
+Amount Rate<br>
+<input name="amt_rate">
+
+<br><br>
+
+Description<br>
+<textarea name="description"></textarea>
+
+<br><br>
+
+Duration<br>
+<input name="duration">
+
+<br><br>
+
+<button>Add Package</button>
+
+</form>
+
+<hr>
+
+<h3>All Packages</h3>
+
+<table border="1">
+
+<tr>
+<th>ID</th>
+<th>Category</th>
+<th>Amount</th>
+<th>Description</th>
+<th>Duration</th>
+</tr>
+
+{% for p in packages %}
+
+<tr>
+<td>{{p.package_id}}</td>
+<td>{{p.category}}</td>
+<td>{{p.amt_rate}}</td>
+<td>{{p.description}}</td>
+<td>{{p.duration}}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br>
+
+<a href="/admin_dashboard">Back</a>
+
+</body>
+</html>

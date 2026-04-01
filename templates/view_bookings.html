@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Bookings</title>
+
+</head>
+
+<body>
+
+<h2>All Bookings</h2>
+
+<table border="1">
+
+<tr>
+<th>ID</th>
+<th>User</th>
+<th>Package</th>
+</tr>
+
+{% for b in bookings %}
+
+<tr>
+<td>{{b.id}}</td>
+<td>{{b.user}}</td>
+<td>{{b.package}}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br>
+
+<a href="/admin_dashboard">Back</a>
+
+</body>
+</html>

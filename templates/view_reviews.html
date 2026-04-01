@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Reviews</title>
+
+</head>
+
+<body>
+
+<h2>User Reviews</h2>
+
+<table border="1">
+
+<tr>
+<th>ID</th>
+<th>Review</th>
+</tr>
+
+{% for r in reviews %}
+
+<tr>
+<td>{{r.id}}</td>
+<td>{{r.review}}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br>
+
+<a href="/admin_dashboard">Back</a>
+
+</body>
+</html>

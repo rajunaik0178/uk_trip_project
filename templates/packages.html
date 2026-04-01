@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Packages</title>
+
+</head>
+
+<body>
+
+<h2>Available Packages</h2>
+
+<table border="1" align="center">
+
+<tr>
+<th>ID</th>
+<th>Category</th>
+<th>Price</th>
+</tr>
+
+{% for p in packages %}
+
+<tr>
+<td>{{p.id}}</td>
+<td>{{p.category}}</td>
+<td>{{p.price}}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br>
+
+<a href="/dashboard">Back</a>
+
+</body>
+</html>
