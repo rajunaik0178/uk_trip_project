@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2 style="margin-bottom:20px;">Package Gallery</h2>
+
+<div style="display:flex; flex-wrap:wrap; gap:20px;">
+
+{% for img in images %}
+
+<img src="{{ url_for('static', filename='uploads/' + img.image) }}" 
+style="
+width:250px;
+height:180px;
+object-fit:cover;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.2);
+">
+
+{% endfor %}
+
+</div>
+
+</div>
+
+{% endblock %}

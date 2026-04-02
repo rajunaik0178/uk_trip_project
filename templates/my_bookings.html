@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>My Bookings</h2>
+
+<table>
+
+<tr>
+<th>ID</th>
+<th>Package</th>
+<th>Amount</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+{% for b in bookings %}
+
+<tr>
+<td>{{b.booking_id}}</td>
+<td>{{b.package_id}}</td>
+<td>₹ {{b.total_amount}}</td>
+
+<!-- STATUS WITH COLOR -->
+<td>
+<span class="status {{b.status}}">
+{{b.status}}
+</span>
+</td>
+
+<td>
+
+{% if b.status == 'Booked' %}
+    
+    <a href="/approve/{{b.booking_id}}">
+        <button class="btn">Approve</button>
+    </a>
+
+    <a href="/reject/{{b.booking_id}}">
+        <button class="btn btn-danger">Reject</button>
+    </a>
+
+    <a href="/cancel/{{b.booking_id}}">
+        <button class="btn btn-danger">Cancel</button>
+    </a>
+
+{% elif b.status == 'Approved' %}
+    
+    <span style="color:green; font-weight:bold;">Approved ✔</span>
+
+{% elif b.status == 'Rejected' %}
+    
+    <span style="color:red; font-weight:bold;">Rejected ✖</span>
+
+{% elif b.status == 'Cancelled' %}
+    
+    <span style="color:gray; font-weight:bold;">Cancelled</span>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+{% endblock %}

@@ -1,38 +1,60 @@
-<!DOCTYPE html>
-<html>
-<head>
+{% extends "admin_base.html" %}
 
-<title>Bookings</title>
+{% block content %}
 
-</head>
-
-<body>
+<div class="card">
 
 <h2>All Bookings</h2>
+<p style="color:gray;">Manage user bookings easily</p>
 
-<table border="1">
+<br>
 
+<table>
+
+<thead>
 <tr>
 <th>ID</th>
 <th>User</th>
 <th>Package</th>
+<th>Amount</th>
+<th>Status</th>
+<th>Action</th>
 </tr>
+</thead>
+
+<tbody>
 
 {% for b in bookings %}
-
 <tr>
-<td>{{b.id}}</td>
-<td>{{b.user}}</td>
-<td>{{b.package}}</td>
-</tr>
+<td>{{b.booking_id}}</td>
+<td>{{b.user_id}}</td>
+<td>{{b.package_id}}</td>
+<td>₹ {{b.total_amount}}</td>
+<td>
+<span class="status {{b.status}}">
+{{b.status}}
+</span>
+</td>
 
+<td>
+
+<a href="/update_booking/{{b.booking_id}}/Booked">
+<button class="btn">Approve</button>
+</a>
+
+<a href="/update_booking/{{b.booking_id}}/Cancelled">
+<button class="btn btn-danger">Cancel</button>
+</a>
+
+</td>
+
+</tr>
 {% endfor %}
+
+</tbody>
 
 </table>
 
-<br>
+</div>
 
-<a href="/admin_dashboard">Back</a>
-
-</body>
-</html>
+{% endblock %}

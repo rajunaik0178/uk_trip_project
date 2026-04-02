@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UK Trip</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+display:flex;
+background:#f4f6f9;
+}
+
+/* SIDEBAR */
+.sidebar{
+width:230px;
+height:100vh;
+background:linear-gradient(180deg,#1e3c72,#2a5298);
+color:white;
+padding:20px;
+position:fixed;
+}
+
+.sidebar h2{
+margin-bottom:20px;
+text-align:center;
+}
+
+.sidebar a{
+display:block;
+color:white;
+padding:12px;
+margin:10px 0;
+text-decoration:none;
+border-radius:6px;
+transition:0.3s;
+}
+
+.sidebar a:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* ACTIVE LINK */
+.sidebar a.active{
+background:rgba(255,255,255,0.3);
+}
+
+/* CONTENT */
+.content{
+margin-left:230px;
+padding:30px;
+width:100%;
+}
+
+/* CARD */
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* TABLE */
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+border-radius:10px;
+overflow:hidden;
+margin-top:15px;
+}
+
+th,td{
+padding:12px;
+border-bottom:1px solid #ddd;
+text-align:left;
+}
+
+th{
+background:#2a5298;
+color:white;
+}
+
+/* BUTTON */
+.btn{
+padding:6px 12px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+background:#2a5298;
+color:white;
+}
+
+.btn:hover{
+opacity:0.9;
+}
+
+.btn-danger{
+background:red;
+color:white;
+}
+
+.btn-success{
+background:green;
+color:white;
+}
+
+/* STATUS BADGES */
+.status{
+padding:5px 10px;
+border-radius:5px;
+color:white;
+font-size:13px;
+}
+
+.status.Booked{
+background:orange;
+}
+
+.status.Approved{
+background:green;
+}
+
+.status.Rejected{
+background:red;
+}
+
+.status.Cancelled{
+background:gray;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="sidebar">
+<h2>UK Trip</h2>
+
+<a href="/dashboard">🏠 Dashboard</a>
+<a href="/packages">📦 Packages</a>
+<a href="/my_bookings">📄 My Bookings</a>
+<a href="/add_review">⭐ Add Review</a>
+<a href="/logout">🚪 Logout</a>
+
+</div>
+
+<div class="content">
+{% block content %}
+{% endblock %}
+</div>
+
+</body>
+</html>

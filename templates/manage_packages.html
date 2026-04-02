@@ -1,36 +1,21 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Manage Packages</title>
-</head>
+{% extends "admin_base.html" %}
 
-<body>
+{% block content %}
 
-<h2>Add Travel Package</h2>
+<div class="card">
 
-<form action="/add_package" method="post">
+<h2>Add Package</h2>
 
-Category<br>
-<input name="category">
+<form method="POST" action="/add_package" enctype="multipart/form-data">
 
-<br><br>
+<input name="category" placeholder="Category" required>
+<input name="amt_rate" placeholder="Price" required>
+<textarea name="description" placeholder="Description"></textarea>
+<input name="duration" placeholder="Duration">
 
-Amount Rate<br>
-<input name="amt_rate">
+<input type="file" name="images" multiple>
 
-<br><br>
-
-Description<br>
-<textarea name="description"></textarea>
-
-<br><br>
-
-Duration<br>
-<input name="duration">
-
-<br><br>
-
-<button>Add Package</button>
+<button class="btn">Add Package</button>
 
 </form>
 
@@ -38,14 +23,14 @@ Duration<br>
 
 <h3>All Packages</h3>
 
-<table border="1">
+<table>
 
 <tr>
 <th>ID</th>
 <th>Category</th>
-<th>Amount</th>
-<th>Description</th>
-<th>Duration</th>
+<th>Price</th>
+<th>Image</th>
+<th>Action</th>
 </tr>
 
 {% for p in packages %}
@@ -53,18 +38,24 @@ Duration<br>
 <tr>
 <td>{{p.package_id}}</td>
 <td>{{p.category}}</td>
-<td>{{p.amt_rate}}</td>
-<td>{{p.description}}</td>
-<td>{{p.duration}}</td>
+<td>₹ {{p.amt_rate}}</td>
+
+<td>
+<img src="/static/uploads/{{p.image}}" width="80">
+</td>
+
+<td>
+<a href="/delete_package/{{p.package_id}}">
+<button class="btn btn-danger">Delete</button>
+</a>
+</td>
+
 </tr>
 
 {% endfor %}
 
 </table>
 
-<br>
+</div>
 
-<a href="/admin_dashboard">Back</a>
-
-</body>
-</html>
+{% endblock %}

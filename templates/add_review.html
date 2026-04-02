@@ -1,28 +1,106 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <title>Add Review</title>
 
-</head>
+<style>
+body{
+font-family:Arial;
+background:#f4f6f9;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
 
+.card{
+background:white;
+padding:30px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+width:400px;
+}
+
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+.stars{
+display:flex;
+flex-direction:row-reverse;
+justify-content:center;
+margin-bottom:15px;
+}
+
+.stars input{
+display:none;
+}
+
+.stars label{
+font-size:30px;
+color:#ccc;
+cursor:pointer;
+}
+
+.stars input:checked ~ label,
+.stars label:hover,
+.stars label:hover ~ label{
+color:gold;
+}
+
+textarea{
+width:100%;
+padding:10px;
+border-radius:5px;
+border:1px solid #ccc;
+margin-bottom:15px;
+}
+
+button{
+width:100%;
+padding:10px;
+background:#004e92;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+</style>
+
+</head>
 <body>
 
-<h2>Add Review</h2>
+<div class="card">
 
-<form action="/save_review" method="post">
+<h2>⭐ Add Review</h2>
 
-<textarea name="review" rows="5" cols="40"></textarea>
+<form method="POST" action="/save_review">
 
-<br><br>
+<select name="booking_id" required style="width:100%; padding:10px; margin-bottom:10px;">
+    <option value="">Select Booking</option>
+    {% for b in bookings %}
+        <option value="{{b.booking_id}}">
+            Booking ID {{b.booking_id}} (₹ {{b.total_amount}})
+        </option>
+    {% endfor %}
+</select>
 
-<button type="submit">Submit</button>
+<div class="stars">
+<input type="radio" name="rating" value="5" id="5"><label for="5">★</label>
+<input type="radio" name="rating" value="4" id="4"><label for="4">★</label>
+<input type="radio" name="rating" value="3" id="3"><label for="3">★</label>
+<input type="radio" name="rating" value="2" id="2"><label for="2">★</label>
+<input type="radio" name="rating" value="1" id="1"><label for="1">★</label>
+</div>
+
+<textarea name="review" placeholder="Write your feedback..." required></textarea>
+
+<button type="submit">Submit Review</button>
 
 </form>
 
-<br>
-
-<a href="/dashboard">Back</a>
+</div>
 
 </body>
 </html>

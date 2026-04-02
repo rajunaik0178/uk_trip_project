@@ -1,28 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
+{% extends "admin_base.html" %}
 
-<title>Admin Dashboard</title>
+{% block content %}
 
-</head>
+<div class="card">
+<h2>Welcome Admin 👋</h2>
+<p>Manage system easily</p>
+</div>
 
-<body>
-
-<h2>Admin Dashboard</h2>
-
-<a href="/manage_packages">Manage Packages</a>
-
-<br><br>
-
-<a href="/view_bookings">View Bookings</a>
-
-<br><br>
-
-<a href="/view_reviews">View Reviews</a>
-
-<br><br>
-
-<a href="/logout">Logout</a>
-
-</body>
-</html>
+{% endblock %}

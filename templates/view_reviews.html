@@ -1,36 +1,43 @@
-<!DOCTYPE html>
-<html>
-<head>
+{% extends "admin_base.html" %}
 
-<title>Reviews</title>
+{% block content %}
 
-</head>
+<div class="card">
 
-<body>
+<h2>⭐ All Reviews</h2>
 
-<h2>User Reviews</h2>
-
-<table border="1">
+<table>
 
 <tr>
 <th>ID</th>
-<th>Review</th>
+<th>User</th>
+<th>Comment</th>
+<th>Rating</th>
 </tr>
 
 {% for r in reviews %}
 
 <tr>
-<td>{{r.id}}</td>
-<td>{{r.review}}</td>
+<td>{{r.review_id}}</td>
+
+<td>
+User {{r.adharno}}
+</td>
+
+<td>{{r.comment}}</td>
+
+<td>
+    {% for i in range(r.rating|int) %}
+        ⭐
+    {% endfor %}
+</td>
+
 </tr>
 
 {% endfor %}
 
 </table>
 
-<br>
+</div>
 
-<a href="/admin_dashboard">Back</a>
-
-</body>
-</html>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "admin_base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <h2>📊 Dashboard Statistics</h2>
+    <p>Overview of system performance</p>
+</div>
+
+<!-- CARDS -->
+<div class="stats-container">
+
+    <div class="stat-card users">
+        <h3>Total Users</h3>
+        <h1>{{users}}</h1>
+    </div>
+
+    <div class="stat-card bookings">
+        <h3>Total Bookings</h3>
+        <h1>{{bookings}}</h1>
+    </div>
+
+    <div class="stat-card revenue">
+        <h3>Total Revenue</h3>
+        <h1>₹ {{revenue}}</h1>
+    </div>
+
+</div>
+
+<br>
+
+<!-- BUTTON -->
+<button class="btn" onclick="toggleChart()">📊 Show Graph</button>
+
+<br><br>
+
+<!-- CHART (HIDDEN INITIALLY) -->
+<div class="card" id="chartBox" style="display:none;">
+    <h3>System Overview</h3>
+    <div style="width:400px; margin:auto;">
+    <canvas id="myChart"></canvas>
+</div>
+</div>
+
+<!-- CHART JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+let chartVisible = false;
+let chartCreated = false;
+
+function toggleChart(){
+
+    const box = document.getElementById("chartBox");
+
+    if(!chartVisible){
+        box.style.display = "block";
+
+        // create chart only once
+        if(!chartCreated){
+            createChart();
+            chartCreated = true;
+        }
+
+        chartVisible = true;
+
+    }else{
+        box.style.display = "none";
+        chartVisible = false;
+    }
+}
+
+function createChart(){
+
+    const ctx = document.getElementById('myChart');
+
+    new Chart(ctx, {
+    type: 'pie',
+    data: {
+        labels: ['Users', 'Bookings', 'Revenue (x1000)'],
+        datasets: [{
+            data: [{{users}}, {{bookings}}, {{revenue}}/1000],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+}
+
+</script>
+
+{% endblock %}

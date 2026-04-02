@@ -1,49 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
+{% extends "base.html" %}
 
-<title>User Dashboard</title>
+{% block content %}
 
-<style>
-
-body{
-font-family:Arial;
-background:#f2f2f2;
-text-align:center;
-}
-
-.box{
-margin-top:100px;
-}
-
-a{
-display:block;
-width:200px;
-margin:15px auto;
-padding:10px;
-background:#2e7d32;
-color:white;
-text-decoration:none;
-border-radius:5px;
-}
-
-</style>
-
-</head>
-
-<body>
-
+<div class="card">
 <h2>Welcome {{user}}</h2>
-
-<div class="box">
-
-<a href="/packages">View Packages</a>
-
-<a href="/add_review">Add Review</a>
-
-<a href="/logout">Logout</a>
-
+<p>This is your dashboard</p>
 </div>
 
-</body>
-</html>
+{% endblock %}
