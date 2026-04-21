@@ -2009,6 +2009,28 @@ def view_invoice(booking_id):
     except Exception as e:
         flash(f"Could not load invoice: {e}", "danger")
         return redirect("/manage_invoices")
+    # ══════════════════════════════════════════════════════
+#  USER — TRIP GUIDES (read-only view for travelers)
+#  Add this route to app.py, in the USER section,
+#  just after the /faq route (around line 882).
+# ══════════════════════════════════════════════════════
+
+@app.route("/guides")
+@login_required
+def guides():
+    try:
+        guides_list = query(
+            "SELECT * FROM trip_guide ORDER BY id DESC"
+        ) or []
+
+        packages = query(
+            "SELECT DISTINCT category FROM package ORDER BY category ASC"
+        ) or []
+
+        return render_template("guides.html", guides=guides_list, packages=packages)
+    except Exception as e:
+        flash(f"Could not load guides: {e}", "danger")
+        return render_template("guides.html", guides=[], packages=[])
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     app.run(debug=debug_mode, host="0.0.0.0", port=5000)

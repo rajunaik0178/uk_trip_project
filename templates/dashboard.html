@@ -12,7 +12,7 @@
   </div>
 </div>
 
-<!-- STAT CARDS -->
+<!-- ══ STAT CARDS ══ -->
 <div class="cards-grid">
   <div class="stat-card" style="border-left-color:#2a5298;">
     <div class="icon">📄</div>
@@ -41,6 +41,73 @@
   </div>
 </div>
 
+<!-- ══ FEATURE CARDS — user-facing operations ══ -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:22px;">
+
+  <div class="card" style="border-top:4px solid #2a5298;padding:16px;">
+    <div style="font-size:26px;margin-bottom:7px;">🌍</div>
+    <div class="card-title" style="margin-bottom:5px;">Browse Packages</div>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Explore all available UK tour packages with photos and pricing.
+    </p>
+    <a href="/packages">
+      <button class="btn btn-primary" style="width:100%;">View Packages</button>
+    </a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #dc2626;padding:16px;">
+    <div style="font-size:26px;margin-bottom:7px;">❤️</div>
+    <div class="card-title" style="margin-bottom:5px;">My Wishlist</div>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Packages you saved for later.
+      {% if wishlist_count %}<strong style="color:#dc2626;">{{ wishlist_count }} saved.</strong>{% endif %}
+    </p>
+    <a href="/wishlist">
+      <button class="btn btn-primary" style="width:100%;background:#dc2626;">My Wishlist</button>
+    </a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #16a34a;padding:16px;">
+    <div style="font-size:26px;margin-bottom:7px;">📄</div>
+    <div class="card-title" style="margin-bottom:5px;">My Bookings</div>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Track all your bookings, view receipts, and cancel pending trips.
+    </p>
+    <a href="/my_bookings">
+      <button class="btn btn-primary" style="width:100%;background:#16a34a;">My Bookings</button>
+    </a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #d97706;padding:16px;">
+    <div style="font-size:26px;margin-bottom:7px;">⭐</div>
+    <div class="card-title" style="margin-bottom:5px;">Reviews</div>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Share your travel experience or read your past reviews.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <a href="/add_review">
+        <button class="btn btn-warning" style="width:100%;">Write Review</button>
+      </a>
+      <a href="/my_reviews">
+        <button class="btn btn-outline" style="width:100%;">My Reviews</button>
+      </a>
+    </div>
+  </div>
+
+  <div class="card" style="border-top:4px solid #8e44ad;padding:16px;">
+    <div style="font-size:26px;margin-bottom:7px;">🧭</div>
+    <div class="card-title" style="margin-bottom:5px;">Trip Guides</div>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Read curated destination guides, itineraries, and travel tips.
+    </p>
+    <a href="/guides">
+      <button class="btn btn-primary" style="width:100%;background:#8e44ad;">Browse Guides</button>
+    </a>
+  </div>
+
+</div>
+
+<!-- ══ MAIN CONTENT ROW ══ -->
 <div class="two-col">
 
   <!-- RECENT BOOKINGS -->
@@ -52,13 +119,21 @@
     {% if recent_bookings %}
     <table>
       <thead>
-        <tr><th>Package</th><th>Travel Date</th><th>Amount</th><th>Status</th><th></th></tr>
+        <tr>
+          <th>Package</th>
+          <th>Travel Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
       </thead>
       <tbody>
         {% for b in recent_bookings %}
         <tr>
-          <td><strong>{{ b.category or 'Package #'+b.package_id|string }}</strong>
-            <br><small style="color:#888;">{{ b.duration }}</small></td>
+          <td>
+            <strong>{{ b.category or 'Package #'+b.package_id|string }}</strong>
+            <br><small style="color:#888;">{{ b.duration }}</small>
+          </td>
           <td>{{ b.travel_date }}</td>
           <td>₹{{ b.total_amount }}</td>
           <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
@@ -75,26 +150,48 @@
     </table>
     {% else %}
     <p style="color:#888;font-size:14px;padding:20px 0;text-align:center;">
-      No bookings yet. <a href="/packages">Browse packages →</a>
+      No bookings yet. <a href="/packages" style="color:#2a5298;">Browse packages →</a>
     </p>
     {% endif %}
   </div>
 
-  <!-- QUICK ACTIONS -->
+  <!-- RIGHT COLUMN -->
   <div>
+
+    <!-- QUICK ACTIONS — USER ONLY -->
     <div class="card">
       <span class="card-title">Quick Actions</span>
       <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px;">
-        <a href="/packages"><button class="btn btn-primary" style="width:100%;padding:11px;">🌍 Browse Packages</button></a>
-        <a href="/wishlist"><button class="btn btn-outline" style="width:100%;padding:11px;">❤️ My Wishlist</button></a>
-        <a href="/my_bookings"><button class="btn btn-outline" style="width:100%;padding:11px;">📄 My Bookings</button></a>
-        <a href="/add_review"><button class="btn btn-outline" style="width:100%;padding:11px;">⭐ Write a Review</button></a>
-        <a href="/notifications"><button class="btn btn-outline" style="width:100%;padding:11px;">🔔 Notifications{% if notif_count %} ({{ notif_count }}){% endif %}</button></a>
-        <a href="/profile"><button class="btn btn-outline" style="width:100%;padding:11px;">👤 Edit Profile</button></a>
+        <a href="/packages">
+          <button class="btn btn-primary" style="width:100%;padding:11px;">🌍 Browse Packages</button>
+        </a>
+        <a href="/wishlist">
+          <button class="btn btn-outline" style="width:100%;padding:11px;">
+            ❤️ My Wishlist{% if wishlist_count %} ({{ wishlist_count }}){% endif %}
+          </button>
+        </a>
+        <a href="/my_bookings">
+          <button class="btn btn-outline" style="width:100%;padding:11px;">📄 My Bookings</button>
+        </a>
+        <a href="/add_review">
+          <button class="btn btn-outline" style="width:100%;padding:11px;">⭐ Write a Review</button>
+        </a>
+        <a href="/guides">
+          <button class="btn btn-outline" style="width:100%;padding:11px;">🧭 Trip Guides</button>
+        </a>
+        <a href="/notifications">
+          <button class="btn btn-outline" style="width:100%;padding:11px;">
+            🔔 Notifications{% if notif_count %} ({{ notif_count }}){% endif %}
+          </button>
+        </a>
+        <a href="/profile">
+          <button class="btn btn-outline" style="width:100%;padding:11px;">👤 Edit Profile</button>
+        </a>
       </div>
     </div>
 
-    <div class="card">
+    <!-- UK TRAVEL TIPS -->
+    <div class="card" style="margin-top:0;">
       <span class="card-title">✈️ UK Travel Tips</span>
       <ul style="font-size:13px;color:#555;line-height:2.3;padding-left:18px;margin-top:6px;">
         <li>Book early for the best prices</li>
@@ -105,7 +202,9 @@
         <li>Weather varies — always pack layers</li>
       </ul>
     </div>
+
   </div>
 
 </div>
+
 {% endblock %}

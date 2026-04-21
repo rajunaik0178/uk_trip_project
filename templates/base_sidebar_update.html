@@ -1,0 +1,38 @@
+<!-- 
+  INSTRUCTIONS: In base.html, replace the entire <div class="sidebar">...</div> block
+  with the one below. The only change is adding the 🧭 Trip Guides link
+  under the Main section (after Wishlist).
+-->
+
+<div class="sidebar">
+  <div class="sb-hd">
+    <h2>✈️ UK Trip</h2>
+    <p>Travel Management</p>
+  </div>
+
+  <div class="sb-sec">Main</div>
+  <a href="/dashboard"  {% if request.path=='/dashboard'  %}class="active"{% endif %}>🏠 Dashboard</a>
+  <a href="/packages"   {% if request.path=='/packages'   %}class="active"{% endif %}>🌍 Browse Packages</a>
+  <a href="/wishlist"   {% if request.path=='/wishlist'   %}class="active"{% endif %}>❤️ Wishlist
+    {% if wishlist_count %}<span class="sb-badge">{{ wishlist_count }}</span>{% endif %}
+  </a>
+  <a href="/guides"     {% if request.path=='/guides'     %}class="active"{% endif %}>🧭 Trip Guides</a>
+
+  <div class="sb-sec">My Account</div>
+  <a href="/my_bookings"  {% if request.path=='/my_bookings'  %}class="active"{% endif %}>📄 My Bookings</a>
+  <a href="/my_reviews"   {% if request.path=='/my_reviews'   %}class="active"{% endif %}>📝 My Reviews</a>
+  <a href="/add_review"   {% if request.path=='/add_review'   %}class="active"{% endif %}>⭐ Write Review</a>
+  <a href="/notifications" {% if request.path=='/notifications' %}class="active"{% endif %}>🔔 Notifications
+    {% if notif_count %}<span class="sb-badge">{{ notif_count }}</span>{% endif %}
+  </a>
+  <a href="/profile"     {% if request.path=='/profile'     %}class="active"{% endif %}>👤 My Profile</a>
+
+  <div class="sb-sec">Help</div>
+  <a href="/contact" {% if request.path=='/contact' %}class="active"{% endif %}>📞 Contact Us</a>
+  <a href="/faq"     {% if request.path=='/faq'     %}class="active"{% endif %}>❓ FAQ</a>
+
+  <div class="sb-ft">
+    <div class="sb-user"><span>Logged in as</span>{{ session.get('user','User') }}</div>
+    <a href="/logout" style="color:#fff;font-size:13px;display:flex;align-items:center;gap:7px;">🚪 Logout</a>
+  </div>
+</div>

@@ -5,7 +5,6 @@
   <h1>Admin Dashboard</h1>
   <div style="display:flex;align-items:center;gap:10px;">
     <span style="font-size:13px;color:#888;">Welcome, <strong>{{ session.get('admin','Admin') }}</strong></span>
-    <!-- GRAPHS BUTTON — only loads charts when clicked -->
     <button class="btn btn-primary" onclick="toggleGraphs()" id="graphBtn">
       📊 Show Graphs
     </button>
@@ -19,16 +18,26 @@
 </div>
 {% endif %}
 
-<!-- STAT CARDS -->
+<!-- ══ STAT CARDS ══ -->
 <div class="stats-container">
-  <div class="stat-card c-users"><h3>Travelers</h3><h1>{{ users }}</h1><div class="sub">Registered</div></div>
-  <div class="stat-card c-pkg"><h3>Packages</h3><h1>{{ total_packages }}</h1><div class="sub">Active tours</div></div>
-  <div class="stat-card c-book"><h3>Bookings</h3><h1>{{ bookings }}</h1><div class="sub">All time</div></div>
-  <div class="stat-card c-appr"><h3>Approved</h3><h1>{{ approved }}</h1><div class="sub">Confirmed</div></div>
-  <div class="stat-card c-rev"><h3>Revenue</h3><h1>₹{{ revenue }}</h1><div class="sub">Approved only</div></div>
+  <div class="stat-card c-users">
+    <h3>Travelers</h3><h1>{{ users }}</h1><div class="sub">Registered</div>
+  </div>
+  <div class="stat-card c-pkg">
+    <h3>Packages</h3><h1>{{ total_packages }}</h1><div class="sub">Active tours</div>
+  </div>
+  <div class="stat-card c-book">
+    <h3>Bookings</h3><h1>{{ bookings }}</h1><div class="sub">All time</div>
+  </div>
+  <div class="stat-card c-appr">
+    <h3>Approved</h3><h1>{{ approved }}</h1><div class="sub">Confirmed</div>
+  </div>
+  <div class="stat-card c-rev">
+    <h3>Revenue</h3><h1>₹{{ revenue }}</h1><div class="sub">Approved only</div>
+  </div>
 </div>
 
-<!-- ══ GRAPHS PANEL — hidden by default, shown on button click ══ -->
+<!-- ══ GRAPHS PANEL — hidden by default ══ -->
 <div id="graphsPanel" style="display:none;">
   <div class="two-col" style="margin-bottom:18px;">
     <div class="card">
@@ -40,7 +49,6 @@
       <canvas id="barChart" height="240"></canvas>
     </div>
   </div>
-
   {% if top_packages %}
   <div class="card" style="margin-bottom:18px;">
     <h3>🏆 Top Packages by Bookings</h3>
@@ -49,25 +57,43 @@
   {% endif %}
 </div>
 
-<!-- ══ 5 NEW FEATURE CARDS ══ -->
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:20px;">
+<!-- ══ ADMIN OPERATIONS — Content Management ══ -->
+<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:12px;">
+  Content Management
+</h3>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:24px;">
 
   <div class="card" style="border-top:4px solid #004e92;padding:18px;">
-    <div style="font-size:28px;margin-bottom:8px;">🧭</div>
-    <h3 style="margin-bottom:6px;">Trip Guides</h3>
+    <div style="font-size:28px;margin-bottom:8px;">📦</div>
+    <h3 style="margin-bottom:6px;">Packages & Media</h3>
     <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Create detailed travel guides for each UK destination with itineraries and tips.
+      Add, edit, or remove tour packages. Upload photos and videos.
     </p>
-    <a href="/manage_guides"><button class="btn btn-primary" style="width:100%;">Manage Guides</button></a>
+    <a href="/manage_packages">
+      <button class="btn btn-primary" style="width:100%;">Manage Packages</button>
+    </a>
   </div>
 
   <div class="card" style="border-top:4px solid #8e44ad;padding:18px;">
     <div style="font-size:28px;margin-bottom:8px;">🖼️</div>
     <h3 style="margin-bottom:6px;">Photo Gallery</h3>
     <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Upload and manage photos and videos for all packages in one place.
+      View and manage all uploaded photos and videos across packages.
     </p>
-    <a href="/manage_gallery"><button class="btn btn-primary" style="width:100%;background:#8e44ad;">Manage Gallery</button></a>
+    <a href="/manage_gallery">
+      <button class="btn btn-primary" style="width:100%;background:#8e44ad;">Manage Gallery</button>
+    </a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #0891b2;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">🧭</div>
+    <h3 style="margin-bottom:6px;">Trip Guides</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Create and edit destination guides with itineraries and tips for travelers.
+    </p>
+    <a href="/manage_guides">
+      <button class="btn btn-primary" style="width:100%;background:#0891b2;">Manage Guides</button>
+    </a>
   </div>
 
   <div class="card" style="border-top:4px solid #16a34a;padding:18px;">
@@ -76,19 +102,61 @@
     <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
       Post site-wide notices shown as banners on every traveler's page.
     </p>
-    <a href="/announcements"><button class="btn btn-primary" style="width:100%;background:#16a34a;">Post Announcement</button></a>
+    <a href="/announcements">
+      <button class="btn btn-primary" style="width:100%;background:#16a34a;">Post Announcement</button>
+    </a>
+  </div>
+
+</div>
+
+<!-- ══ ADMIN OPERATIONS — Operations ══ -->
+<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:12px;">
+  Operations
+</h3>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:24px;">
+
+  <div class="card" style="border-top:4px solid #1e3c72;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">🚖</div>
+    <h3 style="margin-bottom:6px;">Transport</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Manage the vehicle fleet, assign drivers, and update transport status.
+    </p>
+    <a href="/manage_transport">
+      <button class="btn btn-primary" style="width:100%;background:#1e3c72;">Manage Transport</button>
+    </a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #059669;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">💳</div>
+    <h3 style="margin-bottom:6px;">Payments</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Record and track payments against approved bookings.
+    </p>
+    <a href="/manage_payments">
+      <button class="btn btn-primary" style="width:100%;background:#059669;">Manage Payments</button>
+    </a>
   </div>
 
   <div class="card" style="border-top:4px solid #d97706;padding:18px;">
-    <div style="font-size:28px;margin-bottom:8px;">📥</div>
-    <h3 style="margin-bottom:6px;">Export Reports</h3>
+    <div style="font-size:28px;margin-bottom:8px;">👨‍💼</div>
+    <h3 style="margin-bottom:6px;">Tour Guides</h3>
     <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Download bookings and traveler data as CSV files for offline analysis.
+      Add tour guides, assign them to bookings, and manage their status.
     </p>
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <a href="/export_bookings"><button class="btn btn-warning" style="width:100%;">Bookings CSV</button></a>
-      <a href="/export_travelers"><button class="btn btn-outline" style="width:100%;">Travelers CSV</button></a>
-    </div>
+    <a href="/manage_guides_admin">
+      <button class="btn btn-primary" style="width:100%;background:#d97706;">Manage Tour Guides</button>
+    </a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #64748b;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">🧾</div>
+    <h3 style="margin-bottom:6px;">Invoices</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Generate, view, and print invoices for approved traveler bookings.
+    </p>
+    <a href="/manage_invoices">
+      <button class="btn btn-primary" style="width:100%;background:#64748b;">Manage Invoices</button>
+    </a>
   </div>
 
   <div class="card" style="border-top:4px solid #dc2626;padding:18px;">
@@ -97,7 +165,25 @@
     <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
       Read, filter by star rating, and moderate traveler reviews.
     </p>
-    <a href="/view_reviews"><button class="btn btn-primary" style="width:100%;background:#dc2626;">View Reviews</button></a>
+    <a href="/view_reviews">
+      <button class="btn btn-primary" style="width:100%;background:#dc2626;">View Reviews</button>
+    </a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #f59e0b;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">📥</div>
+    <h3 style="margin-bottom:6px;">Export Reports</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Download bookings and traveler data as CSV for offline analysis.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <a href="/export_bookings">
+        <button class="btn btn-warning" style="width:100%;">Bookings CSV</button>
+      </a>
+      <a href="/export_travelers">
+        <button class="btn btn-outline" style="width:100%;">Travelers CSV</button>
+      </a>
+    </div>
   </div>
 
 </div>
@@ -108,12 +194,20 @@
   <!-- RECENT BOOKINGS -->
   <div class="card">
     <h3>Recent Bookings
-      <a href="/view_bookings" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a>
+      <a href="/view_bookings" style="font-size:12px;font-weight:400;color:#004e92;float:right;">
+        View all →
+      </a>
     </h3>
     {% if recent_bookings %}
     <table>
       <thead>
-        <tr><th>Traveler</th><th>Package</th><th>Amount</th><th>Status</th><th></th></tr>
+        <tr>
+          <th>Traveler</th>
+          <th>Package</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
       </thead>
       <tbody>
         {% for b in recent_bookings %}
@@ -127,6 +221,8 @@
             <a href="/update_booking/{{ b.booking_id }}/Approved">
               <button class="btn btn-success btn-sm">✓ Approve</button>
             </a>
+            {% else %}
+            <span style="color:#aaa;font-size:12px;">—</span>
             {% endif %}
           </td>
         </tr>
@@ -138,17 +234,40 @@
     {% endif %}
   </div>
 
-  <!-- QUICK ACTIONS -->
+  <!-- RIGHT COLUMN -->
   <div>
+
+    <!-- QUICK ACTIONS -->
     <div class="card">
       <h3>Quick Actions</h3>
       <div style="display:flex;flex-direction:column;gap:9px;">
-        <a href="/manage_packages"><button class="btn btn-primary" style="width:100%;padding:10px;">📦 Packages & Media</button></a>
-        <a href="/manage_guides"><button class="btn btn-outline" style="width:100%;padding:10px;">🧭 Trip Guides</button></a>
-        <a href="/manage_gallery"><button class="btn btn-outline" style="width:100%;padding:10px;">🖼️ Photo Gallery</button></a>
-        <a href="/view_bookings"><button class="btn btn-outline" style="width:100%;padding:10px;">📄 Manage Bookings</button></a>
-        <a href="/manage_travelers"><button class="btn btn-outline" style="width:100%;padding:10px;">👥 View Travelers</button></a>
-        <a href="/announcements"><button class="btn btn-outline" style="width:100%;padding:10px;">📢 Announcements</button></a>
+        <a href="/view_bookings">
+          <button class="btn btn-primary" style="width:100%;padding:10px;">
+            📄 Manage Bookings
+            {% if pending_count %}<span style="background:#fff3cd;color:#856404;padding:1px 7px;border-radius:10px;font-size:11px;margin-left:6px;">{{ pending_count }} pending</span>{% endif %}
+          </button>
+        </a>
+        <a href="/manage_travelers">
+          <button class="btn btn-outline" style="width:100%;padding:10px;">👥 View Travelers</button>
+        </a>
+        <a href="/manage_packages">
+          <button class="btn btn-outline" style="width:100%;padding:10px;">📦 Packages & Media</button>
+        </a>
+        <a href="/manage_transport">
+          <button class="btn btn-outline" style="width:100%;padding:10px;">🚖 Transport</button>
+        </a>
+        <a href="/manage_payments">
+          <button class="btn btn-outline" style="width:100%;padding:10px;">💳 Payments</button>
+        </a>
+        <a href="/manage_invoices">
+          <button class="btn btn-outline" style="width:100%;padding:10px;">🧾 Invoices</button>
+        </a>
+        <a href="/announcements">
+          <button class="btn btn-outline" style="width:100%;padding:10px;">📢 Announcements</button>
+        </a>
+        <a href="/stats">
+          <button class="btn btn-outline" style="width:100%;padding:10px;">📊 Full Statistics</button>
+        </a>
       </div>
     </div>
 
@@ -165,6 +284,7 @@
       {% endfor %}
     </div>
     {% endif %}
+
   </div>
 
 </div>
@@ -176,7 +296,9 @@
     <a href="/view_reviews" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a>
   </h3>
   <table>
-    <thead><tr><th>Traveler</th><th>Package</th><th>Rating</th><th>Comment</th></tr></thead>
+    <thead>
+      <tr><th>Traveler</th><th>Package</th><th>Rating</th><th>Comment</th></tr>
+    </thead>
     <tbody>
       {% for r in recent_reviews %}
       <tr>
@@ -224,71 +346,58 @@ function loadCharts() {
 }
 
 function drawCharts() {
+  var approved  = Number('{{ approved }}');
+  var cancelled = Number('{{ cancelled }}');
+  var bookings  = Number('{{ bookings }}');
+  var pending   = bookings - approved - cancelled;
+
   /* PIE */
-  var approved = Number('{{ approved }}');
-var cancelled = Number('{{ cancelled }}');
-var bookings = Number('{{ bookings }}');
-var pending = bookings - approved - cancelled;
-
-new Chart(document.getElementById('pieChart'), {
-  type: 'doughnut',
-  data: {
-    labels: ['Approved', 'Cancelled', 'Pending'],
-    datasets: [{
-      data: [approved, cancelled, pending],
-      backgroundColor: ['#16a34a', '#6b7280', '#d97706'],
-      borderWidth: 2,
-      borderColor: '#fff'
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'bottom'
-      }
-    }
-  }
-});
-
-/* BAR */
-new Chart(document.getElementById('barChart'), {
-  type: 'bar',
-  data: {
-    labels: ['Travelers', 'Packages', 'Bookings', 'Approved'],
-    datasets: [{
-      label: 'Count',
-      data: [
-        Number('{{ users }}'),
-        Number('{{ total_packages }}'),
-        Number('{{ bookings }}'),
-        Number('{{ approved }}')
-      ],
-      backgroundColor: ['#5b86e5', '#8e44ad', '#f7971e', '#16a34a'],
-      borderRadius: 8
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: false
-      }
+  new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Approved', 'Cancelled', 'Pending'],
+      datasets: [{
+        data: [approved, cancelled, pending],
+        backgroundColor: ['#16a34a', '#6b7280', '#d97706'],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
     },
-    scales: {
-      y: {
-        beginAtZero: true
-      }
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } }
     }
-  }
-});
+  });
 
-/* TOP PACKAGES BAR */
-var pkgCanvas = document.getElementById('pkgChart');
+  /* BAR */
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Travelers', 'Packages', 'Bookings', 'Approved'],
+      datasets: [{
+        label: 'Count',
+        data: [
+          Number('{{ users }}'),
+          Number('{{ total_packages }}'),
+          Number('{{ bookings }}'),
+          Number('{{ approved }}')
+        ],
+        backgroundColor: ['#5b86e5', '#8e44ad', '#f7971e', '#16a34a'],
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
 
-if (pkgCanvas) {
-  var pkgLabels = JSON.parse('{{ top_packages | map(attribute="category") | list | tojson | safe }}');
-  var pkgData = JSON.parse('{{ top_packages | map(attribute="total") | list | tojson | safe }}');
+  /* TOP PACKAGES BAR */
+  var pkgCanvas = document.getElementById('pkgChart');
+  if (pkgCanvas) {
+    var pkgLabels = JSON.parse('{{ top_packages | map(attribute="category") | list | tojson | safe }}');
+    var pkgData   = JSON.parse('{{ top_packages | map(attribute="total") | list | tojson | safe }}');
     new Chart(pkgCanvas, {
       type: 'bar',
       data: {
