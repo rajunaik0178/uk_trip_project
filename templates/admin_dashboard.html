@@ -1,10 +1,110 @@
 {% extends "admin_base.html" %}
-
 {% block content %}
 
-<div class="card">
-<h2>Welcome Admin 👋</h2>
-<p>Manage system easily</p>
+<div class="topbar">
+  <h1>Admin Dashboard</h1>
+  <div style="font-size:13px;color:#888;">Welcome, <strong>{{ session.get('admin','Admin') }}</strong></div>
 </div>
+
+{% if pending_count %}
+<div class="alert alert-warning">
+  ⚠️ <strong>{{ pending_count }} booking(s)</strong> are waiting for your approval.
+  <a href="/view_bookings" style="color:#856404;font-weight:600;margin-left:8px;">Review now →</a>
+</div>
+{% endif %}
+
+<!-- STAT CARDS -->
+<div class="stats-container">
+  <div class="stat-card c-users"><h3>Travelers</h3><h1>{{ users }}</h1><div class="sub">Registered</div></div>
+  <div class="stat-card c-pkg"><h3>Packages</h3><h1>{{ total_packages }}</h1><div class="sub">Active tours</div></div>
+  <div class="stat-card c-book"><h3>Bookings</h3><h1>{{ bookings }}</h1><div class="sub">All time</div></div>
+  <div class="stat-card c-appr"><h3>Approved</h3><h1>{{ approved }}</h1><div class="sub">Confirmed trips</div></div>
+  <div class="stat-card c-rev"><h3>Revenue</h3><h1>₹{{ revenue }}</h1><div class="sub">Approved only</div></div>
+</div>
+
+<div class="two-col">
+
+  <!-- RECENT BOOKINGS -->
+  <div class="card">
+    <h3>Recent Bookings <a href="/view_bookings" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a></h3>
+    {% if recent_bookings %}
+    <table>
+      <thead><tr><th>Traveler</th><th>Package</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for b in recent_bookings %}
+        <tr>
+          <td>{{ b.traveler_name or b.adharno }}</td>
+          <td>{{ b.category or '#'+b.package_id|string }}</td>
+          <td>₹{{ b.total_amount }}</td>
+          <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
+          <td>
+            {% if b.status=='Booked' %}
+            <a href="/update_booking/{{ b.booking_id }}/Approved">
+              <button class="btn btn-success btn-sm">Approve</button>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#888;font-size:13px;padding:16px 0;">No bookings yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+    <!-- QUICK ACTIONS -->
+    <div class="card">
+      <h3>Quick Actions</h3>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <a href="/manage_packages"><button class="btn btn-primary" style="width:100%;padding:10px;">📦 Add Package</button></a>
+        <a href="/view_bookings"><button class="btn btn-outline" style="width:100%;padding:10px;">📄 Manage Bookings</button></a>
+        <a href="/manage_travelers"><button class="btn btn-outline" style="width:100%;padding:10px;">👥 View Travelers</button></a>
+        <a href="/announcements"><button class="btn btn-outline" style="width:100%;padding:10px;">📢 Announcements</button></a>
+        <a href="/stats"><button class="btn btn-outline" style="width:100%;padding:10px;">📊 Statistics</button></a>
+        <a href="/export_bookings"><button class="btn btn-outline" style="width:100%;padding:10px;">📥 Export CSV</button></a>
+      </div>
+    </div>
+
+    <!-- TOP PACKAGES -->
+    {% if top_packages %}
+    <div class="card">
+      <h3>🏆 Top Packages</h3>
+      {% for tp in top_packages %}
+      <div style="display:flex;justify-content:space-between;align-items:center;
+        padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
+        <span>{{ loop.index }}. {{ tp.category }}</span>
+        <span style="background:#e8f0fe;color:#2a5298;padding:2px 8px;border-radius:10px;font-size:12px;">
+          {{ tp.total }} bookings
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- RECENT REVIEWS -->
+{% if recent_reviews %}
+<div class="card">
+  <h3>Latest Reviews <a href="/view_reviews" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a></h3>
+  <table>
+    <thead><tr><th>Traveler</th><th>Package</th><th>Rating</th><th>Comment</th></tr></thead>
+    <tbody>
+      {% for r in recent_reviews %}
+      <tr>
+        <td>{{ r.traveler_name or r.adharno }}</td>
+        <td>{{ r.category or '—' }}</td>
+        <td>{% for i in range(r.rating|int) %}⭐{% endfor %}</td>
+        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.comment }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
 
 {% endblock %}

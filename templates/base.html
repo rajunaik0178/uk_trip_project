@@ -1,161 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>UK Trip</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>UK Trip — {% block title %}Dashboard{% endblock %}</title>
 <style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial;
+:root{
+  --blue:#2a5298; --dblue:#1e3c72; --green:#16a34a; --red:#dc2626;
+  --orange:#d97706; --bg:#f0f4f8; --card:#fff; --border:#e5e7eb;
+  --text:#1f2937; --muted:#6b7280; --r:12px; --shadow:0 2px 8px rgba(0,0,0,.08);
 }
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;}
+body{display:flex;background:var(--bg);color:var(--text);}
 
-body{
-display:flex;
-background:#f4f6f9;
+.sidebar{width:240px;min-height:100vh;background:linear-gradient(180deg,#1e3c72,#2a5298);
+  color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;
+  overflow-y:auto;z-index:200;}
+.sb-hd{padding:22px 20px 14px;border-bottom:1px solid rgba(255,255,255,.12);}
+.sb-hd h2{font-size:17px;font-weight:700;}
+.sb-hd p{font-size:11px;opacity:.65;margin-top:3px;}
+.sb-sec{padding:8px 20px 3px;font-size:10px;text-transform:uppercase;
+  letter-spacing:1.2px;opacity:.45;margin-top:6px;}
+.sidebar a{display:flex;align-items:center;gap:9px;color:#fff;
+  padding:10px 20px;text-decoration:none;font-size:13.5px;transition:.2s;}
+.sidebar a:hover{background:rgba(255,255,255,.15);padding-left:26px;}
+.sidebar a.active{background:rgba(255,255,255,.22);border-left:3px solid #7eb8ff;}
+.sb-badge{margin-left:auto;background:#dc2626;color:#fff;
+  font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;}
+.sb-ft{margin-top:auto;padding:14px 20px;border-top:1px solid rgba(255,255,255,.12);}
+.sb-user{background:rgba(255,255,255,.13);border-radius:8px;
+  padding:9px 12px;font-size:12px;margin-bottom:10px;}
+.sb-user span{display:block;font-size:10px;opacity:.6;margin-bottom:2px;}
+
+.content{margin-left:240px;padding:26px;width:calc(100% - 240px);min-height:100vh;}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;
+  background:var(--card);border-radius:var(--r);padding:13px 20px;
+  box-shadow:var(--shadow);margin-bottom:22px;}
+.topbar h1{font-size:19px;font-weight:600;color:var(--dblue);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+
+.notif-btn{position:relative;background:none;border:1.5px solid var(--border);
+  border-radius:8px;padding:7px 10px;cursor:pointer;font-size:16px;
+  text-decoration:none;color:var(--text);}
+.notif-dot{position:absolute;top:2px;right:2px;background:var(--red);color:#fff;
+  font-size:9px;min-width:16px;height:16px;border-radius:10px;padding:0 4px;
+  display:flex;align-items:center;justify-content:center;font-weight:700;}
+
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:15px;margin-bottom:22px;}
+.stat-card{background:var(--card);border-radius:var(--r);padding:18px;
+  box-shadow:var(--shadow);border-left:4px solid var(--blue);}
+.stat-card .icon{font-size:26px;margin-bottom:8px;}
+.stat-card .num{font-size:24px;font-weight:700;color:var(--dblue);}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:2px;}
+
+.card{background:var(--card);border-radius:var(--r);padding:20px;
+  box-shadow:var(--shadow);margin-bottom:18px;}
+.card-title{font-size:15px;font-weight:600;color:var(--dblue);margin-bottom:14px;}
+
+table{width:100%;border-collapse:collapse;}
+thead tr{background:#f0f4ff;}
+th{padding:11px 13px;text-align:left;font-size:12px;color:var(--blue);
+  font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+td{padding:11px 13px;border-bottom:1px solid var(--border);font-size:13px;}
+tbody tr:hover td{background:#f8faff;}
+
+.btn{padding:7px 14px;border:none;border-radius:7px;cursor:pointer;
+  font-size:12.5px;font-weight:500;transition:.2s;text-decoration:none;
+  display:inline-block;line-height:1.4;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:var(--dblue);}
+.btn-success{background:var(--green);color:#fff;}
+.btn-success:hover{background:#15803d;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{background:#b91c1c;}
+.btn-warning{background:var(--orange);color:#fff;}
+.btn-warning:hover{background:#b45309;}
+.btn-outline{background:transparent;border:1.5px solid var(--blue);color:var(--blue);}
+.btn-outline:hover{background:var(--blue);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:11.5px;}
+
+.status{padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:500;}
+.status.Booked{background:#fff3cd;color:#856404;}
+.status.Approved{background:#d1fae5;color:#065f46;}
+.status.Rejected{background:#fee2e2;color:#991b1b;}
+.status.Cancelled{background:#f3f4f6;color:var(--muted);}
+
+.form-group{margin-bottom:13px;}
+.form-group label{display:block;font-size:12.5px;color:#444;
+  margin-bottom:4px;font-weight:500;}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:9px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:13.5px;outline:none;transition:.2s;background:#fff;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  border-color:var(--blue);box-shadow:0 0 0 3px rgba(42,82,152,.1);}
+
+.alert{padding:11px 15px;border-radius:8px;margin-bottom:14px;
+  font-size:13px;border-left:4px solid;}
+.alert-success{background:#d1fae5;color:#065f46;border-color:var(--green);}
+.alert-danger{background:#fee2e2;color:#991b1b;border-color:var(--red);}
+.alert-warning{background:#fff3cd;color:#856404;border-color:var(--orange);}
+.alert-info{background:#dbeafe;color:#1e40af;border-color:var(--blue);}
+
+.ann-banner{background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;
+  border-radius:var(--r);padding:12px 18px;margin-bottom:14px;
+  display:flex;align-items:flex-start;gap:10px;font-size:13px;}
+.ann-banner strong{font-size:14px;}
+
+.search-bar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+  background:var(--card);padding:13px 16px;border-radius:var(--r);
+  box-shadow:var(--shadow);margin-bottom:18px;}
+.search-bar input,.search-bar select{
+  padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;
+  font-size:13px;outline:none;background:#fff;}
+.search-bar input:focus{border-color:var(--blue);}
+
+.modal-overlay{display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.45);z-index:999;
+  align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:26px;
+  width:460px;max-width:95vw;max-height:90vh;
+  overflow-y:auto;position:relative;}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:16px;color:var(--dblue);}
+.modal-close{position:absolute;top:14px;right:16px;font-size:19px;
+  cursor:pointer;color:var(--muted);background:none;border:none;}
+
+.pkg-card{background:#fff;border-radius:var(--r);overflow:hidden;
+  box-shadow:var(--shadow);transition:.25s;}
+.pkg-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.12);}
+
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:18px;}
+@media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+
+@media print{
+  .sidebar,.topbar,.btn{display:none!important;}
+  .content{margin-left:0;padding:0;}
+  .card{box-shadow:none;border:1px solid #ccc;}
 }
-
-/* SIDEBAR */
-.sidebar{
-width:230px;
-height:100vh;
-background:linear-gradient(180deg,#1e3c72,#2a5298);
-color:white;
-padding:20px;
-position:fixed;
-}
-
-.sidebar h2{
-margin-bottom:20px;
-text-align:center;
-}
-
-.sidebar a{
-display:block;
-color:white;
-padding:12px;
-margin:10px 0;
-text-decoration:none;
-border-radius:6px;
-transition:0.3s;
-}
-
-.sidebar a:hover{
-background:rgba(255,255,255,0.2);
-}
-
-/* ACTIVE LINK */
-.sidebar a.active{
-background:rgba(255,255,255,0.3);
-}
-
-/* CONTENT */
-.content{
-margin-left:230px;
-padding:30px;
-width:100%;
-}
-
-/* CARD */
-.card{
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
-}
-
-/* TABLE */
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-border-radius:10px;
-overflow:hidden;
-margin-top:15px;
-}
-
-th,td{
-padding:12px;
-border-bottom:1px solid #ddd;
-text-align:left;
-}
-
-th{
-background:#2a5298;
-color:white;
-}
-
-/* BUTTON */
-.btn{
-padding:6px 12px;
-border:none;
-border-radius:5px;
-cursor:pointer;
-background:#2a5298;
-color:white;
-}
-
-.btn:hover{
-opacity:0.9;
-}
-
-.btn-danger{
-background:red;
-color:white;
-}
-
-.btn-success{
-background:green;
-color:white;
-}
-
-/* STATUS BADGES */
-.status{
-padding:5px 10px;
-border-radius:5px;
-color:white;
-font-size:13px;
-}
-
-.status.Booked{
-background:orange;
-}
-
-.status.Approved{
-background:green;
-}
-
-.status.Rejected{
-background:red;
-}
-
-.status.Cancelled{
-background:gray;
-}
-
 </style>
-
 </head>
-
 <body>
-
 <div class="sidebar">
-<h2>UK Trip</h2>
-
-<a href="/dashboard">🏠 Dashboard</a>
-<a href="/packages">📦 Packages</a>
-<a href="/my_bookings">📄 My Bookings</a>
-<a href="/add_review">⭐ Add Review</a>
-<a href="/logout">🚪 Logout</a>
-
+  <div class="sb-hd">
+    <h2>✈️ UK Trip</h2>
+    <p>Travel Management</p>
+  </div>
+  <div class="sb-sec">Main</div>
+  <a href="/dashboard"  {% if request.path=='/dashboard'  %}class="active"{% endif %}>🏠 Dashboard</a>
+  <a href="/packages"   {% if request.path=='/packages'   %}class="active"{% endif %}>🌍 Browse Packages</a>
+  <a href="/wishlist"   {% if request.path=='/wishlist'   %}class="active"{% endif %}>❤️ Wishlist
+    {% if wishlist_count %}<span class="sb-badge">{{ wishlist_count }}</span>{% endif %}
+  </a>
+  <div class="sb-sec">My Account</div>
+  <a href="/my_bookings" {% if request.path=='/my_bookings' %}class="active"{% endif %}>📄 My Bookings</a>
+  <a href="/my_reviews"  {% if request.path=='/my_reviews'  %}class="active"{% endif %}>📝 My Reviews</a>
+  <a href="/add_review"  {% if request.path=='/add_review'  %}class="active"{% endif %}>⭐ Write Review</a>
+  <a href="/notifications" {% if request.path=='/notifications' %}class="active"{% endif %}>🔔 Notifications
+    {% if notif_count %}<span class="sb-badge">{{ notif_count }}</span>{% endif %}
+  </a>
+  <a href="/profile"    {% if request.path=='/profile'    %}class="active"{% endif %}>👤 My Profile</a>
+  <div class="sb-sec">Help</div>
+  <a href="/contact" {% if request.path=='/contact' %}class="active"{% endif %}>📞 Contact Us</a>
+  <a href="/faq"     {% if request.path=='/faq'     %}class="active"{% endif %}>❓ FAQ</a>
+  <div class="sb-ft">
+    <div class="sb-user"><span>Logged in as</span>{{ session.get('user','User') }}</div>
+    <a href="/logout" style="color:#fff;font-size:13px;display:flex;align-items:center;gap:7px;">🚪 Logout</a>
+  </div>
 </div>
 
 <div class="content">
-{% block content %}
-{% endblock %}
+  {% for ann in announcements %}
+  <div class="ann-banner">
+    📢&nbsp;<div><strong>{{ ann.title }}</strong><br><span style="opacity:.85;">{{ ann.message }}</span></div>
+  </div>
+  {% endfor %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
 </div>
-
 </body>
 </html>

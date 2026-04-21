@@ -1,0 +1,67 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+  <h1>📢 Announcements</h1>
+  <button class="btn btn-primary"
+    onclick="document.getElementById('addAnnModal').classList.add('open')">+ New Announcement</button>
+</div>
+
+<div class="card">
+  {% if announcements %}
+  <table>
+    <thead>
+      <tr><th>#</th><th>Title</th><th>Message</th><th>Posted</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for a in announcements %}
+      <tr>
+        <td>{{ a.id }}</td>
+        <td><strong>{{ a.title }}</strong></td>
+        <td style="max-width:300px;color:#555;">{{ a.message }}</td>
+        <td style="font-size:12px;color:#888;">
+          {{ a.created_at.strftime('%d %b %Y') if a.created_at else '—' }}
+        </td>
+        <td>
+          <a href="/delete_announcement/{{ a.id }}"
+             onclick="return confirm('Delete this announcement?')">
+            <button class="btn btn-danger btn-sm">Delete</button>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#888;text-align:center;padding:30px 0;">No announcements posted yet.</p>
+  {% endif %}
+</div>
+
+<div class="card" style="background:#f0f4ff;border:1px solid #c3d4f4;">
+  <h3>ℹ️ How Announcements Work</h3>
+  <p style="font-size:13px;color:#555;line-height:1.7;margin-top:6px;">
+    Announcements are displayed as a blue banner at the top of every user page.
+    Up to the 3 most recent active announcements are shown. Delete old ones to keep the dashboard clean.
+  </p>
+</div>
+
+<!-- ADD ANNOUNCEMENT MODAL -->
+<div class="modal-overlay" id="addAnnModal">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('addAnnModal').classList.remove('open')">✕</button>
+    <h3>📢 New Announcement</h3>
+    <form method="POST" action="/add_announcement">
+      <div class="form-group">
+        <label>Title</label>
+        <input name="title" placeholder="e.g. Special Offer — 20% off London packages" required>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea name="message" rows="4" placeholder="Write the announcement text…" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:10px;">Post Announcement</button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,105 +1,318 @@
 {% extends "base.html" %}
-
+{% block title %}Packages{% endblock %}
 {% block content %}
 
-<h2 style="margin-bottom:20px;">Available Packages</h2>
+<style>
+/* Wishlist heart button — use classes not inline Jinja style */
+.heart-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s;
+}
+.heart-btn:hover { transform: scale(1.15); }
+.heart-btn.wishlisted { background: #fee2e2; }
 
-<div style="display:flex; flex-wrap:wrap; gap:25px;">
+.thumb-strip {
+  display: flex;
+  gap: 5px;
+  padding: 7px 9px;
+  background: #f9f9f9;
+  overflow-x: auto;
+}
+.thumb-strip img {
+  width: 50px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+.thumb-strip img:hover { border-color: #2a5298; }
+.thumb-strip img.active { border-color: #2a5298; }
+
+.no-img-box {
+  width: 100%;
+  height: 185px;
+  background: #e8f0fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 13px;
+}
+.photo-count {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+</style>
+
+<div class="topbar">
+  <h1>🌍 Browse Packages</h1>
+  <span style="font-size:13px;color:#888;">{{ packages|length }} packages available</span>
+</div>
+
+<!-- SEARCH & FILTER -->
+<div class="search-bar">
+  <input type="text" id="q" placeholder="🔍 Search by name…"
+    oninput="filterPkg()" style="flex:1;min-width:140px;">
+  <select id="sort" onchange="filterPkg()">
+    <option value="">Sort by</option>
+    <option value="pasc">Price ↑</option>
+    <option value="pdesc">Price ↓</option>
+    <option value="name">Name A–Z</option>
+    <option value="rating">Top Rated</option>
+  </select>
+  <select id="dur" onchange="filterPkg()">
+    <option value="">All Durations</option>
+    <option value="short">≤ 5 days</option>
+    <option value="medium">6–10 days</option>
+    <option value="long">11+ days</option>
+  </select>
+  <input type="number" id="maxp" placeholder="Max ₹"
+    oninput="filterPkg()" style="width:110px;">
+  <button class="btn btn-outline btn-sm" onclick="clearF()">✕ Clear</button>
+</div>
+
+<!-- PACKAGE GRID -->
+<div id="pgrid"
+  style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:20px;">
 
 {% for p in packages %}
 
-<div style="
-width:270px;
-background:white;
-border-radius:12px;
-overflow:hidden;
-box-shadow:0 6px 15px rgba(0,0,0,0.1);
-transition:0.3s;
-">
+{#
+  BUG FIX 1: Store package data in data-* attributes on the card itself.
+  The openBook() JS reads these — avoids putting Jinja/quotes inside onclick.
+  BUG FIX 2: data-name uses |lower for reliable client-side search.
+#}
+<div class="pkg-card"
+  data-pid="{{ p.package_id }}"
+  data-name="{{ p.category | lower }}"
+  data-price="{{ p.amt_rate }}"
+  data-dur="{{ p.duration }}"
+  data-rating="{{ p.avg_rating or 0 }}"
+  data-title="{{ p.category | e }}"
+>
 
-<!-- MAIN IMAGE -->
-{% if p.images and p.images|length > 0 %}
-<img id="main{{p.package_id}}" 
-src="/static/uploads/{{p.images[0]}}" 
-style="width:100%; height:160px; object-fit:cover;">
+  <!-- IMAGE BLOCK -->
+  <div style="position:relative;">
+    {% if p.images %}
+    <img id="mi{{ p.package_id }}"
+      src="/static/uploads/{{ p.images[0] }}"
+      style="width:100%;height:185px;object-fit:cover;display:block;">
+    {% if p.images|length > 1 %}
+    <div class="photo-count">📷 {{ p.images|length }}</div>
+    {% endif %}
+    {% else %}
+    <div class="no-img-box">No image available</div>
+    {% endif %}
+
+    {#
+      BUG FIX 3: Wishlist heart — use CSS class instead of Jinja inside style="background:..."
+      The href uses /add or /remove — no Jinja inside a CSS value.
+    #}
+    {% if p.in_wishlist %}
+    <a href="/wishlist/remove/{{ p.package_id }}"
+      class="heart-btn wishlisted" title="Remove from wishlist">❤️</a>
+    {% else %}
+    <a href="/wishlist/add/{{ p.package_id }}"
+      class="heart-btn" title="Add to wishlist">🤍</a>
+    {% endif %}
+  </div>
+
+  <!-- THUMBNAIL STRIP -->
+  {% if p.images and p.images|length > 1 %}
+  <div class="thumb-strip" data-main="mi{{ p.package_id }}">
+    {% for img in p.images %}
+    <img src="/static/uploads/{{ img }}"
+      onclick="switchImg(this)">
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- INFO -->
+  <div style="padding:14px;">
+    <h3 style="font-size:15px;font-weight:600;color:#1e3c72;margin-bottom:5px;">
+      {{ p.category }}
+    </h3>
+
+    <!-- STAR RATING -->
+    {% if p.avg_rating %}
+    <div style="font-size:12px;color:#888;margin-bottom:5px;">
+      {% for i in range(p.avg_rating|int) %}⭐{% endfor %}
+      <span style="color:#555;margin-left:3px;">
+        {{ p.avg_rating }} ({{ p.review_count }} review{{ 's' if p.review_count != 1 }})
+      </span>
+    </div>
+    {% endif %}
+
+    <p style="font-size:12px;color:#888;margin-bottom:4px;">⏱ {{ p.duration }}</p>
+
+    <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.5;">
+      {{ (p.description or '')[:80] }}{% if p.description and p.description|length > 80 %}…{% endif %}
+    </p>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:20px;font-weight:700;color:#2a5298;">₹{{ p.amt_rate }}</span>
+      <span style="font-size:11px;color:#aaa;">per person</span>
+    </div>
+
+    <div style="display:flex;gap:7px;">
+      {#
+        BUG FIX 4: onclick uses data-* attributes read by JS — NO Jinja/quotes inside onclick.
+        This prevents broken JS when category names contain apostrophes or special chars.
+      #}
+      <button class="btn btn-primary" style="flex:1;padding:9px;"
+        onclick="openBookFromCard(this.closest('.pkg-card'))">
+        Book Now
+      </button>
+      <a href="/view_images/{{ p.package_id }}" style="flex:1;">
+        <button class="btn btn-outline" style="width:100%;padding:9px;">Gallery</button>
+      </a>
+    </div>
+  </div>
+
+</div>
+
 {% else %}
-<img src="https://via.placeholder.com/270x160?text=No+Image"
-style="width:100%; height:160px;">
-{% endif %}
-
-<!-- THUMBNAILS -->
-{% if p.images and p.images|length > 1 %}
-<div style="display:flex; gap:6px; padding:8px; overflow-x:auto;">
-
-{% for img in p.images %}
-<img src="/static/uploads/{{img}}" 
-style="
-width:55px; 
-height:55px; 
-object-fit:cover; 
-border-radius:6px; 
-cursor:pointer;
-border:2px solid transparent;
-"
-onclick="document.getElementById('main{{p.package_id}}').src=this.src">
+<p style="grid-column:1/-1;text-align:center;color:#888;padding:40px 0;">
+  No packages available yet.
+</p>
 {% endfor %}
 
 </div>
-{% endif %}
 
-<div style="padding:15px;">
-
-<h3 style="margin-bottom:8px;">{{p.category}}</h3>
-
-<p style="font-weight:bold; margin-bottom:5px;">
-₹ {{p.amt_rate}}
+<p id="nores"
+  style="display:none;text-align:center;color:#888;padding:40px 0;">
+  No packages match your filters.
 </p>
 
-<p style="color:gray; margin-bottom:12px;">
-{{p.duration}}
-</p>
-
-<!-- BUTTONS -->
-<div style="display:flex; gap:10px;">
-
-<!-- BOOK -->
-<a href="/book/{{p.package_id}}" style="flex:1;">
-<button style="
-width:100%;
-padding:10px;
-background:#007bff;
-color:white;
-border:none;
-border-radius:6px;
-cursor:pointer;
-">
-Book Now
-</button>
-</a>
-
-<!-- VIEW PHOTOS -->
-<a href="/view_images/{{p.package_id}}" style="flex:1;">
-<button style="
-width:100%;
-padding:10px;
-background:#28a745;
-color:white;
-border:none;
-border-radius:6px;
-cursor:pointer;
-">
-View Photos
-</button>
-</a>
-
+<!-- BOOKING MODAL -->
+<div class="modal-overlay" id="bookModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeBook()">✕</button>
+    <h3>📅 Confirm Booking</h3>
+    <p id="mName" style="font-size:14px;font-weight:500;color:#1e3c72;margin-bottom:4px;"></p>
+    <p style="font-size:13px;color:#888;margin-bottom:16px;">
+      Select your preferred travel date below.
+    </p>
+    <div class="form-group">
+      <label>Travel Date</label>
+      <input type="date" id="tDate">
+    </div>
+    <div style="background:#f0f4ff;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+      <div style="font-size:12px;color:#555;">Total Amount</div>
+      <div id="mAmt" style="font-size:22px;font-weight:700;color:#2a5298;"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:11px;"
+      onclick="confirmBook()">✅ Confirm Booking</button>
+  </div>
 </div>
 
-</div>
+<script>
+// ── MODAL STATE ──────────────────────────────────────
+let _bid = null;
 
-</div>
+// Set min date to today
+document.getElementById('tDate').min = new Date().toISOString().split('T')[0];
 
-{% endfor %}
+/**
+ * BUG FIX: Read package data from data-* attributes on the card element.
+ * This avoids embedding Jinja strings inside onclick="..." which breaks
+ * when package names contain quotes, apostrophes, or special characters.
+ */
+function openBookFromCard(card) {
+  _bid = card.dataset.pid;
+  document.getElementById('mName').textContent = card.dataset.title;
+  document.getElementById('mAmt').textContent  = '₹' + card.dataset.price;
+  document.getElementById('bookModal').classList.add('open');
+}
 
-</div>
+function closeBook() {
+  document.getElementById('bookModal').classList.remove('open');
+  document.getElementById('tDate').value = '';
+}
+
+function confirmBook() {
+  const d = document.getElementById('tDate').value;
+  if (!d) { alert('Please select a travel date.'); return; }
+  window.location.href = '/book/' + _bid + '?travel_date=' + d;
+}
+
+// ── THUMBNAIL SWITCHER ───────────────────────────────
+function switchImg(thumb) {
+  var strip = thumb.closest(".thumb-strip"); var mainId = strip.dataset.main; document.getElementById(mainId).src = thumb.src;
+  // Remove active border from all thumbs in same strip
+  thumb.closest('.thumb-strip').querySelectorAll('img').forEach(function(t) {
+    t.classList.remove('active');
+  });
+  thumb.classList.add('active');
+}
+
+// ── FILTER / SEARCH / SORT ───────────────────────────
+function filterPkg() {
+  const q    = document.getElementById('q').value.toLowerCase().trim();
+  const sort = document.getElementById('sort').value;
+  const dur  = document.getElementById('dur').value;
+  const maxp = parseFloat(document.getElementById('maxp').value) || Infinity;
+  let vis = 0;
+
+  document.querySelectorAll('#pgrid .pkg-card').forEach(function(c) {
+    const name  = c.dataset.name;
+    const price = parseFloat(c.dataset.price);
+    const dd    = parseInt(c.dataset.dur) || 0;
+
+    let ok = name.includes(q) && price <= maxp;
+    if (dur === 'short'  && dd > 5)           ok = false;
+    if (dur === 'medium' && (dd < 6 || dd > 10)) ok = false;
+    if (dur === 'long'   && dd < 11)          ok = false;
+
+    c.style.display = ok ? '' : 'none';
+    if (ok) vis++;
+  });
+
+  document.getElementById('nores').style.display = vis === 0 ? 'block' : 'none';
+
+  if (sort) {
+    const grid  = document.getElementById('pgrid');
+    const cards = Array.from(grid.querySelectorAll('.pkg-card'))
+                       .filter(function(c){ return c.style.display !== 'none'; });
+    cards.sort(function(a, b) {
+      if (sort === 'pasc')   return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+      if (sort === 'pdesc')  return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+      if (sort === 'name')   return a.dataset.name.localeCompare(b.dataset.name);
+      if (sort === 'rating') return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
+      return 0;
+    });
+    cards.forEach(function(c){ grid.appendChild(c); });
+  }
+}
+
+function clearF() {
+  document.getElementById('q').value    = '';
+  document.getElementById('maxp').value = '';
+  document.getElementById('sort').value = '';
+  document.getElementById('dur').value  = '';
+  filterPkg();
+}
+</script>
 
 {% endblock %}

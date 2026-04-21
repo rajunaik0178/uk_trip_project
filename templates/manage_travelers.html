@@ -1,0 +1,70 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+  <h1>👥 Manage Travelers</h1>
+  <a href="/export_travelers" class="btn btn-outline">📥 Export CSV</a>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="ts" placeholder="🔍 Search by name or Aadhaar…"
+    oninput="filterT()" style="flex:1;">
+</div>
+
+<div class="card" style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Aadhaar</th><th>Name</th><th>Mobile</th>
+        <th>Address</th><th>Bookings</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tRows">
+      {% for t in travelers %}
+      <tr>
+        <td style="font-size:12px;color:#888;">{{ t.adharno }}</td>
+        <td><strong>{{ t.name }}</strong></td>
+        <td>{{ t.mobile }}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;
+          white-space:nowrap;color:#666;">{{ t.address }}</td>
+        <td>
+          <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;
+            border-radius:12px;font-size:12px;">
+            {{ t.booking_count or 0 }}
+          </span>
+        </td>
+        <td>
+          <a href="/delete_traveler/{{ t.adharno }}"
+             data-tname="{{ t.name | e }}" onclick="return confirmDelete(this)">
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:#888;padding:30px;">
+          No travelers registered yet.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function filterT(){
+  const q = document.getElementById('ts').value.toLowerCase();
+  document.querySelectorAll('#tRows tr').forEach(r=>{
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+
+
+<script>
+function confirmDelete(el) {
+  var name = el.getAttribute('data-tname') || 'this traveler';
+  return confirm('Delete ' + name + ' and ALL their data? This cannot be undone.');
+}
+</script>
+{% endblock %}

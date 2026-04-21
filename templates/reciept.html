@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Booking Receipt{% endblock %}
+{% block content %}
+
+<style>
+.receipt-status {
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 15px;
+}
+.receipt-status.approved  { background: #d1fae5; color: #065f46; }
+.receipt-status.booked    { background: #fff3cd; color: #856404; }
+.receipt-status.rejected  { background: #fee2e2; color: #991b1b; }
+.receipt-status.cancelled { background: #f3f4f6; color: #6b7280; }
+
+.receipt-table td {
+  padding: 9px 0;
+  border: none;
+}
+.receipt-table td:first-child {
+  color: #888;
+  width: 45%;
+}
+.receipt-table td:last-child {
+  font-weight: 500;
+}
+
+@media print {
+  .topbar, .sidebar, .ann-banner, .alert, .btn { display: none !important; }
+  .content { margin-left: 0 !important; padding: 0 !important; }
+  .card { box-shadow: none !important; border: 1px solid #ccc; }
+}
+</style>
+
+<div class="topbar">
+  <h1>🧾 Booking Receipt</h1>
+  <div class="topbar-right">
+    <button class="btn btn-outline" onclick="window.print()">🖨️ Print</button>
+    <a href="/my_bookings" class="btn btn-primary">← My Bookings</a>
+  </div>
+</div>
+
+<div class="card" style="max-width:650px; margin:0 auto;">
+
+  <!-- HEADER -->
+  <div style="text-align:center; padding:10px 0 20px;
+    border-bottom:2px dashed #e5e7eb; margin-bottom:20px;">
+    <div style="font-size:36px; margin-bottom:8px;">✈️</div>
+    <h2 style="font-size:22px; color:#1e3c72; margin-bottom:4px;">UK Trip</h2>
+    <p style="color:#888; font-size:13px;">Booking Confirmation Receipt</p>
+  </div>
+
+  <!-- STATUS BANNER — uses CSS class, no Jinja in style -->
+  {% if b.status == 'Approved' %}
+  <div class="receipt-status approved">✅ Booking Approved</div>
+  {% elif b.status == 'Booked' %}
+  <div class="receipt-status booked">⏳ Pending Approval</div>
+  {% elif b.status == 'Cancelled' %}
+  <div class="receipt-status cancelled">🚫 Booking Cancelled</div>
+  {% else %}
+  <div class="receipt-status rejected">❌ {{ b.status }}</div>
+  {% endif %}
+
+  <!-- BOOKING DETAILS -->
+  <table class="receipt-table" style="width:100%; font-size:14px;">
+    <tbody>
+      <tr><td>Booking ID</td>    <td><strong>#{{ b.booking_id }}</strong></td></tr>
+      <tr><td>Package</td>       <td>{{ b.category }}</td></tr>
+      <tr><td>Duration</td>      <td>{{ b.duration }}</td></tr>
+      <tr><td>Travel Date</td>   <td>{{ b.travel_date }}</td></tr>
+      <tr><td>Traveler Name</td> <td>{{ b.traveler_name }}</td></tr>
+      <tr><td>Aadhaar</td>       <td>{{ b.adharno }}</td></tr>
+      <tr><td>Mobile</td>        <td>{{ b.mobile }}</td></tr>
+      <tr><td>Address</td>       <td>{{ b.address }}</td></tr>
+    </tbody>
+  </table>
+
+  <!-- AMOUNT BOX -->
+  <div style="background:#f0f4ff; border-radius:8px; padding:16px 18px;
+    margin-top:18px; display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:15px; color:#555; font-weight:500;">Total Amount</span>
+    <span style="font-size:24px; font-weight:700; color:#2a5298;">₹{{ b.total_amount }}</span>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="text-align:center; margin-top:22px; padding-top:16px;
+    border-top:1px dashed #e5e7eb; color:#aaa; font-size:12px;">
+    Thank you for booking with UK Trip!
+    &nbsp;|&nbsp; support@uktrip.in
+    &nbsp;|&nbsp; +91 98765 43210
+  </div>
+
+</div>
+
+{% endblock %}

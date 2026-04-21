@@ -1,10 +1,111 @@
 {% extends "base.html" %}
-
+{% block title %}Dashboard{% endblock %}
 {% block content %}
 
-<div class="card">
-<h2>Welcome {{user}}</h2>
-<p>This is your dashboard</p>
+<div class="topbar">
+  <h1>Welcome back, {{ user }} 👋</h1>
+  <div class="topbar-right">
+    <a href="/notifications" class="notif-btn">
+      🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}
+    </a>
+    <a href="/packages" class="btn btn-primary">+ Book a Trip</a>
+  </div>
 </div>
 
+<!-- STAT CARDS -->
+<div class="cards-grid">
+  <div class="stat-card" style="border-left-color:#2a5298;">
+    <div class="icon">📄</div>
+    <div class="num">{{ total_bookings }}</div>
+    <div class="lbl">Total Bookings</div>
+  </div>
+  <div class="stat-card" style="border-left-color:#16a34a;">
+    <div class="icon">✅</div>
+    <div class="num">{{ approved_bookings }}</div>
+    <div class="lbl">Approved Trips</div>
+  </div>
+  <div class="stat-card" style="border-left-color:#d97706;">
+    <div class="icon">⏳</div>
+    <div class="num">{{ pending_bookings }}</div>
+    <div class="lbl">Pending Approval</div>
+  </div>
+  <div class="stat-card" style="border-left-color:#8e44ad;">
+    <div class="icon">💰</div>
+    <div class="num">₹{{ total_spent }}</div>
+    <div class="lbl">Total Spent</div>
+  </div>
+  <div class="stat-card" style="border-left-color:#dc2626;">
+    <div class="icon">❤️</div>
+    <div class="num">{{ wishlist_count }}</div>
+    <div class="lbl">Wishlist Items</div>
+  </div>
+</div>
+
+<div class="two-col">
+
+  <!-- RECENT BOOKINGS -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <span class="card-title" style="margin:0;">Recent Bookings</span>
+      <a href="/my_bookings" style="font-size:12px;color:#2a5298;">View all →</a>
+    </div>
+    {% if recent_bookings %}
+    <table>
+      <thead>
+        <tr><th>Package</th><th>Travel Date</th><th>Amount</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for b in recent_bookings %}
+        <tr>
+          <td><strong>{{ b.category or 'Package #'+b.package_id|string }}</strong>
+            <br><small style="color:#888;">{{ b.duration }}</small></td>
+          <td>{{ b.travel_date }}</td>
+          <td>₹{{ b.total_amount }}</td>
+          <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
+          <td>
+            {% if b.status in ['Approved','Booked','Cancelled','Rejected'] %}
+            <a href="/receipt/{{ b.booking_id }}">
+              <button class="btn btn-outline btn-sm">Receipt</button>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#888;font-size:14px;padding:20px 0;text-align:center;">
+      No bookings yet. <a href="/packages">Browse packages →</a>
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div>
+    <div class="card">
+      <span class="card-title">Quick Actions</span>
+      <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px;">
+        <a href="/packages"><button class="btn btn-primary" style="width:100%;padding:11px;">🌍 Browse Packages</button></a>
+        <a href="/wishlist"><button class="btn btn-outline" style="width:100%;padding:11px;">❤️ My Wishlist</button></a>
+        <a href="/my_bookings"><button class="btn btn-outline" style="width:100%;padding:11px;">📄 My Bookings</button></a>
+        <a href="/add_review"><button class="btn btn-outline" style="width:100%;padding:11px;">⭐ Write a Review</button></a>
+        <a href="/notifications"><button class="btn btn-outline" style="width:100%;padding:11px;">🔔 Notifications{% if notif_count %} ({{ notif_count }}){% endif %}</button></a>
+        <a href="/profile"><button class="btn btn-outline" style="width:100%;padding:11px;">👤 Edit Profile</button></a>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="card-title">✈️ UK Travel Tips</span>
+      <ul style="font-size:13px;color:#555;line-height:2.3;padding-left:18px;margin-top:6px;">
+        <li>Book early for the best prices</li>
+        <li>Carry a Type G power adapter</li>
+        <li>Use an Oyster card for London transit</li>
+        <li>Check UK visa requirements early</li>
+        <li>Always carry travel insurance</li>
+        <li>Weather varies — always pack layers</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
 {% endblock %}

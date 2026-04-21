@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+
+<div class="topbar">
+  <h1>👤 My Profile</h1>
+  <a href="/dashboard" class="btn btn-outline">← Dashboard</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;">
+
+  <!-- PROFILE CARD -->
+  <div class="card" style="text-align:center;">
+    <div style="width:80px;height:80px;
+      background:linear-gradient(135deg,#1e3c72,#2a5298);
+      border-radius:50%;margin:0 auto 14px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:32px;color:#fff;">
+      {{ user.name[0]|upper if user.name else '?' }}
+    </div>
+    <h3 style="font-size:16px;margin-bottom:4px;">{{ user.name }}</h3>
+    <p style="color:#888;font-size:13px;margin-bottom:16px;">Traveler Account</p>
+    <hr style="border:none;border-top:1px solid #eee;margin-bottom:16px;">
+    <div style="text-align:left;font-size:13px;color:#555;line-height:2.4;">
+      <div>📱 {{ user.mobile }}</div>
+      <div>🏠 {{ user.address }}</div>
+      <div>🪪 {{ user.adharno }}</div>
+    </div>
+    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+    <a href="/my_bookings"><button class="btn btn-outline" style="width:100%;margin-bottom:8px;">📄 My Bookings</button></a>
+    <a href="/my_reviews"><button class="btn btn-outline" style="width:100%;">⭐ My Reviews</button></a>
+  </div>
+
+  <!-- EDIT FORM -->
+  <div>
+    <div class="card">
+      <span class="card-title">Edit Profile</span>
+      <form action="/update_profile" method="POST">
+
+        <div class="form-group">
+          <label>Full Name</label>
+          <input name="name" value="{{ user.name }}" required>
+        </div>
+        <div class="form-group">
+          <label>Address</label>
+          <input name="address" value="{{ user.address }}" required>
+        </div>
+        <div class="form-group">
+          <label>Mobile Number</label>
+          <input name="mobile" value="{{ user.mobile }}" maxlength="10" required>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #eee;margin:18px 0;">
+        <span class="card-title">Change Password</span>
+
+        <div class="form-group" style="margin-top:12px;">
+          <label>Current Password</label>
+          <input type="password" name="current_password" placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" name="new_password" id="np" placeholder="Leave blank to keep current" oninput="checkPw()">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" name="confirm_password" id="cp" placeholder="Repeat new password" oninput="checkPw()">
+          <div id="pwmatch" style="font-size:12px;margin-top:4px;"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="padding:11px 28px;">
+          💾 Save Changes
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function checkPw(){
+  const np=document.getElementById('np').value;
+  const cp=document.getElementById('cp').value;
+  const el=document.getElementById('pwmatch');
+  if(!np && !cp){ el.textContent=''; return; }
+  if(np===cp){ el.textContent='✅ Passwords match'; el.style.color='#16a34a'; }
+  else{ el.textContent='❌ Passwords do not match'; el.style.color='#dc2626'; }
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}My Reviews{% endblock %}
+{% block content %}
+
+<div class="topbar">
+  <h1>📝 My Reviews</h1>
+  <a href="/add_review" class="btn btn-primary">+ Write Review</a>
+</div>
+
+{% if reviews %}
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Package</th>
+        <th>Rating</th>
+        <th>Comment</th>
+        <th>Booking</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in reviews %}
+      <tr>
+        <td><strong>{{ r.category or '—' }}</strong></td>
+        <td>
+          {% for i in range(r.rating|int) %}⭐{% endfor %}
+          <span style="color:#888;font-size:12px;margin-left:4px;">({{ r.rating }}/5)</span>
+        </td>
+        <td style="color:#555;">{{ r.comment or '—' }}</td>
+        <td><span style="color:#888;font-size:12px;">#{{ r.booking_id }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:50px;">
+  <div style="font-size:40px;margin-bottom:14px;">⭐</div>
+  <h3 style="color:#888;margin-bottom:8px;">No reviews yet</h3>
+  <p style="color:#aaa;font-size:13px;margin-bottom:20px;">
+    You can write a review after an approved trip.
+  </p>
+  <a href="/add_review">
+    <button class="btn btn-primary" style="padding:11px 24px;">Write a Review</button>
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}

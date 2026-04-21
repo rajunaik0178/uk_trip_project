@@ -1,60 +1,101 @@
 {% extends "admin_base.html" %}
-
 {% block content %}
 
-<div class="card">
-
-<h2>All Bookings</h2>
-<p style="color:gray;">Manage user bookings easily</p>
-
-<br>
-
-<table>
-
-<thead>
-<tr>
-<th>ID</th>
-<th>User</th>
-<th>Package</th>
-<th>Amount</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
-
-<tbody>
-
-{% for b in bookings %}
-<tr>
-<td>{{b.booking_id}}</td>
-<td>{{b.user_id}}</td>
-<td>{{b.package_id}}</td>
-<td>₹ {{b.total_amount}}</td>
-<td>
-<span class="status {{b.status}}">
-{{b.status}}
-</span>
-</td>
-
-<td>
-
-<a href="/update_booking/{{b.booking_id}}/Booked">
-<button class="btn">Approve</button>
-</a>
-
-<a href="/update_booking/{{b.booking_id}}/Cancelled">
-<button class="btn btn-danger">Cancel</button>
-</a>
-
-</td>
-
-</tr>
-{% endfor %}
-
-</tbody>
-
-</table>
-
+<div class="topbar">
+  <h1>📄 All Bookings</h1>
+  <a href="/export_bookings" class="btn btn-outline">📥 Export CSV</a>
 </div>
+
+<div class="search-bar">
+  <input type="text" id="bs" placeholder="🔍 Search traveler / package…" oninput="fb()" style="flex:1;">
+  <select id="bst" onchange="fb()">
+    <option value="">All Status</option>
+    <option value="Booked">Pending</option>
+    <option value="Approved">Approved</option>
+    <option value="Rejected">Rejected</option>
+    <option value="Cancelled">Cancelled</option>
+  </select>
+</div>
+
+<div class="card" style="overflow-x:auto;">
+  <table style="min-width:900px;">
+    <thead>
+      <tr><th>#</th><th>Traveler</th><th>Aadhaar</th><th>Package</th>
+          <th>Travel Date</th><th>Amount</th><th>Status</th><th>Admin Note</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="brows">
+      {% for b in bookings %}
+      <tr data-status="{{ b.status }}">
+        <td><strong>#{{ b.booking_id }}</strong></td>
+        <td>{{ b.traveler_name or '—' }}</td>
+        <td style="font-size:11px;color:#888;">{{ b.adharno }}</td>
+        <td>{{ b.category or 'Pkg #'+b.package_id|string }}</td>
+        <td>{{ b.travel_date }}</td>
+        <td><strong>₹{{ b.total_amount }}</strong></td>
+        <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
+        <td>
+          {% if b.admin_note %}
+          <span style="font-size:12px;color:#555;" title="{{ b.admin_note }}">
+            {{ b.admin_note[:30] }}{% if b.admin_note|length > 30 %}…{% endif %}
+          </span>
+          {% else %}
+          <button class="btn btn-outline btn-sm"
+            data-bid="{{ b.booking_id }}" onclick="openNote(this.dataset.bid)">+ Note</button>
+          {% endif %}
+        </td>
+        <td style="display:flex;gap:5px;flex-wrap:wrap;">
+          {% if b.status=='Booked' %}
+          <a href="/update_booking/{{ b.booking_id }}/Approved">
+            <button class="btn btn-success btn-sm">✓ Approve</button>
+          </a>
+          <a href="/update_booking/{{ b.booking_id }}/Rejected"
+             onclick="return confirm('Reject this booking?')">
+            <button class="btn btn-danger btn-sm">✗ Reject</button>
+          </a>
+          {% elif b.status=='Approved' %}
+          <a href="/update_booking/{{ b.booking_id }}/Cancelled"
+             onclick="return confirm('Cancel this approved booking?')">
+            <button class="btn btn-warning btn-sm">Cancel</button>
+          </a>
+          {% else %}
+          <span style="color:#aaa;font-size:12px;">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center;color:#888;padding:30px;">No bookings found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal" style="width:400px;">
+    <button class="modal-close" onclick="document.getElementById('noteModal').classList.remove('open')">✕</button>
+    <h3>📝 Add Admin Note</h3>
+    <form id="noteForm" method="POST">
+      <div class="form-group">
+        <label>Note / Remark</label>
+        <textarea name="note" rows="4" placeholder="Add a note visible to admin only…" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:10px;">Save Note</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function fb(){
+  const q=document.getElementById('bs').value.toLowerCase();
+  const s=document.getElementById('bst').value;
+  document.querySelectorAll('#brows tr[data-status]').forEach(r=>{
+    r.style.display=(r.textContent.toLowerCase().includes(q)&&(s===''||r.dataset.status===s))?'':'none';
+  });
+}
+function openNote(id){
+  document.getElementById('noteForm').action='/add_booking_note/'+id;
+  document.getElementById('noteModal').classList.add('open');
+}
+</script>
 
 {% endblock %}

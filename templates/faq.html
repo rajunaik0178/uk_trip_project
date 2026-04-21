@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}FAQ{% endblock %}
+{% block content %}
+
+<div class="topbar">
+  <h1>❓ Frequently Asked Questions</h1>
+  <a href="/dashboard" class="btn btn-outline">← Dashboard</a>
+</div>
+
+<div class="card" style="max-width:720px;">
+  {% set faqs = [
+    ("How do I book a package?",
+     "Go to Browse Packages, click Book Now on any package, pick a travel date, and confirm. Your booking will show as Pending until admin approves it."),
+    ("When will my booking be approved?",
+     "Admin typically approves within 24 hours. You will receive a notification and can check status in My Bookings."),
+    ("Can I cancel a booking?",
+     "Yes — you can cancel any Pending booking from My Bookings. Once Approved, please contact support to cancel."),
+    ("How do I write a review?",
+     "After a booking is Approved, go to Write a Review in the sidebar, pick your trip, choose a star rating, and submit."),
+    ("What is the Wishlist?",
+     "You can save packages you like by clicking the heart icon on the Packages page. View saved packages in My Wishlist."),
+    ("Where do I see my booking receipt?",
+     "Click the Receipt button next to any booking in My Bookings. You can also print it using your browser."),
+    ("Is my Aadhaar data safe?",
+     "Yes. Your Aadhaar is used only as a unique ID within our system and is never shared with third parties."),
+    ("What documents do I need for a UK trip?",
+     "Valid passport (6+ months validity), UK visa, return ticket, travel insurance, and accommodation proof are mandatory."),
+    ("How do I change my password?",
+     "Go to My Profile, scroll to Change Password, enter your current password and new password, then click Save Changes."),
+    ("How do I contact support?",
+     "Use the Contact Us page in the sidebar, or call our helpline at +91 80000 00000 (24×7 for emergencies)."),
+  ] %}
+
+  {% for q, a in faqs %}
+  <div class="faq-item" style="border-bottom:1px solid #f0f0f0;"
+    onclick="toggleFaq(this)">
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:15px 4px;cursor:pointer;">
+      <strong style="font-size:14px;color:#1e3c72;padding-right:16px;">{{ q }}</strong>
+      <span class="faq-icon" style="color:#888;font-size:18px;flex-shrink:0;">▾</span>
+    </div>
+    <p style="display:none;font-size:13px;color:#555;line-height:1.75;
+      padding:0 4px 15px;">{{ a }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function toggleFaq(el){
+  const p    = el.querySelector('p');
+  const icon = el.querySelector('.faq-icon');
+  const open = p.style.display === 'block';
+  p.style.display    = open ? 'none' : 'block';
+  icon.textContent   = open ? '▾' : '▴';
+  el.style.background= open ? '' : '#f8faff';
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+  <h1>✏️ Edit Package</h1>
+  <a href="/manage_packages" class="btn btn-outline">← Back to Packages</a>
+</div>
+
+<div class="card" style="max-width:560px;">
+  <span class="card-title">Package #{{ pkg.package_id }}</span>
+  <form method="POST" action="/edit_package/{{ pkg.package_id }}" style="margin-top:12px;">
+
+    <div class="form-group">
+      <label>Category / Name</label>
+      <input name="category" value="{{ pkg.category }}" required>
+    </div>
+    <div class="form-group">
+      <label>Price (₹)</label>
+      <input name="amt_rate" type="number" min="0" step="100"
+        value="{{ pkg.amt_rate }}" required>
+    </div>
+    <div class="form-group">
+      <label>Duration</label>
+      <input name="duration" value="{{ pkg.duration }}" required>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea name="description" rows="4">{{ pkg.description or '' }}</textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button type="submit" class="btn btn-primary" style="padding:11px 28px;">
+        💾 Save Changes
+      </button>
+      <a href="/manage_packages">
+        <button type="button" class="btn btn-outline" style="padding:11px 20px;">
+          Cancel
+        </button>
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

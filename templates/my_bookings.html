@@ -1,73 +1,71 @@
 {% extends "base.html" %}
-
+{% block title %}My Bookings{% endblock %}
 {% block content %}
 
-<div class="card">
-
-<h2>My Bookings</h2>
-
-<table>
-
-<tr>
-<th>ID</th>
-<th>Package</th>
-<th>Amount</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-
-{% for b in bookings %}
-
-<tr>
-<td>{{b.booking_id}}</td>
-<td>{{b.package_id}}</td>
-<td>₹ {{b.total_amount}}</td>
-
-<!-- STATUS WITH COLOR -->
-<td>
-<span class="status {{b.status}}">
-{{b.status}}
-</span>
-</td>
-
-<td>
-
-{% if b.status == 'Booked' %}
-    
-    <a href="/approve/{{b.booking_id}}">
-        <button class="btn">Approve</button>
-    </a>
-
-    <a href="/reject/{{b.booking_id}}">
-        <button class="btn btn-danger">Reject</button>
-    </a>
-
-    <a href="/cancel/{{b.booking_id}}">
-        <button class="btn btn-danger">Cancel</button>
-    </a>
-
-{% elif b.status == 'Approved' %}
-    
-    <span style="color:green; font-weight:bold;">Approved ✔</span>
-
-{% elif b.status == 'Rejected' %}
-    
-    <span style="color:red; font-weight:bold;">Rejected ✖</span>
-
-{% elif b.status == 'Cancelled' %}
-    
-    <span style="color:gray; font-weight:bold;">Cancelled</span>
-
-{% endif %}
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
-
+<div class="topbar">
+  <h1>📄 My Bookings</h1>
+  <a href="/packages" class="btn btn-primary">+ New Booking</a>
 </div>
 
+<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+  <button class="btn btn-primary" id="tab-all" onclick="ft('all')">All</button>
+  <button class="btn btn-outline" id="tab-Booked"    onclick="ft('Booked')">⏳ Pending</button>
+  <button class="btn btn-outline" id="tab-Approved"  onclick="ft('Approved')">✅ Approved</button>
+  <button class="btn btn-outline" id="tab-Rejected"  onclick="ft('Rejected')">❌ Rejected</button>
+  <button class="btn btn-outline" id="tab-Cancelled" onclick="ft('Cancelled')">🚫 Cancelled</button>
+</div>
+
+{% if bookings %}
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>#ID</th><th>Package</th><th>Duration</th><th>Travel Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="brows">
+      {% for b in bookings %}
+      <tr data-status="{{ b.status }}">
+        <td><strong>#{{ b.booking_id }}</strong></td>
+        <td>{{ b.category or 'Package #'+b.package_id|string }}</td>
+        <td>{{ b.duration or '—' }}</td>
+        <td>{{ b.travel_date }}</td>
+        <td><strong>₹{{ b.total_amount }}</strong></td>
+        <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <!-- Receipt always available -->
+          <a href="/receipt/{{ b.booking_id }}">
+            <button class="btn btn-outline btn-sm">🧾 Receipt</button>
+          </a>
+          {% if b.status == 'Booked' %}
+          <a href="/cancel/{{ b.booking_id }}"
+             onclick="return confirm('Cancel this booking?')">
+            <button class="btn btn-danger btn-sm">Cancel</button>
+          </a>
+          {% elif b.status == 'Approved' %}
+          <a href="/add_review">
+            <button class="btn btn-warning btn-sm">⭐ Review</button>
+          </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:50px;">
+  <div style="font-size:40px;margin-bottom:14px;">✈️</div>
+  <h3 style="color:#888;margin-bottom:10px;">No bookings yet</h3>
+  <a href="/packages"><button class="btn btn-primary" style="padding:11px 24px;">Browse Packages</button></a>
+</div>
+{% endif %}
+
+<script>
+function ft(s){
+  document.querySelectorAll('[id^="tab-"]').forEach(b=>b.className='btn btn-outline');
+  document.getElementById('tab-'+s).className='btn btn-primary';
+  document.querySelectorAll('#brows tr').forEach(r=>{
+    r.style.display=(s==='all'||r.dataset.status===s)?'':'none';
+  });
+}
+</script>
 {% endblock %}

@@ -1,61 +1,133 @@
 {% extends "admin_base.html" %}
-
 {% block content %}
 
-<div class="card">
-
-<h2>Add Package</h2>
-
-<form method="POST" action="/add_package" enctype="multipart/form-data">
-
-<input name="category" placeholder="Category" required>
-<input name="amt_rate" placeholder="Price" required>
-<textarea name="description" placeholder="Description"></textarea>
-<input name="duration" placeholder="Duration">
-
-<input type="file" name="images" multiple>
-
-<button class="btn">Add Package</button>
-
-</form>
-
-<hr>
-
-<h3>All Packages</h3>
-
-<table>
-
-<tr>
-<th>ID</th>
-<th>Category</th>
-<th>Price</th>
-<th>Image</th>
-<th>Action</th>
-</tr>
-
-{% for p in packages %}
-
-<tr>
-<td>{{p.package_id}}</td>
-<td>{{p.category}}</td>
-<td>₹ {{p.amt_rate}}</td>
-
-<td>
-<img src="/static/uploads/{{p.image}}" width="80">
-</td>
-
-<td>
-<a href="/delete_package/{{p.package_id}}">
-<button class="btn btn-danger">Delete</button>
-</a>
-</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
-
+<div class="topbar">
+  <h1>📦 Manage Packages</h1>
+  <button class="btn btn-primary"
+    onclick="document.getElementById('addModal').classList.add('open')">
+    + Add Package
+  </button>
 </div>
+
+<div class="search-bar">
+  <input type="text" id="ps" placeholder="🔍 Search packages…"
+    oninput="filterPkg()" style="flex:1;">
+</div>
+
+<div class="card" style="overflow-x:auto;">
+  <table style="min-width:800px;">
+    <thead>
+      <tr>
+        <th>#</th><th>Category</th><th>Price</th>
+        <th>Duration</th><th>Description</th><th>Image</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="pkgRows">
+      {% for p in packages %}
+      <tr>
+        <td>#{{ p.package_id }}</td>
+        <td><strong>{{ p.category }}</strong></td>
+        <td><strong>₹{{ p.amt_rate }}</strong></td>
+        <td>{{ p.duration }}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#666;">
+          {{ p.description or '—' }}
+        </td>
+        <td>
+          {% if p.images %}
+          <img src="/static/uploads/{{ p.images[0] }}" width="56" height="48"
+            style="object-fit:cover;border-radius:6px;cursor:pointer;"
+            onclick="previewImg(this.src)">
+          {% if p.images|length > 1 %}
+          <span style="font-size:11px;color:#888;"> +{{ p.images|length - 1 }}</span>
+          {% endif %}
+          {% else %}
+          <span style="color:#ccc;font-size:12px;">No image</span>
+          {% endif %}
+        </td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="/edit_package/{{ p.package_id }}">
+            <button class="btn btn-warning btn-sm">✏️ Edit</button>
+          </a>
+          <a href="/delete_package/{{ p.package_id }}"
+             onclick="return confirm('Delete this package and all its bookings?')">
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </a>
+          <a href="/view_images/{{ p.package_id }}">
+            <button class="btn btn-outline btn-sm">🖼 Gallery</button>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:#888;padding:30px;">
+          No packages yet. Add your first one!
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ADD PACKAGE MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal" style="width:520px;">
+    <button class="modal-close"
+      onclick="document.getElementById('addModal').classList.remove('open')">✕</button>
+    <h3>Add New Package</h3>
+    <form method="POST" action="/add_package" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Category / Name</label>
+        <input name="category" placeholder="e.g. London City Tour" required>
+      </div>
+      <div class="form-group">
+        <label>Price (₹)</label>
+        <input name="amt_rate" type="number" min="0" step="100"
+          placeholder="e.g. 45000" required>
+      </div>
+      <div class="form-group">
+        <label>Duration</label>
+        <input name="duration" placeholder="e.g. 7 days / 6 nights" required>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="3"
+          placeholder="Describe the package highlights…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Images (multiple allowed)</label>
+        <input type="file" name="images" multiple accept=".jpg,.jpeg,.png,.webp,.gif">
+        <small style="color:#888;font-size:11px;display:block;margin-top:4px;">
+          Allowed: jpg, png, webp, gif
+        </small>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        ➕ Add Package
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- IMAGE PREVIEW MODAL -->
+<div class="modal-overlay" id="imgModal"
+  onclick="document.getElementById('imgModal').classList.remove('open')">
+  <div style="padding:20px;cursor:zoom-out;">
+    <img id="previewSrc" src=""
+      style="max-width:80vw;max-height:80vh;border-radius:12px;
+        box-shadow:0 0 40px rgba(0,0,0,.5);">
+  </div>
+</div>
+
+<script>
+function filterPkg(){
+  const q = document.getElementById('ps').value.toLowerCase();
+  document.querySelectorAll('#pkgRows tr').forEach(r=>{
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+function previewImg(src){
+  document.getElementById('previewSrc').src = src;
+  document.getElementById('imgModal').classList.add('open');
+}
+</script>
 
 {% endblock %}

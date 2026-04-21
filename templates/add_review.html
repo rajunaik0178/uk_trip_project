@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>Add Review</title>
-
 <style>
 body{
 font-family:Arial;
@@ -12,51 +11,43 @@ justify-content:center;
 align-items:center;
 height:100vh;
 }
-
 .card{
 background:white;
 padding:30px;
 border-radius:10px;
 box-shadow:0 4px 10px rgba(0,0,0,0.1);
-width:400px;
+width:420px;
 }
-
 h2{
 text-align:center;
 margin-bottom:20px;
 }
-
 .stars{
 display:flex;
 flex-direction:row-reverse;
 justify-content:center;
 margin-bottom:15px;
 }
-
 .stars input{
 display:none;
 }
-
 .stars label{
 font-size:30px;
 color:#ccc;
 cursor:pointer;
 }
-
 .stars input:checked ~ label,
 .stars label:hover,
 .stars label:hover ~ label{
 color:gold;
 }
-
-textarea{
+textarea, select{
 width:100%;
 padding:10px;
 border-radius:5px;
 border:1px solid #ccc;
 margin-bottom:15px;
 }
-
 button{
 width:100%;
 padding:10px;
@@ -66,28 +57,31 @@ border:none;
 border-radius:5px;
 cursor:pointer;
 }
+a{
+display:block;
+text-align:center;
+margin-top:15px;
+text-decoration:none;
+}
 </style>
-
 </head>
 <body>
 
 <div class="card">
-
-<h2>⭐ Add Review</h2>
+<h2>Add Review</h2>
 
 <form method="POST" action="/save_review">
-
-<select name="booking_id" required style="width:100%; padding:10px; margin-bottom:10px;">
-    <option value="">Select Booking</option>
-    {% for b in bookings %}
-        <option value="{{b.booking_id}}">
-            Booking ID {{b.booking_id}} (₹ {{b.total_amount}})
-        </option>
-    {% endfor %}
+<select name="booking_id" required>
+<option value="">Select Approved Booking</option>
+{% for b in bookings %}
+<option value="{{b.booking_id}}">
+Booking ID {{b.booking_id}} - {{b.category}} - ₹ {{b.total_amount}}
+</option>
+{% endfor %}
 </select>
 
 <div class="stars">
-<input type="radio" name="rating" value="5" id="5"><label for="5">★</label>
+<input type="radio" name="rating" value="5" id="5" required><label for="5">★</label>
 <input type="radio" name="rating" value="4" id="4"><label for="4">★</label>
 <input type="radio" name="rating" value="3" id="3"><label for="3">★</label>
 <input type="radio" name="rating" value="2" id="2"><label for="2">★</label>
@@ -95,11 +89,10 @@ cursor:pointer;
 </div>
 
 <textarea name="review" placeholder="Write your feedback..." required></textarea>
-
 <button type="submit">Submit Review</button>
-
 </form>
 
+<a href="/dashboard">Back</a>
 </div>
 
 </body>

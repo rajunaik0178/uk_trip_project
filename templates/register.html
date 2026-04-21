@@ -1,49 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>UK Trip — Register</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;}
+body{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#141e30,#243b55);padding:20px;
+}
+.box{
+  background:#fff;width:440px;border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;
+}
+.box-top{
+  background:linear-gradient(135deg,#1e3c72,#2a5298);
+  padding:26px 30px 20px;text-align:center;color:#fff;
+}
+.box-top h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+.box-top p{font-size:13px;opacity:.75;}
+.box-body{padding:26px 30px;}
 
-<title>Register</title>
+label{display:block;font-size:12.5px;color:#444;
+  margin-bottom:4px;font-weight:500;margin-top:13px;}
+input{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;
+  border-radius:8px;font-size:14px;outline:none;transition:.2s;background:#fff;}
+input:focus{border-color:#2a5298;box-shadow:0 0 0 3px rgba(42,82,152,.1);}
+input.err{border-color:#dc2626;}
+input.ok{border-color:#16a34a;}
 
+.hint{font-size:11px;margin-top:3px;}
+.hint.err{color:#dc2626;}
+.hint.ok{color:#16a34a;}
+
+.btn{width:100%;padding:12px;margin-top:18px;
+  background:linear-gradient(135deg,#16a34a,#4ade80);
+  color:#fff;border:none;border-radius:8px;cursor:pointer;
+  font-size:15px;font-weight:500;transition:.2s;}
+.btn:hover{opacity:.9;transform:translateY(-1px);}
+
+.back-link{text-align:center;margin-top:16px;font-size:13px;color:#888;}
+.back-link a{color:#2a5298;font-weight:500;text-decoration:none;}
+
+.alert{padding:11px 14px;border-radius:8px;margin-bottom:14px;
+  font-size:13px;border-left:4px solid;}
+.alert-danger{background:#fee2e2;color:#991b1b;border-color:#dc2626;}
+.alert-warning{background:#fff3cd;color:#856404;border-color:#d97706;}
+.alert-success{background:#d1fae5;color:#065f46;border-color:#16a34a;}
+</style>
 </head>
-
 <body>
 
-<h2>Traveler Registration</h2>
+<div class="box">
+  <div class="box-top">
+    <div style="font-size:36px;margin-bottom:8px;">✈️</div>
+    <h1>Create Account</h1>
+    <p>Join UK Trip and start planning your journey</p>
+  </div>
 
-<form action="/register_user" method="post">
+  <div class="box-body">
 
-Adhar<br>
-<input name="adhar">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
 
-<br><br>
+    <!-- FIX: all field names match app.py exactly -->
+    <form action="/register_user" method="POST" onsubmit="return validate()">
 
-Name<br>
-<input name="name">
+      <label>Aadhaar Number</label>
+      <input name="adhar" id="adhar" placeholder="12-digit Aadhaar number"
+        maxlength="12" oninput="chkAdhar()" required>
+      <div class="hint" id="adharHint"></div>
 
-<br><br>
+      <label>Full Name</label>
+      <input name="name" placeholder="Your full name" required>
 
-Address<br>
-<input name="email">
+      <!-- FIXED: name="address" not "email" -->
+      <label>Address</label>
+      <input name="address" placeholder="Your home address" required>
 
-<br><br>
+      <label>Mobile Number</label>
+      <input name="mobile" id="mobile" placeholder="10-digit mobile number"
+        maxlength="10" oninput="chkMobile()" required>
+      <div class="hint" id="mobileHint"></div>
 
-Mobile<br>
-<input name="mobile">
+      <label>Password</label>
+      <input type="password" name="password" id="pw"
+        placeholder="Minimum 6 characters" oninput="chkPw()" required>
+      <div class="hint" id="pwHint"></div>
 
-<br><br>
+      <button type="submit" class="btn">Create Account →</button>
+    </form>
 
-Password<br>
-<input type="password" name="password">
+    <div class="back-link">
+      Already have an account? <a href="/">Login here</a>
+    </div>
 
-<br><br>
+  </div>
+</div>
 
-<button>Register</button>
-
-</form>
-
-<br>
-
-<a href="/">Back to Login</a>
+<script>
+function chkAdhar(){
+  const v = document.getElementById('adhar').value;
+  const ok = /^\d{12}$/.test(v);
+  document.getElementById('adhar').className = v.length===0?'':ok?'ok':'err';
+  document.getElementById('adharHint').textContent = v.length===0?'':ok?'✅ Valid':'❌ Must be exactly 12 digits';
+  document.getElementById('adharHint').className = 'hint '+(ok?'ok':'err');
+}
+function chkMobile(){
+  const v = document.getElementById('mobile').value;
+  const ok = /^\d{10}$/.test(v);
+  document.getElementById('mobile').className = v.length===0?'':ok?'ok':'err';
+  document.getElementById('mobileHint').textContent = v.length===0?'':ok?'✅ Valid':'❌ Must be exactly 10 digits';
+  document.getElementById('mobileHint').className = 'hint '+(ok?'ok':'err');
+}
+function chkPw(){
+  const v = document.getElementById('pw').value;
+  const ok = v.length>=6;
+  document.getElementById('pw').className = v.length===0?'':ok?'ok':'err';
+  document.getElementById('pwHint').textContent = v.length===0?'':ok?'✅ Strong enough':'❌ Minimum 6 characters';
+  document.getElementById('pwHint').className = 'hint '+(ok?'ok':'err');
+}
+function validate(){
+  const adhar  = document.getElementById('adhar').value;
+  const mobile = document.getElementById('mobile').value;
+  const pw     = document.getElementById('pw').value;
+  if(!/^\d{12}$/.test(adhar)){  alert('Aadhaar must be exactly 12 digits.');  return false; }
+  if(!/^\d{10}$/.test(mobile)){ alert('Mobile must be exactly 10 digits.');   return false; }
+  if(pw.length<6){              alert('Password must be at least 6 characters.'); return false; }
+  return true;
+}
+</script>
 
 </body>
 </html>

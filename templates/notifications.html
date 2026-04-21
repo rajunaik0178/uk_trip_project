@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+
+<style>
+.notif-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  border-left: 4px solid #e5e7eb;
+  background: #fff;
+}
+.notif-item.unread {
+  border-left-color: #2a5298;
+  background: #f0f4ff;
+}
+.notif-msg {
+  font-size: 13.5px;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+.notif-time {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.notif-badge {
+  color: #2a5298;
+  font-weight: 600;
+  margin-left: 8px;
+}
+</style>
+
+<div class="topbar">
+  <h1>🔔 Notifications</h1>
+  <a href="/dashboard" class="btn btn-outline">← Back</a>
+</div>
+
+<div class="card">
+  {% if notifs %}
+  <div>
+    {% for n in notifs %}
+    <div class="notif-item {% if not n.is_read %}unread{% endif %}">
+      <div class="notif-msg">{{ n.message }}</div>
+      <div class="notif-time">
+        {{ n.created_at.strftime('%d %b %Y, %I:%M %p') if n.created_at else '—' }}
+        {% if not n.is_read %}
+        <span class="notif-badge">● New</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div style="text-align:center; padding:50px 0;">
+    <div style="font-size:40px; margin-bottom:14px;">🔔</div>
+    <h3 style="color:#888; margin-bottom:8px;">No notifications yet</h3>
+    <p style="color:#aaa; font-size:13px;">
+      You will be notified when your bookings are approved or rejected.
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,28 +1,51 @@
 {% extends "base.html" %}
-
+{% block title %}Package Gallery{% endblock %}
 {% block content %}
 
-<div class="card">
-
-<h2 style="margin-bottom:20px;">Package Gallery</h2>
-
-<div style="display:flex; flex-wrap:wrap; gap:20px;">
-
-{% for img in images %}
-
-<img src="{{ url_for('static', filename='uploads/' + img.image) }}" 
-style="
-width:250px;
-height:180px;
-object-fit:cover;
-border-radius:10px;
-box-shadow:0 4px 10px rgba(0,0,0,0.2);
-">
-
-{% endfor %}
-
+<div class="topbar">
+  <h1>🖼️ Package Gallery{% if pkg %} — {{ pkg.category }}{% endif %}</h1>
+  <a href="/packages" class="btn btn-outline">← Back to Packages</a>
 </div>
 
+{% if images %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
+  {% for img in images %}
+  <div class="card" style="padding:0;overflow:hidden;cursor:pointer;"
+    data-src="/static/uploads/{{ img.image }}"
+    onclick="openLightbox(this.dataset.src)">
+    <img src="/static/uploads/{{ img.image }}"
+      style="width:100%;height:220px;object-fit:cover;display:block;transition:.3s;"
+      onmouseover="this.style.opacity='.85'"
+      onmouseout="this.style.opacity='1'">
+    <div style="padding:10px 14px;font-size:12px;color:#888;">
+      Click to enlarge
+    </div>
+  </div>
+  {% endfor %}
 </div>
+{% else %}
+<div class="card" style="text-align:center;padding:50px;">
+  <div style="font-size:40px;margin-bottom:14px;">🖼️</div>
+  <h3 style="color:#888;">No images for this package</h3>
+</div>
+{% endif %}
+
+<!-- LIGHTBOX -->
+<div id="lb" onclick="closeLb()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+    z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
+  <img id="lbImg" src="" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,.5);">
+</div>
+
+<script>
+function openLightbox(src){
+  document.getElementById('lbImg').src = src;
+  document.getElementById('lb').style.display = 'flex';
+}
+function closeLb(){
+  document.getElementById('lb').style.display = 'none';
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLb(); });
+</script>
 
 {% endblock %}

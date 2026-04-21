@@ -1,43 +1,73 @@
 {% extends "admin_base.html" %}
-
 {% block content %}
 
-<div class="card">
-
-<h2>⭐ All Reviews</h2>
-
-<table>
-
-<tr>
-<th>ID</th>
-<th>User</th>
-<th>Comment</th>
-<th>Rating</th>
-</tr>
-
-{% for r in reviews %}
-
-<tr>
-<td>{{r.review_id}}</td>
-
-<td>
-User {{r.adharno}}
-</td>
-
-<td>{{r.comment}}</td>
-
-<td>
-    {% for i in range(r.rating|int) %}
-        ⭐
-    {% endfor %}
-</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
-
+<div class="topbar">
+  <h1>⭐ All Reviews</h1>
 </div>
+
+<div class="search-bar">
+  <input type="text" id="rs" placeholder="🔍 Search reviews…"
+    oninput="filterR()" style="flex:1;">
+  <select id="rr" onchange="filterR()">
+    <option value="">All Ratings</option>
+    <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+    <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+    <option value="3">⭐⭐⭐ 3 Stars</option>
+    <option value="2">⭐⭐ 2 Stars</option>
+    <option value="1">⭐ 1 Star</option>
+  </select>
+</div>
+
+<div class="card" style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Traveler</th><th>Package</th>
+        <th>Rating</th><th>Comment</th><th>Booking</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="rRows">
+      {% for r in reviews %}
+      <tr data-rating="{{ r.rating }}">
+        <td>#{{ r.review_id }}</td>
+        <td>{{ r.traveler_name or r.adharno }}</td>
+        <td>{{ r.category or '—' }}</td>
+        <td>
+          {% for i in range(r.rating|int) %}⭐{% endfor %}
+          <span style="color:#888;font-size:11px;">({{ r.rating }}/5)</span>
+        </td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          {{ r.comment or '—' }}
+        </td>
+        <td>#{{ r.booking_id }}</td>
+        <td>
+          <a href="/delete_review/{{ r.review_id }}"
+             onclick="return confirm('Delete this review?')">
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:#888;padding:30px;">
+          No reviews yet.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function filterR(){
+  const q = document.getElementById('rs').value.toLowerCase();
+  const r = document.getElementById('rr').value;
+  document.querySelectorAll('#rRows tr[data-rating]').forEach(row=>{
+    const match = row.textContent.toLowerCase().includes(q) &&
+                  (r==='' || row.dataset.rating===r);
+    row.style.display = match ? '' : 'none';
+  });
+}
+</script>
 
 {% endblock %}
