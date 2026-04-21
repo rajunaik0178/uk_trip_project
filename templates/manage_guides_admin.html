@@ -2,33 +2,221 @@
 {% block content %}
 
 <div class="topbar">
-    <h1>👨‍💼 Real Tour Guides</h1>
+  <h1>👨‍💼 Tour Guide Management</h1>
+  <button class="btn btn-primary"
+    onclick="document.getElementById('addGuideAdminModal').classList.add('open')">
+    + Add Guide
+  </button>
 </div>
 
-<div class="card">
-    <h3>Guide List</h3>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Guide ID</th>
-                <th>Name</th>
-                <th>Specialization</th>
-                <th>Mobile</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            {% for g in guides %}
-            <tr>
-                <td>#{{ g.guide_id }}</td>
-                <td>{{ g.name }}</td>
-                <td>{{ g.specialization }}</td>
-                <td>{{ g.mobile }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- STATS -->
+<div class="stats-container" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:20px;">
+  <div class="stat-card c-users">
+    <h3>Total Guides</h3><h1>{{ stats.get('total',0) }}</h1><div class="sub">Registered</div>
+  </div>
+  <div class="stat-card c-appr">
+    <h3>Available</h3><h1>{{ stats.get('available',0) }}</h1><div class="sub">Ready</div>
+  </div>
+  <div class="stat-card c-book">
+    <h3>Assigned</h3><h1>{{ stats.get('assigned',0) }}</h1><div class="sub">On duty</div>
+  </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#6b7280,#9ca3af);">
+    <h3>On Leave</h3><h1>{{ stats.get('on_leave',0) }}</h1><div class="sub">Unavailable</div>
+  </div>
 </div>
+
+<!-- SEARCH -->
+<div class="search-bar">
+  <input type="text" id="gs" placeholder="🔍 Search guide by name or specialization…"
+    oninput="filterGuides()" style="flex:1;">
+  <select id="gstatus" onchange="filterGuides()">
+    <option value="">All Status</option>
+    <option value="Available">Available</option>
+    <option value="Assigned">Assigned</option>
+    <option value="On Leave">On Leave</option>
+  </select>
+</div>
+
+<!-- GUIDES TABLE -->
+<div class="card" style="overflow-x:auto;">
+  <h3>Guide Roster</h3>
+  <table style="min-width:860px;" id="guideTable">
+    <thead>
+      <tr>
+        <th>#</th><th>Name</th><th>Mobile</th><th>Specialization</th>
+        <th>Experience</th><th>Languages</th><th>Rating</th>
+        <th>Status</th><th>Assigned To</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in guides %}
+      <tr data-status="{{ g.status }}">
+        <td>{{ g.guide_id }}</td>
+        <td><strong>{{ g.name }}</strong></td>
+        <td>{{ g.mobile or '—' }}</td>
+        <td style="color:#666;">{{ g.specialization or '—' }}</td>
+        <td style="text-align:center;">{{ g.experience_years or 0 }} yr{{ 's' if g.experience_years != 1 }}</td>
+        <td style="font-size:12px;color:#555;">{{ g.languages or '—' }}</td>
+        <td>
+          {% if g.rating %}
+            <span style="color:#d97706;font-weight:600;">
+              {% for i in range(g.rating|int) %}⭐{% endfor %}
+              {{ g.rating }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if g.status == 'Available' %}
+            <span class="status Approved">Available</span>
+          {% elif g.status == 'Assigned' %}
+            <span class="status Booked">Assigned</span>
+          {% else %}
+            <span class="status Cancelled">On Leave</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:#666;">
+          {% if g.traveler_name %}
+            {{ g.traveler_name }}<br>
+            <span style="color:#888;">{{ g.category }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <button class="btn btn-warning btn-sm"
+              data-id="{{ g.guide_id }}"
+              data-status="{{ g.status }}"
+              data-booking="{{ g.assigned_booking_id or '' }}"
+              data-rating="{{ g.rating or 0 }}"
+              data-notes="{{ g.notes or '' }}"
+              onclick="openUpdateGuide(this)">✏️ Update</button>
+            <a href="/delete_guide_admin/{{ g.guide_id }}"
+               onclick="return confirm('Delete this guide?')">
+              <button class="btn btn-danger btn-sm">🗑</button>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="10" style="text-align:center;color:#888;padding:30px;">
+          No tour guides added yet. Click "+ Add Guide" to get started.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ADD GUIDE MODAL -->
+<div class="modal-overlay" id="addGuideAdminModal">
+  <div class="modal" style="width:540px;">
+    <button class="modal-close"
+      onclick="document.getElementById('addGuideAdminModal').classList.remove('open')">✕</button>
+    <h3>👨‍💼 Add Tour Guide</h3>
+    <form method="POST" action="/add_guide_admin">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input name="name" placeholder="Guide's full name" required>
+        </div>
+        <div class="form-group">
+          <label>Mobile</label>
+          <input name="mobile" placeholder="+44 7700 000000">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input name="email" type="email" placeholder="guide@email.com">
+        </div>
+        <div class="form-group">
+          <label>Experience (years)</label>
+          <input name="experience_years" type="number" min="0" max="50" value="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Specialization</label>
+        <input name="specialization" placeholder="e.g. London History, Scottish Highlands, Lake District">
+      </div>
+      <div class="form-group">
+        <label>Languages Spoken</label>
+        <input name="languages" placeholder="e.g. English, Hindi, French">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Any notes about this guide…"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        ➕ Add Guide
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- UPDATE GUIDE MODAL -->
+<div class="modal-overlay" id="updateGuideAdminModal">
+  <div class="modal" style="width:460px;">
+    <button class="modal-close"
+      onclick="document.getElementById('updateGuideAdminModal').classList.remove('open')">✕</button>
+    <h3>✏️ Update Guide Status</h3>
+    <form method="POST" id="updateGuideForm">
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status" id="ug_status">
+          <option value="Available">Available</option>
+          <option value="Assigned">Assigned</option>
+          <option value="On Leave">On Leave</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Assign to Booking (optional)</label>
+        <select name="assigned_booking_id" id="ug_booking">
+          <option value="">— None —</option>
+          {% for b in bookings %}
+          <option value="{{ b.booking_id }}">
+            #{{ b.booking_id }} — {{ b.traveler_name }} | {{ b.category }} | {{ b.travel_date }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Rating (0–5)</label>
+        <input name="rating" id="ug_rating" type="number" min="0" max="5" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" id="ug_notes" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        💾 Save Changes
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+function filterGuides() {
+  var q  = document.getElementById('gs').value.toLowerCase();
+  var st = document.getElementById('gstatus').value;
+  document.querySelectorAll('#guideTable tbody tr[data-status]').forEach(function(r) {
+    var match = r.textContent.toLowerCase().includes(q)
+             && (!st || r.dataset.status === st);
+    r.style.display = match ? '' : 'none';
+  });
+}
+function openUpdateGuide(btn) {
+  var id = btn.dataset.id;
+  document.getElementById('updateGuideForm').action = '/update_guide_admin/' + id;
+  document.getElementById('ug_status').value  = btn.dataset.status;
+  document.getElementById('ug_booking').value = btn.dataset.booking;
+  document.getElementById('ug_rating').value  = btn.dataset.rating;
+  document.getElementById('ug_notes').value   = btn.dataset.notes;
+  document.getElementById('updateGuideAdminModal').classList.add('open');
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('addGuideAdminModal').classList.remove('open');
+    document.getElementById('updateGuideAdminModal').classList.remove('open');
+  }
+});
+</script>
 
 {% endblock %}

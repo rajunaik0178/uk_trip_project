@@ -1619,47 +1619,396 @@ def delete_guide(id):
 # ===============================
 # TRANSPORT MANAGEMENT
 # ===============================
-@app.route("/manage_transport")
+# ══════════════════════════════════════════════════════
+#  OPERATIONS — DB SETUP (add to create_new_tables)
+# ══════════════════════════════════════════════════════
+# Add these CREATE TABLE statements to the stmts list in create_new_tables()
+
+OPERATIONS_TABLES = [
+    """CREATE TABLE IF NOT EXISTS transport (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vehicle_type VARCHAR(100) NOT NULL,
+        vehicle_number VARCHAR(50),
+        driver_name VARCHAR(100),
+        driver_mobile VARCHAR(15),
+        capacity INT DEFAULT 4,
+        status ENUM('Available','On Trip','Maintenance') DEFAULT 'Available',
+        assigned_booking_id INT DEFAULT NULL,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+
+    """CREATE TABLE IF NOT EXISTS payment (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        booking_id INT NOT NULL,
+        adharno VARCHAR(20) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        payment_mode ENUM('Cash','UPI','Card','Bank Transfer','Other') DEFAULT 'Cash',
+        payment_status ENUM('Pending','Paid','Failed','Refunded') DEFAULT 'Pending',
+        transaction_id VARCHAR(100),
+        payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT
+    )""",
+
+    """CREATE TABLE IF NOT EXISTS guide (
+        guide_id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        mobile VARCHAR(15),
+        email VARCHAR(150),
+        specialization VARCHAR(200),
+        experience_years INT DEFAULT 0,
+        languages VARCHAR(200),
+        status ENUM('Available','Assigned','On Leave') DEFAULT 'Available',
+        assigned_booking_id INT DEFAULT NULL,
+        rating DECIMAL(3,1) DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+]
+
+# ══════════════════════════════════════════════════════
+#  TRANSPORT ROUTES — replace /manage_transport
+# ══════════════════════════════════════════════════════
+
+@app.route("/manage_transport", methods=["GET"])
 @admin_required
 def manage_transport():
-    return render_template("manage_transport.html")
+    try:
+        vehicles = query("""
+            SELECT t.*, b.adharno, tr.name AS traveler_name, p.category
+            FROM transport t
+            LEFT JOIN booking b ON t.assigned_booking_id = b.booking_id
+            LEFT JOIN traveler tr ON b.adharno = tr.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            ORDER BY t.id DESC
+        """) or []
+        bookings = query("""
+            SELECT b.booking_id, t.name AS traveler_name, p.category, b.travel_date
+            FROM booking b
+            LEFT JOIN traveler t ON b.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            WHERE b.status = 'Approved'
+            ORDER BY b.travel_date ASC
+        """) or []
+        stats = {
+            'total':       int((query("SELECT COUNT(*) AS c FROM transport", one=True) or {}).get("c", 0)),
+            'available':   int((query("SELECT COUNT(*) AS c FROM transport WHERE status='Available'", one=True) or {}).get("c", 0)),
+            'on_trip':     int((query("SELECT COUNT(*) AS c FROM transport WHERE status='On Trip'", one=True) or {}).get("c", 0)),
+            'maintenance': int((query("SELECT COUNT(*) AS c FROM transport WHERE status='Maintenance'", one=True) or {}).get("c", 0)),
+        }
+        return render_template("manage_transport.html", vehicles=vehicles, bookings=bookings, stats=stats)
+    except Exception as e:
+        flash(f"Could not load transport: {e}", "danger")
+        return render_template("manage_transport.html", vehicles=[], bookings=[], stats={})
 
 
-# ===============================
-# PAYMENT MANAGEMENT
-# ===============================
-@app.route("/manage_payments")
+@app.route("/add_transport", methods=["POST"])
+@admin_required
+def add_transport():
+    try:
+        query("""
+            INSERT INTO transport (vehicle_type, vehicle_number, driver_name, driver_mobile, capacity, notes)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (
+            request.form.get("vehicle_type","").strip(),
+            request.form.get("vehicle_number","").strip(),
+            request.form.get("driver_name","").strip(),
+            request.form.get("driver_mobile","").strip(),
+            int(request.form.get("capacity", 4) or 4),
+            request.form.get("notes","").strip()
+        ), commit=True)
+        flash("Vehicle added successfully.", "success")
+    except Exception as e:
+        flash(f"Could not add vehicle: {e}", "danger")
+    return redirect("/manage_transport")
+
+
+@app.route("/update_transport/<int:id>", methods=["POST"])
+@admin_required
+def update_transport(id):
+    try:
+        status     = request.form.get("status", "Available")
+        booking_id = request.form.get("assigned_booking_id") or None
+        notes      = request.form.get("notes","").strip()
+        query("""
+            UPDATE transport SET status=%s, assigned_booking_id=%s, notes=%s WHERE id=%s
+        """, (status, booking_id, notes, id), commit=True)
+        flash("Transport updated.", "success")
+    except Exception as e:
+        flash(f"Could not update: {e}", "danger")
+    return redirect("/manage_transport")
+
+
+@app.route("/delete_transport/<int:id>")
+@admin_required
+def delete_transport(id):
+    try:
+        query("DELETE FROM transport WHERE id=%s", (id,), commit=True)
+        flash("Vehicle deleted.", "info")
+    except Exception as e:
+        flash(f"Could not delete: {e}", "danger")
+    return redirect("/manage_transport")
+
+
+# ══════════════════════════════════════════════════════
+#  PAYMENT ROUTES — replace /manage_payments
+# ══════════════════════════════════════════════════════
+
+@app.route("/manage_payments", methods=["GET"])
 @admin_required
 def manage_payments():
-    return render_template("manage_payments.html")
+    try:
+        payments = query("""
+            SELECT pay.*, t.name AS traveler_name, p.category,
+                   b.travel_date, b.total_amount AS booking_amount
+            FROM payment pay
+            LEFT JOIN booking b ON pay.booking_id = b.booking_id
+            LEFT JOIN traveler t ON pay.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            ORDER BY pay.id DESC
+        """) or []
+
+        bookings = query("""
+            SELECT b.booking_id, t.name AS traveler_name, t.adharno,
+                   p.category, b.total_amount, b.status
+            FROM booking b
+            LEFT JOIN traveler t ON b.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            ORDER BY b.booking_id DESC
+        """) or []
+
+        total_collected = float((query(
+            "SELECT COALESCE(SUM(amount),0) AS s FROM payment WHERE payment_status='Paid'",
+            one=True) or {}).get("s", 0))
+        pending_amount = float((query(
+            "SELECT COALESCE(SUM(amount),0) AS s FROM payment WHERE payment_status='Pending'",
+            one=True) or {}).get("s", 0))
+        total_payments = int((query("SELECT COUNT(*) AS c FROM payment", one=True) or {}).get("c", 0))
+        paid_count     = int((query("SELECT COUNT(*) AS c FROM payment WHERE payment_status='Paid'", one=True) or {}).get("c", 0))
+
+        return render_template("manage_payments.html",
+            payments=payments, bookings=bookings,
+            total_collected=total_collected, pending_amount=pending_amount,
+            total_payments=total_payments, paid_count=paid_count)
+    except Exception as e:
+        flash(f"Could not load payments: {e}", "danger")
+        return render_template("manage_payments.html",
+            payments=[], bookings=[], total_collected=0,
+            pending_amount=0, total_payments=0, paid_count=0)
 
 
-# ===============================
-# TOUR GUIDES MANAGEMENT
-# ===============================
-@app.route("/manage_guides_admin")
+@app.route("/add_payment", methods=["POST"])
+@admin_required
+def add_payment():
+    try:
+        booking_id     = request.form.get("booking_id")
+        amount         = float(request.form.get("amount", 0) or 0)
+        payment_mode   = request.form.get("payment_mode", "Cash")
+        payment_status = request.form.get("payment_status", "Paid")
+        transaction_id = request.form.get("transaction_id","").strip()
+        notes          = request.form.get("notes","").strip()
+
+        booking = query("SELECT adharno FROM booking WHERE booking_id=%s", (booking_id,), one=True)
+        if not booking:
+            flash("Booking not found.", "danger")
+            return redirect("/manage_payments")
+
+        query("""
+            INSERT INTO payment (booking_id, adharno, amount, payment_mode, payment_status, transaction_id, notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (booking_id, booking["adharno"], amount, payment_mode, payment_status, transaction_id, notes), commit=True)
+
+        # Notify traveler
+        notify(booking["adharno"], f"Payment of ₹{amount:.0f} recorded as {payment_status}.")
+        flash("Payment recorded.", "success")
+    except Exception as e:
+        flash(f"Could not record payment: {e}", "danger")
+    return redirect("/manage_payments")
+
+
+@app.route("/update_payment_status/<int:id>/<status>")
+@admin_required
+def update_payment_status(id, status):
+    if status not in ("Paid","Pending","Failed","Refunded"):
+        return redirect("/manage_payments")
+    try:
+        query("UPDATE payment SET payment_status=%s WHERE id=%s", (status, id), commit=True)
+        flash(f"Payment marked as {status}.", "success")
+    except Exception as e:
+        flash(f"Could not update: {e}", "danger")
+    return redirect("/manage_payments")
+
+
+@app.route("/delete_payment/<int:id>")
+@admin_required
+def delete_payment(id):
+    try:
+        query("DELETE FROM payment WHERE id=%s", (id,), commit=True)
+        flash("Payment deleted.", "info")
+    except Exception as e:
+        flash(f"Could not delete: {e}", "danger")
+    return redirect("/manage_payments")
+
+
+# ══════════════════════════════════════════════════════
+#  TOUR GUIDE (REAL) ROUTES — replace /manage_guides_admin
+# ══════════════════════════════════════════════════════
+
+@app.route("/manage_guides_admin", methods=["GET"])
 @admin_required
 def manage_guides_admin():
-    guides = query("SELECT * FROM guide") or []
-    return render_template("manage_guides_admin.html", guides=guides)
+    try:
+        guides = query("""
+            SELECT g.*, b.booking_id AS bk_id, t.name AS traveler_name, p.category
+            FROM guide g
+            LEFT JOIN booking b ON g.assigned_booking_id = b.booking_id
+            LEFT JOIN traveler t ON b.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            ORDER BY g.guide_id DESC
+        """) or []
+
+        bookings = query("""
+            SELECT b.booking_id, t.name AS traveler_name, p.category, b.travel_date
+            FROM booking b
+            LEFT JOIN traveler t ON b.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            WHERE b.status = 'Approved'
+            ORDER BY b.travel_date ASC
+        """) or []
+
+        stats = {
+            'total':      int((query("SELECT COUNT(*) AS c FROM guide", one=True) or {}).get("c", 0)),
+            'available':  int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Available'", one=True) or {}).get("c", 0)),
+            'assigned':   int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Assigned'", one=True) or {}).get("c", 0)),
+            'on_leave':   int((query("SELECT COUNT(*) AS c FROM guide WHERE status='On Leave'", one=True) or {}).get("c", 0)),
+        }
+        return render_template("manage_guides_admin.html", guides=guides, bookings=bookings, stats=stats)
+    except Exception as e:
+        flash(f"Could not load guides: {e}", "danger")
+        return render_template("manage_guides_admin.html", guides=[], bookings=[], stats={})
 
 
-# ===============================
-# INVOICE MANAGEMENT
-# ===============================
-@app.route("/manage_invoices")
+@app.route("/add_guide_admin", methods=["POST"])
+@admin_required
+def add_guide_admin():
+    try:
+        query("""
+            INSERT INTO guide (name, mobile, email, specialization, experience_years, languages, notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            request.form.get("name","").strip(),
+            request.form.get("mobile","").strip(),
+            request.form.get("email","").strip(),
+            request.form.get("specialization","").strip(),
+            int(request.form.get("experience_years", 0) or 0),
+            request.form.get("languages","").strip(),
+            request.form.get("notes","").strip()
+        ), commit=True)
+        flash("Tour guide added.", "success")
+    except Exception as e:
+        flash(f"Could not add guide: {e}", "danger")
+    return redirect("/manage_guides_admin")
+
+
+@app.route("/update_guide_admin/<int:id>", methods=["POST"])
+@admin_required
+def update_guide_admin(id):
+    try:
+        status     = request.form.get("status", "Available")
+        booking_id = request.form.get("assigned_booking_id") or None
+        rating     = float(request.form.get("rating", 0) or 0)
+        notes      = request.form.get("notes","").strip()
+        query("""
+            UPDATE guide SET status=%s, assigned_booking_id=%s, rating=%s, notes=%s WHERE guide_id=%s
+        """, (status, booking_id, rating, notes, id), commit=True)
+        flash("Guide updated.", "success")
+    except Exception as e:
+        flash(f"Could not update: {e}", "danger")
+    return redirect("/manage_guides_admin")
+
+
+@app.route("/delete_guide_admin/<int:id>")
+@admin_required
+def delete_guide_admin(id):
+    try:
+        query("DELETE FROM guide WHERE guide_id=%s", (id,), commit=True)
+        flash("Guide deleted.", "info")
+    except Exception as e:
+        flash(f"Could not delete: {e}", "danger")
+    return redirect("/manage_guides_admin")
+
+
+# ══════════════════════════════════════════════════════
+#  INVOICE ROUTES — replace /manage_invoices
+# ══════════════════════════════════════════════════════
+
+@app.route("/manage_invoices", methods=["GET"])
 @admin_required
 def manage_invoices():
-    bookings = query("""
-        SELECT b.*, t.name as traveler_name, p.category
-        FROM booking b
-        LEFT JOIN traveler t ON b.adharno = t.adharno
-        LEFT JOIN package p ON b.package_id = p.package_id
-        ORDER BY b.booking_id DESC
-    """) or []
+    try:
+        bookings = query("""
+            SELECT b.*, t.name AS traveler_name, t.mobile, t.address,
+                   p.category, p.duration, p.description,
+                   COALESCE(pay_total.paid, 0) AS amount_paid,
+                   (b.total_amount - COALESCE(pay_total.paid, 0)) AS balance_due
+            FROM booking b
+            LEFT JOIN traveler t ON b.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            LEFT JOIN (
+                SELECT booking_id, SUM(amount) AS paid
+                FROM payment WHERE payment_status='Paid'
+                GROUP BY booking_id
+            ) pay_total ON b.booking_id = pay_total.booking_id
+            ORDER BY b.booking_id DESC
+        """) or []
 
-    return render_template("manage_invoices.html", bookings=bookings)
+        total_invoiced = float((query(
+            "SELECT COALESCE(SUM(total_amount),0) AS s FROM booking WHERE status='Approved'",
+            one=True) or {}).get("s", 0))
+        total_paid = float((query(
+            "SELECT COALESCE(SUM(amount),0) AS s FROM payment WHERE payment_status='Paid'",
+            one=True) or {}).get("s", 0))
+        outstanding = total_invoiced - total_paid
 
+        return render_template("manage_invoices.html",
+            bookings=bookings, total_invoiced=total_invoiced,
+            total_paid=total_paid, outstanding=outstanding)
+    except Exception as e:
+        flash(f"Could not load invoices: {e}", "danger")
+        return render_template("manage_invoices.html",
+            bookings=[], total_invoiced=0, total_paid=0, outstanding=0)
+
+
+@app.route("/invoice/<int:booking_id>")
+@admin_required
+def view_invoice(booking_id):
+    try:
+        b = query("""
+            SELECT b.*, t.name AS traveler_name, t.mobile, t.address, t.adharno,
+                   p.category, p.duration, p.description, p.amt_rate,
+                   COALESCE(pay_total.paid, 0) AS amount_paid
+            FROM booking b
+            LEFT JOIN traveler t ON b.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            LEFT JOIN (
+                SELECT booking_id, SUM(amount) AS paid
+                FROM payment WHERE payment_status='Paid'
+                GROUP BY booking_id
+            ) pay_total ON b.booking_id = pay_total.booking_id
+            WHERE b.booking_id = %s
+        """, (booking_id,), one=True)
+
+        payments = query("""
+            SELECT * FROM payment WHERE booking_id=%s ORDER BY payment_date DESC
+        """, (booking_id,)) or []
+
+        if not b:
+            flash("Invoice not found.", "danger")
+            return redirect("/manage_invoices")
+        return render_template("invoice_view.html", b=b, payments=payments)
+    except Exception as e:
+        flash(f"Could not load invoice: {e}", "danger")
+        return redirect("/manage_invoices")
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     app.run(debug=debug_mode, host="0.0.0.0", port=5000)

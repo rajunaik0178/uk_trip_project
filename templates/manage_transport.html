@@ -2,41 +2,189 @@
 {% block content %}
 
 <div class="topbar">
-    <h1>🚖 Transport Management</h1>
+  <h1>🚖 Transport Management</h1>
+  <button class="btn btn-primary"
+    onclick="document.getElementById('addVehicleModal').classList.add('open')">
+    + Add Vehicle
+  </button>
 </div>
 
-<div class="card">
-    <h3>Transport Services</h3>
-
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Vehicle Type</th>
-                <th>Driver Name</th>
-                <th>Contact</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            <tr>
-                <td>#1</td>
-                <td>Airport Pickup</td>
-                <td>John Driver</td>
-                <td>9876543210</td>
-                <td><span class="status Approved">Available</span></td>
-            </tr>
-
-            <tr>
-                <td>#2</td>
-                <td>City Tour Cab</td>
-                <td>Mike Travels</td>
-                <td>9123456780</td>
-                <td><span class="status Booked">Busy</span></td>
-            </tr>
-        </tbody>
-    </table>
+<!-- STATS -->
+<div class="stats-container" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:20px;">
+  <div class="stat-card" style="background:linear-gradient(135deg,#1e3c72,#2a5298);">
+    <h3>Total</h3><h1>{{ stats.get('total',0) }}</h1><div class="sub">Vehicles</div>
+  </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#16a34a,#4ade80);color:#052e16;">
+    <h3>Available</h3><h1>{{ stats.get('available',0) }}</h1><div class="sub">Ready</div>
+  </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#d97706,#fbbf24);color:#1a1a00;">
+    <h3>On Trip</h3><h1>{{ stats.get('on_trip',0) }}</h1><div class="sub">Deployed</div>
+  </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#f87171);">
+    <h3>Maintenance</h3><h1>{{ stats.get('maintenance',0) }}</h1><div class="sub">Unavailable</div>
+  </div>
 </div>
+
+<!-- VEHICLE TABLE -->
+<div class="card" style="overflow-x:auto;">
+  <h3>Fleet Overview</h3>
+  <table style="min-width:820px;">
+    <thead>
+      <tr>
+        <th>#</th><th>Type</th><th>Vehicle No.</th><th>Driver</th>
+        <th>Mobile</th><th>Capacity</th><th>Status</th><th>Assigned To</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vehicles %}
+      <tr>
+        <td>{{ v.id }}</td>
+        <td><strong>{{ v.vehicle_type }}</strong></td>
+        <td style="font-family:monospace;color:#2a5298;">{{ v.vehicle_number or '—' }}</td>
+        <td>{{ v.driver_name or '—' }}</td>
+        <td>{{ v.driver_mobile or '—' }}</td>
+        <td style="text-align:center;">{{ v.capacity }}</td>
+        <td>
+          {% if v.status == 'Available' %}
+            <span class="status Approved">Available</span>
+          {% elif v.status == 'On Trip' %}
+            <span class="status Booked">On Trip</span>
+          {% else %}
+            <span class="status Cancelled">Maintenance</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:#666;">
+          {% if v.traveler_name %}
+            {{ v.traveler_name }}<br>
+            <span style="color:#888;">{{ v.category }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <button class="btn btn-warning btn-sm"
+              data-id="{{ v.id }}"
+              data-status="{{ v.status }}"
+              data-booking="{{ v.assigned_booking_id or '' }}"
+              data-notes="{{ v.notes or '' }}"
+              onclick="openUpdateVehicle(this)">✏️ Update</button>
+            <a href="/delete_transport/{{ v.id }}"
+               onclick="return confirm('Delete this vehicle?')">
+              <button class="btn btn-danger btn-sm">🗑</button>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9" style="text-align:center;color:#888;padding:30px;">
+          No vehicles added yet. Click "+ Add Vehicle" to get started.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ADD VEHICLE MODAL -->
+<div class="modal-overlay" id="addVehicleModal">
+  <div class="modal" style="width:520px;">
+    <button class="modal-close"
+      onclick="document.getElementById('addVehicleModal').classList.remove('open')">✕</button>
+    <h3>🚖 Add New Vehicle</h3>
+    <form method="POST" action="/add_transport">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Vehicle Type *</label>
+          <select name="vehicle_type" required>
+            <option value="">Select type</option>
+            <option>Sedan</option>
+            <option>SUV</option>
+            <option>Van</option>
+            <option>Mini Bus</option>
+            <option>Coach Bus</option>
+            <option>Luxury Car</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Vehicle Number</label>
+          <input name="vehicle_number" placeholder="e.g. UK-AB-1234">
+        </div>
+        <div class="form-group">
+          <label>Driver Name *</label>
+          <input name="driver_name" placeholder="Full name" required>
+        </div>
+        <div class="form-group">
+          <label>Driver Mobile</label>
+          <input name="driver_mobile" placeholder="+44 7700 000000">
+        </div>
+        <div class="form-group">
+          <label>Seating Capacity</label>
+          <input name="capacity" type="number" min="1" max="60" value="4">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Any special notes about this vehicle…"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        ➕ Add Vehicle
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- UPDATE STATUS MODAL -->
+<div class="modal-overlay" id="updateVehicleModal">
+  <div class="modal" style="width:460px;">
+    <button class="modal-close"
+      onclick="document.getElementById('updateVehicleModal').classList.remove('open')">✕</button>
+    <h3>✏️ Update Vehicle Status</h3>
+    <form method="POST" id="updateVehicleForm">
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status" id="uv_status">
+          <option value="Available">Available</option>
+          <option value="On Trip">On Trip</option>
+          <option value="Maintenance">Maintenance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Assign to Booking (optional)</label>
+        <select name="assigned_booking_id" id="uv_booking">
+          <option value="">— None —</option>
+          {% for b in bookings %}
+          <option value="{{ b.booking_id }}">
+            #{{ b.booking_id }} — {{ b.traveler_name }} | {{ b.category }} | {{ b.travel_date }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" id="uv_notes" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        💾 Save Changes
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+function openUpdateVehicle(btn) {
+  var id = btn.dataset.id;
+  document.getElementById('updateVehicleForm').action = '/update_transport/' + id;
+  document.getElementById('uv_status').value  = btn.dataset.status;
+  document.getElementById('uv_booking').value = btn.dataset.booking;
+  document.getElementById('uv_notes').value   = btn.dataset.notes;
+  document.getElementById('updateVehicleModal').classList.add('open');
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('addVehicleModal').classList.remove('open');
+    document.getElementById('updateVehicleModal').classList.remove('open');
+  }
+});
+</script>
 
 {% endblock %}

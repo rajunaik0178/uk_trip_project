@@ -2,41 +2,135 @@
 {% block content %}
 
 <div class="topbar">
-    <h1>🧾 Invoice Management</h1>
+  <h1>🧾 Invoice Management</h1>
 </div>
 
-<div class="card">
-    <h3>Booking Invoices</h3>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Booking ID</th>
-                <th>Traveler</th>
-                <th>Package</th>
-                <th>Travel Date</th>
-                <th>Total Amount</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            {% for b in bookings %}
-            <tr>
-                <td>#{{ b.booking_id }}</td>
-                <td>{{ b.traveler_name }}</td>
-                <td>{{ b.category }}</td>
-                <td>{{ b.travel_date }}</td>
-                <td>₹{{ b.total_amount }}</td>
-                <td>
-                    <span class="status {{ b.status }}">
-                        {{ b.status }}
-                    </span>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- STATS -->
+<div class="stats-container" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:20px;">
+  <div class="stat-card c-book">
+    <h3>Total Invoiced</h3>
+    <h1>₹{{ "{:,.0f}".format(total_invoiced) }}</h1>
+    <div class="sub">Approved bookings</div>
+  </div>
+  <div class="stat-card c-rev">
+    <h3>Amount Paid</h3>
+    <h1>₹{{ "{:,.0f}".format(total_paid) }}</h1>
+    <div class="sub">Collected</div>
+  </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#f87171);">
+    <h3>Outstanding</h3>
+    <h1>₹{{ "{:,.0f}".format(outstanding) }}</h1>
+    <div class="sub">Pending collection</div>
+  </div>
 </div>
+
+<!-- SEARCH & FILTER -->
+<div class="search-bar">
+  <input type="text" id="isearch" placeholder="🔍 Search by traveler or package…"
+    oninput="filterInvoices()" style="flex:1;">
+  <select id="istatus" onchange="filterInvoices()">
+    <option value="">All Status</option>
+    <option value="Approved">Approved</option>
+    <option value="Booked">Pending</option>
+    <option value="Cancelled">Cancelled</option>
+    <option value="Rejected">Rejected</option>
+  </select>
+  <select id="ipaid" onchange="filterInvoices()">
+    <option value="">Payment Status</option>
+    <option value="paid">Fully Paid</option>
+    <option value="partial">Partially Paid</option>
+    <option value="unpaid">Unpaid</option>
+  </select>
+</div>
+
+<!-- INVOICE TABLE -->
+<div class="card" style="overflow-x:auto;">
+  <h3>Booking Invoices</h3>
+  <table style="min-width:1000px;" id="invoiceTable">
+    <thead>
+      <tr>
+        <th>Invoice</th><th>Traveler</th><th>Package</th><th>Travel Date</th>
+        <th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bookings %}
+      {% set balance = b.total_amount - (b.amount_paid or 0) %}
+      {% set paid_pct = ((b.amount_paid or 0) / b.total_amount * 100) if b.total_amount else 0 %}
+      {% set pay_label = 'paid' if balance <= 0 else ('partial' if (b.amount_paid or 0) > 0 else 'unpaid') %}
+      <tr data-status="{{ b.status }}" data-paid="{{ pay_label }}">
+        <td>
+          <strong style="color:#2a5298;">#INV-{{ "%04d"|format(b.booking_id) }}</strong><br>
+          <span style="font-size:11px;color:#aaa;">Booking #{{ b.booking_id }}</span>
+        </td>
+        <td>
+          <strong>{{ b.traveler_name }}</strong><br>
+          <span style="font-size:11px;color:#888;">{{ b.adharno }}</span>
+        </td>
+        <td>{{ b.category or '—' }}<br>
+          <span style="font-size:11px;color:#888;">{{ b.duration or '' }}</span>
+        </td>
+        <td style="font-size:13px;">{{ b.travel_date or '—' }}</td>
+        <td style="font-weight:600;">₹{{ "{:,.0f}".format(b.total_amount) }}</td>
+        <td>
+          <span style="color:#16a34a;font-weight:600;">₹{{ "{:,.0f}".format(b.amount_paid or 0) }}</span>
+          {% if b.total_amount > 0 %}
+          <div style="background:#e5e7eb;border-radius:4px;height:4px;margin-top:4px;">
+            <div style="background:#16a34a;height:4px;border-radius:4px;width:{{ [paid_pct,100]|min|round }}%;"></div>
+          </div>
+          {% endif %}
+        </td>
+        <td>
+          {% if balance <= 0 %}
+            <span style="color:#16a34a;font-weight:600;">✓ Cleared</span>
+          {% else %}
+            <span style="color:#dc2626;font-weight:600;">₹{{ "{:,.0f}".format(balance) }}</span>
+          {% endif %}
+        </td>
+        <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
+        <td>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <a href="/invoice/{{ b.booking_id }}">
+              <button class="btn btn-outline btn-sm">🧾 View</button>
+            </a>
+            <a href="/manage_payments"
+               onclick="sessionStorage.setItem('prefill_booking','{{ b.booking_id }}')">
+              <button class="btn btn-success btn-sm">💳 Pay</button>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9" style="text-align:center;color:#888;padding:30px;">
+          No invoices yet. Invoices are created automatically when bookings are placed.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function filterInvoices() {
+  var q  = document.getElementById('isearch').value.toLowerCase();
+  var st = document.getElementById('istatus').value;
+  var pd = document.getElementById('ipaid').value;
+  document.querySelectorAll('#invoiceTable tbody tr[data-status]').forEach(function(r) {
+    var match = r.textContent.toLowerCase().includes(q)
+             && (!st || r.dataset.status === st)
+             && (!pd || r.dataset.paid === pd);
+    r.style.display = match ? '' : 'none';
+  });
+}
+
+// Auto-prefill booking in payment modal if navigated from here
+window.addEventListener('load', function() {
+  var bk = sessionStorage.getItem('prefill_booking');
+  if (bk) {
+    sessionStorage.removeItem('prefill_booking');
+  }
+});
+</script>
 
 {% endblock %}
