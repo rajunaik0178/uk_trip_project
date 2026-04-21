@@ -1,0 +1,146 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+  <h1>🖼️ Photo & Video Gallery</h1>
+</div>
+
+<!-- FILTER -->
+<div class="search-bar">
+  <select id="pkgFilter" onchange="filterGallery()" style="flex:1;">
+    <option value="">All Packages</option>
+    {% for p in packages %}
+    <option value="{{ p.package_id }}">{{ p.category }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-outline btn-sm" onclick="showType('all')" id="btnAll">All</button>
+  <button class="btn btn-outline btn-sm" onclick="showType('photo')" id="btnPhoto">📷 Photos</button>
+  <button class="btn btn-outline btn-sm" onclick="showType('video')" id="btnVideo">🎬 Videos</button>
+</div>
+
+{% if packages %}
+  {% for p in packages %}
+  {% if p.images or (p.videos is defined and p.videos) %}
+  <div class="card pkg-section" data-pkgid="{{ p.package_id }}">
+    <h3 style="margin-bottom:14px;">{{ p.category }}
+      <span style="font-size:12px;color:#888;font-weight:400;margin-left:8px;">
+        {{ p.images|length }} photo(s)
+        {% if p.videos is defined and p.videos %} · {{ p.videos|length }} video(s){% endif %}
+      </span>
+      <a href="/upload_media/{{ p.package_id }}" style="float:right;">
+        <button class="btn btn-success btn-sm">➕ Add Media</button>
+      </a>
+    </h3>
+
+    <!-- PHOTOS -->
+    {% if p.images %}
+    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">📷 Photos</div>
+    <div class="media-grid media-photos">
+      {% for img in p.images %}
+      <div class="media-item photo-item" data-pkgid="{{ p.package_id }}">
+        <img src="/static/uploads/{{ img }}"
+          onclick="openLightbox('photo','/static/uploads/{{ img }}')"
+          style="cursor:pointer;" alt="{{ img }}">
+        <div class="media-badge">📷</div>
+        <a href="/delete_media/image/{{ p.package_id }}/{{ img }}"
+           onclick="return confirm('Delete this photo?')">
+          <button class="del-btn" title="Delete">✕</button>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- VIDEOS -->
+    {% if p.videos is defined and p.videos %}
+    <div style="font-size:12px;font-weight:600;color:#555;margin:14px 0 8px;">🎬 Videos</div>
+    <div class="media-grid media-videos">
+      {% for v in p.videos %}
+      <div class="media-item video-item" data-pkgid="{{ p.package_id }}">
+        <video src="/static/uploads/{{ v }}" muted preload="metadata"
+          onclick="openLightbox('video','/static/uploads/{{ v }}')"
+          style="cursor:pointer;"></video>
+        <div class="media-badge">🎬</div>
+        <a href="/delete_media/video/{{ p.package_id }}/{{ v }}"
+           onclick="return confirm('Delete this video?')">
+          <button class="del-btn" title="Delete">✕</button>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+  {% endfor %}
+{% else %}
+<div class="card" style="text-align:center;padding:50px;">
+  <div style="font-size:48px;margin-bottom:14px;">🖼️</div>
+  <h3 style="color:#888;">No media uploaded yet</h3>
+  <p style="color:#aaa;font-size:13px;margin-top:8px;">
+    Go to Packages &amp; Media and upload photos or videos to packages.
+  </p>
+</div>
+{% endif %}
+
+<!-- LIGHTBOX -->
+<div id="lightbox"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);
+    z-index:9999;align-items:center;justify-content:center;"
+  onclick="closeLightbox()">
+  <img id="lbImg" src="" style="max-width:90vw;max-height:88vh;border-radius:8px;display:none;">
+  <video id="lbVid" controls
+    style="max-width:90vw;max-height:88vh;border-radius:8px;display:none;"></video>
+  <p style="position:absolute;bottom:20px;color:rgba(255,255,255,.4);font-size:12px;">
+    Press ESC or click to close
+  </p>
+</div>
+
+<script>
+function openLightbox(type, src) {
+  var lb  = document.getElementById('lightbox');
+  var img = document.getElementById('lbImg');
+  var vid = document.getElementById('lbVid');
+  lb.style.display = 'flex';
+  if (type === 'photo') {
+    img.src = src; img.style.display = 'block';
+    vid.style.display = 'none'; vid.src = '';
+  } else {
+    vid.src = src; vid.style.display = 'block';
+    img.style.display = 'none'; img.src = ''; vid.play();
+  }
+}
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+  var vid = document.getElementById('lbVid');
+  vid.pause(); vid.src = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeLightbox();
+});
+
+/* ── FILTER BY PACKAGE ── */
+function filterGallery() {
+  var pid = document.getElementById('pkgFilter').value;
+  document.querySelectorAll('.pkg-section').forEach(function(s) {
+    s.style.display = (!pid || s.dataset.pkgid === pid) ? '' : 'none';
+  });
+}
+
+/* ── SHOW ONLY PHOTOS OR VIDEOS ── */
+function showType(type) {
+  document.querySelectorAll('.media-photos').forEach(function(g) {
+    g.style.display = (type === 'all' || type === 'photo') ? '' : 'none';
+  });
+  document.querySelectorAll('.media-videos').forEach(function(g) {
+    g.style.display = (type === 'all' || type === 'video') ? '' : 'none';
+  });
+  document.querySelectorAll('[id^="btn"]').forEach(function(b) {
+    b.className = 'btn btn-outline btn-sm';
+  });
+  var active = {all:'btnAll',photo:'btnPhoto',video:'btnVideo'}[type];
+  if (active) document.getElementById(active).className = 'btn btn-primary btn-sm';
+}
+</script>
+
+{% endblock %}

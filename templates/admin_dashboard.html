@@ -3,12 +3,18 @@
 
 <div class="topbar">
   <h1>Admin Dashboard</h1>
-  <div style="font-size:13px;color:#888;">Welcome, <strong>{{ session.get('admin','Admin') }}</strong></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:13px;color:#888;">Welcome, <strong>{{ session.get('admin','Admin') }}</strong></span>
+    <!-- GRAPHS BUTTON — only loads charts when clicked -->
+    <button class="btn btn-primary" onclick="toggleGraphs()" id="graphBtn">
+      📊 Show Graphs
+    </button>
+  </div>
 </div>
 
 {% if pending_count %}
 <div class="alert alert-warning">
-  ⚠️ <strong>{{ pending_count }} booking(s)</strong> are waiting for your approval.
+  ⚠️ <strong>{{ pending_count }} booking(s)</strong> waiting for approval.
   <a href="/view_bookings" style="color:#856404;font-weight:600;margin-left:8px;">Review now →</a>
 </div>
 {% endif %}
@@ -18,29 +24,108 @@
   <div class="stat-card c-users"><h3>Travelers</h3><h1>{{ users }}</h1><div class="sub">Registered</div></div>
   <div class="stat-card c-pkg"><h3>Packages</h3><h1>{{ total_packages }}</h1><div class="sub">Active tours</div></div>
   <div class="stat-card c-book"><h3>Bookings</h3><h1>{{ bookings }}</h1><div class="sub">All time</div></div>
-  <div class="stat-card c-appr"><h3>Approved</h3><h1>{{ approved }}</h1><div class="sub">Confirmed trips</div></div>
+  <div class="stat-card c-appr"><h3>Approved</h3><h1>{{ approved }}</h1><div class="sub">Confirmed</div></div>
   <div class="stat-card c-rev"><h3>Revenue</h3><h1>₹{{ revenue }}</h1><div class="sub">Approved only</div></div>
 </div>
 
+<!-- ══ GRAPHS PANEL — hidden by default, shown on button click ══ -->
+<div id="graphsPanel" style="display:none;">
+  <div class="two-col" style="margin-bottom:18px;">
+    <div class="card">
+      <h3>Booking Status Breakdown</h3>
+      <canvas id="pieChart" height="240"></canvas>
+    </div>
+    <div class="card">
+      <h3>System Overview</h3>
+      <canvas id="barChart" height="240"></canvas>
+    </div>
+  </div>
+
+  {% if top_packages %}
+  <div class="card" style="margin-bottom:18px;">
+    <h3>🏆 Top Packages by Bookings</h3>
+    <canvas id="pkgChart" height="120"></canvas>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ══ 5 NEW FEATURE CARDS ══ -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:20px;">
+
+  <div class="card" style="border-top:4px solid #004e92;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">🧭</div>
+    <h3 style="margin-bottom:6px;">Trip Guides</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Create detailed travel guides for each UK destination with itineraries and tips.
+    </p>
+    <a href="/manage_guides"><button class="btn btn-primary" style="width:100%;">Manage Guides</button></a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #8e44ad;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">🖼️</div>
+    <h3 style="margin-bottom:6px;">Photo Gallery</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Upload and manage photos and videos for all packages in one place.
+    </p>
+    <a href="/manage_gallery"><button class="btn btn-primary" style="width:100%;background:#8e44ad;">Manage Gallery</button></a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #16a34a;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">📢</div>
+    <h3 style="margin-bottom:6px;">Announcements</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Post site-wide notices shown as banners on every traveler's page.
+    </p>
+    <a href="/announcements"><button class="btn btn-primary" style="width:100%;background:#16a34a;">Post Announcement</button></a>
+  </div>
+
+  <div class="card" style="border-top:4px solid #d97706;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">📥</div>
+    <h3 style="margin-bottom:6px;">Export Reports</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Download bookings and traveler data as CSV files for offline analysis.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <a href="/export_bookings"><button class="btn btn-warning" style="width:100%;">Bookings CSV</button></a>
+      <a href="/export_travelers"><button class="btn btn-outline" style="width:100%;">Travelers CSV</button></a>
+    </div>
+  </div>
+
+  <div class="card" style="border-top:4px solid #dc2626;padding:18px;">
+    <div style="font-size:28px;margin-bottom:8px;">⭐</div>
+    <h3 style="margin-bottom:6px;">Reviews & Ratings</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
+      Read, filter by star rating, and moderate traveler reviews.
+    </p>
+    <a href="/view_reviews"><button class="btn btn-primary" style="width:100%;background:#dc2626;">View Reviews</button></a>
+  </div>
+
+</div>
+
+<!-- ══ MAIN CONTENT ROW ══ -->
 <div class="two-col">
 
   <!-- RECENT BOOKINGS -->
   <div class="card">
-    <h3>Recent Bookings <a href="/view_bookings" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a></h3>
+    <h3>Recent Bookings
+      <a href="/view_bookings" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a>
+    </h3>
     {% if recent_bookings %}
     <table>
-      <thead><tr><th>Traveler</th><th>Package</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <thead>
+        <tr><th>Traveler</th><th>Package</th><th>Amount</th><th>Status</th><th></th></tr>
+      </thead>
       <tbody>
         {% for b in recent_bookings %}
         <tr>
           <td>{{ b.traveler_name or b.adharno }}</td>
-          <td>{{ b.category or '#'+b.package_id|string }}</td>
+          <td>{{ b.category or 'Pkg #'+b.package_id|string }}</td>
           <td>₹{{ b.total_amount }}</td>
           <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
           <td>
-            {% if b.status=='Booked' %}
+            {% if b.status == 'Booked' %}
             <a href="/update_booking/{{ b.booking_id }}/Approved">
-              <button class="btn btn-success btn-sm">Approve</button>
+              <button class="btn btn-success btn-sm">✓ Approve</button>
             </a>
             {% endif %}
           </td>
@@ -53,22 +138,20 @@
     {% endif %}
   </div>
 
-  <!-- RIGHT COLUMN -->
+  <!-- QUICK ACTIONS -->
   <div>
-    <!-- QUICK ACTIONS -->
     <div class="card">
       <h3>Quick Actions</h3>
       <div style="display:flex;flex-direction:column;gap:9px;">
-        <a href="/manage_packages"><button class="btn btn-primary" style="width:100%;padding:10px;">📦 Add Package</button></a>
+        <a href="/manage_packages"><button class="btn btn-primary" style="width:100%;padding:10px;">📦 Packages & Media</button></a>
+        <a href="/manage_guides"><button class="btn btn-outline" style="width:100%;padding:10px;">🧭 Trip Guides</button></a>
+        <a href="/manage_gallery"><button class="btn btn-outline" style="width:100%;padding:10px;">🖼️ Photo Gallery</button></a>
         <a href="/view_bookings"><button class="btn btn-outline" style="width:100%;padding:10px;">📄 Manage Bookings</button></a>
         <a href="/manage_travelers"><button class="btn btn-outline" style="width:100%;padding:10px;">👥 View Travelers</button></a>
         <a href="/announcements"><button class="btn btn-outline" style="width:100%;padding:10px;">📢 Announcements</button></a>
-        <a href="/stats"><button class="btn btn-outline" style="width:100%;padding:10px;">📊 Statistics</button></a>
-        <a href="/export_bookings"><button class="btn btn-outline" style="width:100%;padding:10px;">📥 Export CSV</button></a>
       </div>
     </div>
 
-    <!-- TOP PACKAGES -->
     {% if top_packages %}
     <div class="card">
       <h3>🏆 Top Packages</h3>
@@ -76,9 +159,8 @@
       <div style="display:flex;justify-content:space-between;align-items:center;
         padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
         <span>{{ loop.index }}. {{ tp.category }}</span>
-        <span style="background:#e8f0fe;color:#2a5298;padding:2px 8px;border-radius:10px;font-size:12px;">
-          {{ tp.total }} bookings
-        </span>
+        <span style="background:#e8f0fe;color:#2a5298;padding:2px 8px;
+          border-radius:10px;font-size:12px;">{{ tp.total }} bookings</span>
       </div>
       {% endfor %}
     </div>
@@ -90,7 +172,9 @@
 <!-- RECENT REVIEWS -->
 {% if recent_reviews %}
 <div class="card">
-  <h3>Latest Reviews <a href="/view_reviews" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a></h3>
+  <h3>Latest Reviews
+    <a href="/view_reviews" style="font-size:12px;font-weight:400;color:#004e92;float:right;">View all →</a>
+  </h3>
   <table>
     <thead><tr><th>Traveler</th><th>Package</th><th>Rating</th><th>Comment</th></tr></thead>
     <tbody>
@@ -99,12 +183,109 @@
         <td>{{ r.traveler_name or r.adharno }}</td>
         <td>{{ r.category or '—' }}</td>
         <td>{% for i in range(r.rating|int) %}⭐{% endfor %}</td>
-        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.comment }}</td>
+        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          {{ r.comment }}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endif %}
+
+<!-- ══ CHART.JS — loaded ONLY when graphs are shown ══ -->
+<script>
+var chartsLoaded = false;
+var graphsVisible = false;
+
+function toggleGraphs() {
+  var panel = document.getElementById('graphsPanel');
+  var btn   = document.getElementById('graphBtn');
+  graphsVisible = !graphsVisible;
+
+  if (graphsVisible) {
+    panel.style.display = 'block';
+    btn.textContent = '📊 Hide Graphs';
+    if (!chartsLoaded) {
+      loadCharts();
+      chartsLoaded = true;
+    }
+  } else {
+    panel.style.display = 'none';
+    btn.textContent = '📊 Show Graphs';
+  }
+}
+
+function loadCharts() {
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+  script.onload = function() { drawCharts(); };
+  document.head.appendChild(script);
+}
+
+function drawCharts() {
+  /* PIE */
+  var approved  = {{ approved }};
+  var cancelled = {{ cancelled }};
+  var bookings  = {{ bookings }};
+  var pending   = bookings - approved - cancelled;
+
+  new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Approved', 'Cancelled', 'Pending'],
+      datasets: [{
+        data: [approved, cancelled, pending],
+        backgroundColor: ['#16a34a', '#6b7280', '#d97706'],
+        borderWidth: 2, borderColor: '#fff'
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+
+  /* BAR */
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Travelers', 'Packages', 'Bookings', 'Approved'],
+      datasets: [{
+        label: 'Count',
+        data: [{{ users }}, {{ total_packages }}, {{ bookings }}, {{ approved }}],
+        backgroundColor: ['#5b86e5', '#8e44ad', '#f7971e', '#16a34a'],
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  /* TOP PACKAGES BAR */
+  var pkgCanvas = document.getElementById('pkgChart');
+  if (pkgCanvas) {
+    var pkgLabels = [{% for tp in top_packages %}"{{ tp.category }}"{% if not loop.last %},{% endif %}{% endfor %}];
+    var pkgData   = [{% for tp in top_packages %}{{ tp.total }}{% if not loop.last %},{% endif %}{% endfor %}];
+    new Chart(pkgCanvas, {
+      type: 'bar',
+      data: {
+        labels: pkgLabels,
+        datasets: [{
+          label: 'Bookings',
+          data: pkgData,
+          backgroundColor: '#004e92',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+}
+</script>
 
 {% endblock %}

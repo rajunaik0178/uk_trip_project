@@ -1,0 +1,161 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+  <h1>➕ Upload Media — {{ pkg.category }}</h1>
+  <a href="/manage_packages" class="btn btn-outline">← Back</a>
+</div>
+
+<!-- EXISTING MEDIA -->
+<div class="card">
+  <h3>Current Photos</h3>
+  {% if images %}
+  <div class="media-grid">
+    {% for img in images %}
+    <div class="media-item">
+      <img src="/static/uploads/{{ img.image }}"
+        onclick="openLightbox('photo','/static/uploads/{{ img.image }}')"
+        style="cursor:pointer;">
+      <div class="media-badge">📷</div>
+      <a href="/delete_media/image/{{ pkg.package_id }}/{{ img.image }}"
+         onclick="return confirm('Delete this photo?')">
+        <button class="del-btn">✕</button>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:#aaa;font-size:13px;">No photos uploaded yet.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Current Videos</h3>
+  {% if videos %}
+  <div class="media-grid">
+    {% for v in videos %}
+    <div class="media-item">
+      <video src="/static/uploads/{{ v.video }}" muted
+        onclick="openLightbox('video','/static/uploads/{{ v.video }}')"
+        style="cursor:pointer;"></video>
+      <div class="media-badge">🎬</div>
+      <a href="/delete_media/video/{{ pkg.package_id }}/{{ v.video }}"
+         onclick="return confirm('Delete this video?')">
+        <button class="del-btn">✕</button>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:#aaa;font-size:13px;">No videos uploaded yet.</p>
+  {% endif %}
+</div>
+
+<!-- UPLOAD NEW MEDIA -->
+<div class="card">
+  <h3>Upload New Photos & Videos</h3>
+  <form method="POST" action="/upload_media/{{ pkg.package_id }}" enctype="multipart/form-data">
+
+    <div class="form-group">
+      <label>Add Photos</label>
+      <div class="drop-zone" onclick="document.getElementById('newPhotos').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="handleDrop(event,'photo')">
+        <div class="dz-icon">📷</div>
+        <p>Click or drag photos here</p>
+        <small>JPG · PNG · WEBP · GIF</small>
+        <input type="file" id="newPhotos" name="images" multiple
+          accept=".jpg,.jpeg,.png,.webp,.gif"
+          onchange="previewFiles(this,'photoStrip','photo')">
+      </div>
+      <div class="preview-strip" id="photoStrip"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Add Videos</label>
+      <div class="drop-zone" onclick="document.getElementById('newVideos').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="handleDrop(event,'video')">
+        <div class="dz-icon">🎬</div>
+        <p>Click or drag videos here</p>
+        <small>MP4 · WEBM · MOV</small>
+        <input type="file" id="newVideos" name="videos" multiple
+          accept=".mp4,.webm,.mov,.avi"
+          onchange="previewFiles(this,'videoStrip','video')">
+      </div>
+      <div class="preview-strip" id="videoStrip"></div>
+    </div>
+
+    <button type="submit" class="btn btn-success" style="padding:11px 28px;">
+      ⬆️ Upload Media
+    </button>
+  </form>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);
+    z-index:9999;align-items:center;justify-content:center;"
+  onclick="closeLightbox()">
+  <img id="lbImg" src="" style="max-width:90vw;max-height:88vh;border-radius:8px;display:none;">
+  <video id="lbVid" controls
+    style="max-width:90vw;max-height:88vh;border-radius:8px;display:none;"></video>
+</div>
+
+<script>
+function previewFiles(input, previewId, type) {
+  var strip = document.getElementById(previewId);
+  strip.innerHTML = '';
+  Array.from(input.files).forEach(function(file) {
+    var item = document.createElement('div');
+    item.className = 'prev-item';
+    var rm = document.createElement('button');
+    rm.className = 'rm'; rm.textContent = '✕';
+    rm.onclick = function() { item.remove(); };
+    var el = document.createElement(type === 'photo' ? 'img' : 'video');
+    el.src = URL.createObjectURL(file);
+    if (type === 'video') el.muted = true;
+    item.appendChild(el);
+    item.appendChild(rm);
+    strip.appendChild(item);
+  });
+}
+function handleDrop(e, type) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  var inputId   = type === 'photo' ? 'newPhotos' : 'newVideos';
+  var previewId = type === 'photo' ? 'photoStrip' : 'videoStrip';
+  var input = document.getElementById(inputId);
+  try {
+    var dt = new DataTransfer();
+    Array.from(e.dataTransfer.files).forEach(function(f){ dt.items.add(f); });
+    input.files = dt.files;
+    previewFiles(input, previewId, type);
+  } catch(err) {
+    alert('Use the click button to select files in this browser.');
+  }
+}
+function openLightbox(type, src) {
+  var lb = document.getElementById('lightbox');
+  var img = document.getElementById('lbImg');
+  var vid = document.getElementById('lbVid');
+  lb.style.display = 'flex';
+  if (type === 'photo') {
+    img.src = src; img.style.display = 'block';
+    vid.style.display = 'none'; vid.src = '';
+  } else {
+    vid.src = src; vid.style.display = 'block';
+    img.style.display = 'none'; img.src = ''; vid.play();
+  }
+}
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+  var vid = document.getElementById('lbVid');
+  vid.pause(); vid.src = '';
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLightbox(); });
+</script>
+
+{% endblock %}
