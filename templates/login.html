@@ -74,12 +74,21 @@ input:focus{border-color:#2a5298;box-shadow:0 0 0 3px rgba(42,82,152,.1);}
     {% endwith %}
 
     <!-- ROLE TABS -->
-    <div class="role-tabs">
-      <button class="role-tab active" id="tabUser"
-        onclick="setRole('user')">👤 Traveler</button>
-      <button class="role-tab" id="tabAdmin"
-        onclick="setRole('admin')">🛡️ Admin</button>
-    </div>
+   <div class="role-tabs">
+  <button type="button"
+    class="role-tab active"
+    id="tabUser"
+    onclick="setRole('user')">
+    👤 Traveler
+  </button>
+
+  <button type="button"
+    class="role-tab"
+    id="tabAdmin"
+    onclick="setRole('admin')">
+    🛡️ Admin
+  </button>
+</div>
 
     <form action="/login" method="POST">
       <input type="hidden" name="role" id="roleField" value="user">
@@ -102,10 +111,17 @@ input:focus{border-color:#2a5298;box-shadow:0 0 0 3px rgba(42,82,152,.1);}
 </div>
 
 <script>
-function setRole(r){
-  document.getElementById('roleField').value = r;
-  document.getElementById('tabUser').classList.toggle('active', r==='user');
-  document.getElementById('tabAdmin').classList.toggle('active', r==='admin');
+function setRole(role) {
+  document.getElementById("roleField").value = role;
+
+  document.getElementById("tabUser").classList.remove("active");
+  document.getElementById("tabAdmin").classList.remove("active");
+
+  if (role === "user") {
+    document.getElementById("tabUser").classList.add("active");
+  } else {
+    document.getElementById("tabAdmin").classList.add("active");
+  }
 }
 </script>
 

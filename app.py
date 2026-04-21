@@ -242,7 +242,8 @@ def home():
 
 @app.route("/login", methods=["POST"])
 def login():
-    role     = request.form.get("role", "user").strip()
+    role = request.form.get("role", "user").strip()
+    print("ROLE RECIEVED =",role)
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
 
@@ -251,38 +252,74 @@ def login():
         return redirect("/")
 
     try:
+        # ================= ADMIN LOGIN =================
         if role == "admin":
-            admin = query("SELECT * FROM admin WHERE name=%s", (username,), one=True)
-            if admin and verify_password(admin["password"], password):
-                # Auto-upgrade plain text to hash on first login
-                if not admin["password"].startswith("pbkdf2:") and not admin["password"].startswith("scrypt:"):
-                    query("UPDATE admin SET password=%s WHERE id=%s",
-                          (generate_password_hash(password), admin["id"]), commit=True)
-                session.clear()
-                session["admin"] = admin["name"]
-                return redirect("/admin_dashboard")
-            flash("Invalid admin credentials.", "danger")
+            admin = query(
+                "SELECT * FROM admin WHERE name=%s",
+                (username,),
+                one=True
+            )
+
+            if admin:
+                db_password = str(admin["password"]).strip()
+
+                # Plain text password check
+                if db_password == password.strip():
+                    session.clear()
+                    session["admin"] = admin["name"]
+                    return redirect("/admin_dashboard")
+
+                # Hashed password check
+                elif verify_password(db_password, password):
+                    session.clear()
+                    session["admin"] = admin["name"]
+                    return redirect("/admin_dashboard")
+
+            flash("Invalid Admin Login", "danger")
             return redirect("/")
 
-        user = query("SELECT * FROM traveler WHERE name=%s", (username,), one=True)
-        if user and verify_password(user["password"], password):
-            # Auto-upgrade plain text to hash on first login
-            if not user["password"].startswith("pbkdf2:") and not user["password"].startswith("scrypt:"):
-                query("UPDATE traveler SET password=%s WHERE adharno=%s",
-                      (generate_password_hash(password), user["adharno"]), commit=True)
-            session.clear()
-            session["user"]    = user["name"]
-            session["user_id"] = user["adharno"]
-            return redirect("/dashboard")
+        # ================= USER LOGIN =================
+        user = query(
+            "SELECT * FROM traveler WHERE name=%s",
+            (username,),
+            one=True
+        )
 
-        flash("Invalid username or password.", "danger")
+        if user:
+            db_password = str(user["password"]).strip()
+
+            # Plain text password check
+            if db_password == password.strip():
+                # Auto convert old plain text password to hashed password
+                new_hash = generate_password_hash(password)
+
+                query(
+                    "UPDATE traveler SET password=%s WHERE adharno=%s",
+                    (
+                        new_hash,
+                        user["adharno"]
+                    ),
+                    commit=True
+                )
+
+                session.clear()
+                session["user"] = user["name"]
+                session["user_id"] = user["adharno"]
+                return redirect("/dashboard")
+
+            # Hashed password check
+            elif verify_password(db_password, password):
+                session.clear()
+                session["user"] = user["name"]
+                session["user_id"] = user["adharno"]
+                return redirect("/dashboard")
+
+        flash("Invalid User Login", "danger")
         return redirect("/")
 
     except Exception as e:
         flash(f"Login error: {e}", "danger")
         return redirect("/")
-
-
 @app.route("/register")
 def register():
     return render_template("register.html")
@@ -290,44 +327,51 @@ def register():
 
 @app.route("/register_user", methods=["POST"])
 def register_user():
-    adhar    = request.form.get("adhar", "").strip()
-    name     = request.form.get("name", "").strip()
-    address  = request.form.get("address", "").strip()
-    mobile   = request.form.get("mobile", "").strip()
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip()
+    mobile = request.form.get("mobile", "").strip()
     password = request.form.get("password", "")
 
-    if not all([adhar, name, address, mobile, password]):
+    if not all([name, email, mobile, password]):
         flash("All fields are required.", "danger")
         return redirect("/register")
-    if not adhar.isdigit() or len(adhar) != 12:
-        flash("Aadhaar must be exactly 12 digits.", "danger")
-        return redirect("/register")
+
     if not mobile.isdigit() or len(mobile) != 10:
         flash("Mobile must be exactly 10 digits.", "danger")
         return redirect("/register")
+
     if len(password) < 6:
         flash("Password must be at least 6 characters.", "danger")
         return redirect("/register")
 
     try:
-        existing = query("SELECT adharno FROM traveler WHERE adharno=%s", (adhar,), one=True)
+        existing = query(
+            "SELECT adharno FROM traveler WHERE email=%s",
+            (email,),
+            one=True
+        )
+
         if existing:
-            flash("This Aadhaar number is already registered.", "warning")
+            flash("This email is already registered.", "warning")
             return redirect("/register")
 
         hashed = generate_password_hash(password)
+
         query(
-            "INSERT INTO traveler (adharno, name, address, mobile, password) VALUES (%s,%s,%s,%s,%s)",
-            (adhar, name, address, mobile, hashed), commit=True
+            """
+            INSERT INTO traveler (name, email, mobile, password)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (name, email, mobile, hashed),
+            commit=True
         )
+
         flash("Registration successful! Please log in.", "success")
         return redirect("/")
 
     except Exception as e:
         flash(f"Registration failed: {e}", "danger")
         return redirect("/register")
-
-
 @app.route("/logout")
 def logout():
     session.clear()
@@ -498,7 +542,7 @@ def wishlist():
 def wishlist_add(pid):
     try:
         existing = query(
-            "SELECT id FROM wishlist WHERE adharno=%s AND package_id=%s",
+            "SELECT * FROM wishlist WHERE adharno=%s AND package_id=%s",
             (session["user_id"], pid), one=True
         )
         if not existing:
@@ -1169,7 +1213,7 @@ def add_announcement():
 @admin_required
 def delete_announcement(id):
     try:
-        query("DELETE FROM announcement WHERE id=%s", (id,), commit=True)
+        query("DELETE FROM announcement WHERE admin_id=%s", (id,), commit=True)
         flash("Announcement deleted.", "info")
     except Exception as e:
         flash(f"Could not delete: {e}", "danger")
