@@ -1,0 +1,34 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+    <h1>👨‍💼 Real Tour Guides</h1>
+</div>
+
+<div class="card">
+    <h3>Guide List</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Guide ID</th>
+                <th>Name</th>
+                <th>Specialization</th>
+                <th>Mobile</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for g in guides %}
+            <tr>
+                <td>#{{ g.guide_id }}</td>
+                <td>{{ g.name }}</td>
+                <td>{{ g.specialization }}</td>
+                <td>{{ g.mobile }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

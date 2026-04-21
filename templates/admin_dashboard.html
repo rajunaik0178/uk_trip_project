@@ -225,48 +225,70 @@ function loadCharts() {
 
 function drawCharts() {
   /* PIE */
-  var approved  = {{ approved }};
-  var cancelled = {{ cancelled }};
-  var bookings  = {{ bookings }};
-  var pending   = bookings - approved - cancelled;
+  var approved = Number('{{ approved }}');
+var cancelled = Number('{{ cancelled }}');
+var bookings = Number('{{ bookings }}');
+var pending = bookings - approved - cancelled;
 
-  new Chart(document.getElementById('pieChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Approved', 'Cancelled', 'Pending'],
-      datasets: [{
-        data: [approved, cancelled, pending],
-        backgroundColor: ['#16a34a', '#6b7280', '#d97706'],
-        borderWidth: 2, borderColor: '#fff'
-      }]
-    },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-  });
-
-  /* BAR */
-  new Chart(document.getElementById('barChart'), {
-    type: 'bar',
-    data: {
-      labels: ['Travelers', 'Packages', 'Bookings', 'Approved'],
-      datasets: [{
-        label: 'Count',
-        data: [{{ users }}, {{ total_packages }}, {{ bookings }}, {{ approved }}],
-        backgroundColor: ['#5b86e5', '#8e44ad', '#f7971e', '#16a34a'],
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Approved', 'Cancelled', 'Pending'],
+    datasets: [{
+      data: [approved, cancelled, pending],
+      backgroundColor: ['#16a34a', '#6b7280', '#d97706'],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      }
     }
-  });
+  }
+});
 
-  /* TOP PACKAGES BAR */
-  var pkgCanvas = document.getElementById('pkgChart');
-  if (pkgCanvas) {
-    var pkgLabels = [{% for tp in top_packages %}"{{ tp.category }}"{% if not loop.last %},{% endif %}{% endfor %}];
-    var pkgData   = [{% for tp in top_packages %}{{ tp.total }}{% if not loop.last %},{% endif %}{% endfor %}];
+/* BAR */
+new Chart(document.getElementById('barChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Travelers', 'Packages', 'Bookings', 'Approved'],
+    datasets: [{
+      label: 'Count',
+      data: [
+        Number('{{ users }}'),
+        Number('{{ total_packages }}'),
+        Number('{{ bookings }}'),
+        Number('{{ approved }}')
+      ],
+      backgroundColor: ['#5b86e5', '#8e44ad', '#f7971e', '#16a34a'],
+      borderRadius: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+
+/* TOP PACKAGES BAR */
+var pkgCanvas = document.getElementById('pkgChart');
+
+if (pkgCanvas) {
+  var pkgLabels = JSON.parse('{{ top_packages | map(attribute="category") | list | tojson | safe }}');
+  var pkgData = JSON.parse('{{ top_packages | map(attribute="total") | list | tojson | safe }}');
     new Chart(pkgCanvas, {
       type: 'bar',
       data: {

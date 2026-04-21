@@ -227,14 +227,15 @@ def login_required(f):
     return decorated
 
 
+
 def admin_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated_function(*args, **kwargs):
         if "admin" not in session:
-            flash("Admin access required.", "danger")
+            flash("Please login first.", "warning")
             return redirect("/")
         return f(*args, **kwargs)
-    return decorated
+    return decorated_function
 
 
 # ══════════════════════════════════════════════════════
@@ -266,7 +267,7 @@ def home():
 
 @app.route("/login", methods=["POST"])
 def login():
-    role     = request.form.get("role", "user").strip()
+    role = request.form.get("role", "user").strip()
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
 
@@ -275,38 +276,57 @@ def login():
         return redirect("/")
 
     try:
+        # ================= ADMIN LOGIN =================
         if role == "admin":
-            admin = query("SELECT * FROM admin WHERE name=%s", (username,), one=True)
-            if admin and verify_password(admin["password"], password):
-                # Auto-upgrade plain text → hash silently (uses name as key, no id needed)
-                if not is_hashed(admin["password"]):
-                    query("UPDATE admin SET password=%s WHERE name=%s",
-                          (generate_password_hash(password), admin["name"]), commit=True)
-                session.clear()
-                session["admin"] = admin["name"]
-                return redirect("/admin_dashboard")
-            flash("Invalid admin credentials. Check your admin name and password.", "danger")
+            admin = query(
+                "SELECT * FROM admin WHERE name=%s",
+                (username,),
+                one=True
+            )
+
+            if admin:
+                db_password = str(admin["password"]).strip()
+
+                # Plain text password check
+                if db_password == password.strip():
+                    session.clear()
+                    session["admin"] = admin["name"]
+
+                    flash("Admin login successful!", "success")
+                    return redirect("/admin_dashboard")
+
+            flash("Invalid admin credentials.", "danger")
             return redirect("/")
 
-        user = query("SELECT * FROM traveler WHERE name=%s", (username,), one=True)
+        # ================= USER LOGIN =================
+        user = query(
+            "SELECT * FROM traveler WHERE name=%s",
+            (username,),
+            one=True
+        )
+
         if user and verify_password(user["password"], password):
-            # Auto-upgrade plain text → hash silently (uses adharno as key)
+            # Auto-upgrade plain text → hash silently
             if not is_hashed(user["password"]):
-                query("UPDATE traveler SET password=%s WHERE adharno=%s",
-                      (generate_password_hash(password), user["adharno"]), commit=True)
+                query(
+                    "UPDATE traveler SET password=%s WHERE adharno=%s",
+                    (generate_password_hash(password), user["adharno"]),
+                    commit=True
+                )
+
             session.clear()
-            session["user"]    = user["name"]
+            session["user"] = user["name"]
             session["user_id"] = user["adharno"]
+
+            flash("Login successful!", "success")
             return redirect("/dashboard")
 
-        flash("Invalid username or password. Please check your name and password.", "danger")
+        flash("Invalid username or password.", "danger")
         return redirect("/")
 
     except Exception as e:
-        flash(f"Login error — {type(e).__name__}: {e}", "danger")
+        flash(f"Login error: {e}", "danger")
         return redirect("/")
-
-
 @app.route("/register")
 def register():
     return render_template("register.html")
@@ -882,87 +902,102 @@ def admin_dashboard():
 def manage_packages():
     try:
         data = query(
-            """SELECT p.*, pi.image
-               FROM package p
-               LEFT JOIN package_images pi ON p.package_id=pi.package_id
-               ORDER BY p.package_id"""
+            """
+            SELECT p.*, pi.image
+            FROM package p
+            LEFT JOIN package_images pi
+            ON p.package_id = pi.package_id
+            ORDER BY p.package_id DESC
+            """
         ) or []
+
         packages_dict = {}
+
         for row in data:
             pid = row["package_id"]
+
             if pid not in packages_dict:
-                packages_dict[pid] = dict(row)
-                packages_dict[pid]["images"] = []
-                packages_dict[pid]["videos"] = []
+                packages_dict[pid] = {
+                    "package_id": row["package_id"],
+                    "category": row["category"],
+                    "amt_rate": row["amt_rate"],
+                    "description": row["description"],
+                    "duration": row["duration"],
+                    "images": [],
+                    "videos": []
+                }
+
             if row.get("image"):
                 packages_dict[pid]["images"].append(row["image"])
-        vid_rows = query("SELECT package_id, video FROM package_videos") or []
-        for vr in vid_rows:
-            pid = vr["package_id"]
-            if pid in packages_dict:
-                packages_dict[pid]["videos"].append(vr["video"])
-        return render_template("manage_packages.html", packages=list(packages_dict.values()))
-    except Exception as e:
-        flash(f"Could not load packages: {e}", "danger")
-        return render_template("manage_packages.html", packages=[])
 
+        # Load videos
+        video_rows = query(
+            "SELECT package_id, video FROM package_videos"
+        ) or []
 
-@app.route("/add_package", methods=["POST"])
-@admin_required
-def add_package():
-    category    = request.form.get("category", "").strip()
-    amt_rate    = request.form.get("amt_rate", "").strip()
-    description = request.form.get("description", "").strip()
-    duration    = request.form.get("duration", "").strip()
+        for v in video_rows:
+            pid = v["package_id"]
+            if pid in packages_dict and v.get("video"):
+                packages_dict[pid]["videos"].append(v["video"])
 
-    if not all([category, amt_rate, duration]):
-        flash("Category, price, and duration are required.", "warning")
-        return redirect("/manage_packages")
+        package_data = {}
 
-    try:
-        float(amt_rate)
-    except ValueError:
-        flash("Price must be a valid number.", "danger")
-        return redirect("/manage_packages")
+        for pid, pkg in packages_dict.items():
+            package_data[str(pid)] = {
+                "name": pkg["category"],
+                "images": pkg["images"],
+                "videos": pkg["videos"]
+            }
 
-    try:
-        pkg_id = query(
-            "INSERT INTO package(category, amt_rate, description, duration) VALUES(%s,%s,%s,%s)",
-            (category, amt_rate, description, duration), commit=True
+        return render_template(
+            "manage_packages.html",
+            packages=list(packages_dict.values()),
+            package_data=package_data
         )
-        for file in request.files.getlist("images"):
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                query("INSERT INTO package_images(package_id, image) VALUES(%s,%s)",
-                      (pkg_id, filename), commit=True)
-        flash("Package added successfully.", "success")
-    except Exception as e:
-        flash(f"Could not add package: {e}", "danger")
-    return redirect("/manage_packages")
 
+    except Exception as e:
+        print("MANAGE PACKAGES ERROR:", e)
+        flash(f"Could not load packages: {e}", "danger")
+
+        return render_template(
+            "manage_packages.html",
+            packages=[],
+            package_data={}
+        )
 
 @app.route("/edit_package/<int:id>", methods=["GET", "POST"])
 @admin_required
 def edit_package(id):
     try:
         if request.method == "POST":
-            category    = request.form.get("category", "").strip()
-            amt_rate    = request.form.get("amt_rate", "").strip()
+            category = request.form.get("category", "").strip()
+            amt_rate = request.form.get("amt_rate", "").strip()
             description = request.form.get("description", "").strip()
-            duration    = request.form.get("duration", "").strip()
+            duration = request.form.get("duration", "").strip()
+
             query(
-                "UPDATE package SET category=%s, amt_rate=%s, description=%s, duration=%s WHERE package_id=%s",
-                (category, amt_rate, description, duration, id), commit=True
+                """UPDATE package
+                   SET category=%s, amt_rate=%s, description=%s, duration=%s
+                   WHERE package_id=%s""",
+                (category, amt_rate, description, duration, id),
+                commit=True
             )
+
             flash("Package updated.", "success")
             return redirect("/manage_packages")
 
-        pkg = query("SELECT * FROM package WHERE package_id=%s", (id,), one=True)
+        pkg = query(
+            "SELECT * FROM package WHERE package_id=%s",
+            (id,),
+            one=True
+        )
+
         if not pkg:
             flash("Package not found.", "danger")
             return redirect("/manage_packages")
+
         return render_template("edit_package.html", pkg=pkg)
+
     except Exception as e:
         flash(f"Could not edit package: {e}", "danger")
         return redirect("/manage_packages")
@@ -972,18 +1007,54 @@ def edit_package(id):
 @admin_required
 def delete_package(id):
     try:
-        query("DELETE FROM wishlist WHERE package_id=%s", (id,), commit=True)
-        query("DELETE FROM package_images WHERE package_id=%s", (id,), commit=True)
-        bks = query("SELECT booking_id FROM booking WHERE package_id=%s", (id,)) or []
+        query(
+            "DELETE FROM wishlist WHERE package_id=%s",
+            (id,),
+            commit=True
+        )
+
+        query(
+            "DELETE FROM package_images WHERE package_id=%s",
+            (id,),
+            commit=True
+        )
+
+        query(
+            "DELETE FROM package_videos WHERE package_id=%s",
+            (id,),
+            commit=True
+        )
+
+        bks = query(
+            "SELECT booking_id FROM booking WHERE package_id=%s",
+            (id,)
+        ) or []
+
         for b in bks:
-            query("DELETE FROM review WHERE booking_id=%s", (b["booking_id"],), commit=True)
-        query("DELETE FROM booking WHERE package_id=%s", (id,), commit=True)
-        query("DELETE FROM package WHERE package_id=%s", (id,), commit=True)
+            query(
+                "DELETE FROM review WHERE booking_id=%s",
+                (b["booking_id"],),
+                commit=True
+            )
+
+        query(
+            "DELETE FROM booking WHERE package_id=%s",
+            (id,),
+            commit=True
+        )
+
+        query(
+            "DELETE FROM package WHERE package_id=%s",
+            (id,),
+            commit=True
+        )
+
         flash("Package deleted.", "info")
+
     except Exception as e:
         flash(f"Could not delete package: {e}", "danger")
-    return redirect("/manage_packages")
 
+    return redirect("/manage_packages")
 
 # ══════════════════════════════════════════════════════
 #  ADMIN — BOOKINGS
@@ -1374,27 +1445,42 @@ def manage_gallery():
 # ══════════════════════════════════════════════════════
 #  ADMIN — TRIP GUIDES
 # ══════════════════════════════════════════════════════
-
 @app.route("/manage_guides")
 @admin_required
 def manage_guides():
     try:
-        guides = query("SELECT * FROM trip_guide ORDER BY id DESC") or []
-        return render_template("manage_guides.html", guides=guides)
+        guides = query(
+            "SELECT * FROM trip_guide ORDER BY id DESC"
+        ) or []
+
+        packages = query(
+            "SELECT DISTINCT category FROM package ORDER BY category ASC"
+        ) or []
+
+        return render_template(
+            "manage_guides.html",
+            guides=guides,
+            packages=packages
+        )
+
     except Exception as e:
         flash(f"Could not load guides: {e}", "danger")
-        return render_template("manage_guides.html", guides=[])
+        return render_template(
+            "manage_guides.html",
+            guides=[],
+            packages=[]
+        )
 
 
 @app.route("/add_guide", methods=["POST"])
 @admin_required
 def add_guide():
-    title        = request.form.get("title", "").strip()
-    destination  = request.form.get("destination", "").strip()
-    duration_days= request.form.get("duration_days", "0").strip()
-    summary      = request.form.get("summary", "").strip()
-    itinerary    = request.form.get("itinerary", "").strip()
-    tips         = request.form.get("tips", "").strip()
+    title = request.form.get("title", "").strip()
+    destination = request.form.get("destination", "").strip()
+    duration_days = request.form.get("duration_days", "0").strip()
+    summary = request.form.get("summary", "").strip()
+    itinerary = request.form.get("itinerary", "").strip()
+    tips = request.form.get("tips", "").strip()
 
     if not title or not destination:
         flash("Title and destination are required.", "warning")
@@ -1403,54 +1489,111 @@ def add_guide():
     try:
         cover_image = None
         file = request.files.get("cover_image")
+
         if file and file.filename and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
             cover_image = filename
 
         query(
-            """INSERT INTO trip_guide(title, destination, duration_days, summary, itinerary, tips, cover_image)
-               VALUES(%s,%s,%s,%s,%s,%s,%s)""",
-            (title, destination, duration_days, summary, itinerary, tips, cover_image),
+            """
+            INSERT INTO trip_guide
+            (title, destination, duration_days, summary, itinerary, tips, cover_image)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                title,
+                destination,
+                duration_days,
+                summary,
+                itinerary,
+                tips,
+                cover_image
+            ),
             commit=True
         )
+
         flash("Guide added successfully.", "success")
+
     except Exception as e:
         flash(f"Could not add guide: {e}", "danger")
+
     return redirect("/manage_guides")
 
 
 @app.route("/edit_guide/<int:id>", methods=["POST"])
 @admin_required
 def edit_guide(id):
-    title        = request.form.get("title", "").strip()
-    destination  = request.form.get("destination", "").strip()
-    duration_days= request.form.get("duration_days", "0").strip()
-    summary      = request.form.get("summary", "").strip()
-    itinerary    = request.form.get("itinerary", "").strip()
-    tips         = request.form.get("tips", "").strip()
+    title = request.form.get("title", "").strip()
+    destination = request.form.get("destination", "").strip()
+    duration_days = request.form.get("duration_days", "0").strip()
+    summary = request.form.get("summary", "").strip()
+    itinerary = request.form.get("itinerary", "").strip()
+    tips = request.form.get("tips", "").strip()
 
     try:
         file = request.files.get("cover_image")
+
         if file and file.filename and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
             query(
-                """UPDATE trip_guide SET title=%s,destination=%s,duration_days=%s,
-                   summary=%s,itinerary=%s,tips=%s,cover_image=%s WHERE id=%s""",
-                (title, destination, duration_days, summary, itinerary, tips, filename, id),
+                """
+                UPDATE trip_guide
+                SET
+                    title=%s,
+                    destination=%s,
+                    duration_days=%s,
+                    summary=%s,
+                    itinerary=%s,
+                    tips=%s,
+                    cover_image=%s
+                WHERE id=%s
+                """,
+                (
+                    title,
+                    destination,
+                    duration_days,
+                    summary,
+                    itinerary,
+                    tips,
+                    filename,
+                    id
+                ),
                 commit=True
             )
+
         else:
             query(
-                """UPDATE trip_guide SET title=%s,destination=%s,duration_days=%s,
-                   summary=%s,itinerary=%s,tips=%s WHERE id=%s""",
-                (title, destination, duration_days, summary, itinerary, tips, id),
+                """
+                UPDATE trip_guide
+                SET
+                    title=%s,
+                    destination=%s,
+                    duration_days=%s,
+                    summary=%s,
+                    itinerary=%s,
+                    tips=%s
+                WHERE id=%s
+                """,
+                (
+                    title,
+                    destination,
+                    duration_days,
+                    summary,
+                    itinerary,
+                    tips,
+                    id
+                ),
                 commit=True
             )
+
         flash("Guide updated.", "success")
+
     except Exception as e:
         flash(f"Could not update guide: {e}", "danger")
+
     return redirect("/manage_guides")
 
 
@@ -1458,15 +1601,64 @@ def edit_guide(id):
 @admin_required
 def delete_guide(id):
     try:
-        query("DELETE FROM trip_guide WHERE id=%s", (id,), commit=True)
+        query(
+            "DELETE FROM trip_guide WHERE id=%s",
+            (id,),
+            commit=True
+        )
+
         flash("Guide deleted.", "info")
+
     except Exception as e:
         flash(f"Could not delete guide: {e}", "danger")
-    return redirect("/manage_guides")
 
+    return redirect("/manage_guides")
 # ══════════════════════════════════════════════════════
 #  RUN
 # ══════════════════════════════════════════════════════
+# ===============================
+# TRANSPORT MANAGEMENT
+# ===============================
+@app.route("/manage_transport")
+@admin_required
+def manage_transport():
+    return render_template("manage_transport.html")
+
+
+# ===============================
+# PAYMENT MANAGEMENT
+# ===============================
+@app.route("/manage_payments")
+@admin_required
+def manage_payments():
+    return render_template("manage_payments.html")
+
+
+# ===============================
+# TOUR GUIDES MANAGEMENT
+# ===============================
+@app.route("/manage_guides_admin")
+@admin_required
+def manage_guides_admin():
+    guides = query("SELECT * FROM guide") or []
+    return render_template("manage_guides_admin.html", guides=guides)
+
+
+# ===============================
+# INVOICE MANAGEMENT
+# ===============================
+@app.route("/manage_invoices")
+@admin_required
+def manage_invoices():
+    bookings = query("""
+        SELECT b.*, t.name as traveler_name, p.category
+        FROM booking b
+        LEFT JOIN traveler t ON b.adharno = t.adharno
+        LEFT JOIN package p ON b.package_id = p.package_id
+        ORDER BY b.booking_id DESC
+    """) or []
+
+    return render_template("manage_invoices.html", bookings=bookings)
 
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"

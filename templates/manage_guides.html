@@ -1,0 +1,231 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+  <h1>🧭 Trip Guides</h1>
+  <button class="btn btn-primary"
+    onclick="document.getElementById('addGuideModal').classList.add('open')">
+    + Add Guide
+  </button>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="gs" placeholder="🔍 Search guides…" oninput="filterG()" style="flex:1;">
+  <select id="gcat" onchange="filterG()">
+    <option value="">All Destinations</option>
+    {% for p in packages %}
+      <option value="{{ p.category }}">{{ p.category }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+{% if guides %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+  {% for g in guides %}
+  <div class="card" data-dest="{{ g.destination }}" style="padding:0;overflow:hidden;">
+    {% if g.cover_image %}
+    <img src="/static/uploads/{{ g.cover_image }}"
+      style="width:100%;height:160px;object-fit:cover;display:block;">
+    {% else %}
+    <div style="width:100%;height:160px;background:linear-gradient(135deg,#1e3c72,#2a5298);
+      display:flex;align-items:center;justify-content:center;font-size:40px;">🧭</div>
+    {% endif %}
+
+    <div style="padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="background:#e8f0fe;color:#2a5298;font-size:11px;
+          padding:2px 8px;border-radius:10px;">{{ g.destination }}</span>
+        <span style="font-size:11px;color:#aaa;">
+          {{ g.duration_days }} day{{ 's' if g.duration_days != 1 }}
+        </span>
+      </div>
+      <h3 style="font-size:15px;margin-bottom:6px;color:#1a1a2e;">{{ g.title }}</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.5;">
+        {{ (g.summary or '')[:100] }}{% if g.summary and g.summary|length > 100 %}…{% endif %}
+      </p>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-outline btn-sm"
+          data-gid="{{ g.id }}"
+          data-title="{{ g.title | e }}"
+          data-dest="{{ g.destination | e }}"
+          data-days="{{ g.duration_days }}"
+          data-summary="{{ (g.summary or '') | e }}"
+          data-itinerary="{{ (g.itinerary or '') | e }}"
+          data-tips="{{ (g.tips or '') | e }}"
+          onclick="openEditGuide(this)">
+          ✏️ Edit
+        </button>
+        <a href="/delete_guide/{{ g.id }}"
+           onclick="return confirm('Delete this guide?')">
+          <button class="btn btn-danger btn-sm">🗑 Delete</button>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card" style="text-align:center;padding:50px;">
+  <div style="font-size:48px;margin-bottom:16px;">🧭</div>
+  <h3 style="color:#888;margin-bottom:8px;">No guides yet</h3>
+  <p style="color:#aaa;font-size:13px;margin-bottom:20px;">
+    Create your first UK trip guide to help travelers plan their journey.
+  </p>
+  <button class="btn btn-primary" style="padding:11px 24px;"
+    onclick="document.getElementById('addGuideModal').classList.add('open')">
+    + Add First Guide
+  </button>
+</div>
+{% endif %}
+
+<!-- ══ ADD GUIDE MODAL ══ -->
+<div class="modal-overlay" id="addGuideModal">
+  <div class="modal" style="width:580px;">
+    <button class="modal-close"
+      onclick="document.getElementById('addGuideModal').classList.remove('open')">✕</button>
+    <h3>🧭 Add Trip Guide</h3>
+    <form method="POST" action="/add_guide" enctype="multipart/form-data">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Guide Title</label>
+          <input name="title" placeholder="e.g. Best of London in 7 Days" required>
+        </div>
+        <div class="form-group">
+          <label>Destination</label>
+          <select name="destination" required>
+            <option value="">— Select —</option>
+            {% for p in packages %}
+              <option value="{{ p.category }}">{{ p.category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Duration (days)</label>
+        <input name="duration_days" type="number" min="1" max="30" placeholder="e.g. 7">
+      </div>
+
+      <div class="form-group">
+        <label>Summary</label>
+        <textarea name="summary" rows="2"
+          placeholder="Short overview of the trip…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Day-by-Day Itinerary</label>
+        <textarea name="itinerary" rows="5"
+          placeholder="Day 1: Arrive at Heathrow, check in to hotel...&#10;Day 2: Visit Big Ben, Tower of London..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Travel Tips</label>
+        <textarea name="tips" rows="3"
+          placeholder="- Carry an Oyster card for London transit&#10;- Book museums in advance…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Cover Image</label>
+        <input type="file" name="cover_image" accept=".jpg,.jpeg,.png,.webp">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        ➕ Add Guide
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ══ EDIT GUIDE MODAL ══ -->
+<div class="modal-overlay" id="editGuideModal">
+  <div class="modal" style="width:580px;">
+    <button class="modal-close"
+      onclick="document.getElementById('editGuideModal').classList.remove('open')">✕</button>
+    <h3>✏️ Edit Guide</h3>
+
+    <form method="POST" id="editGuideForm" enctype="multipart/form-data">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Guide Title</label>
+          <input name="title" id="eg_title" required>
+        </div>
+
+        <div class="form-group">
+          <label>Destination</label>
+          <select name="destination" id="eg_dest" required>
+            {% for p in packages %}
+              <option value="{{ p.category }}">{{ p.category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Duration (days)</label>
+        <input name="duration_days" id="eg_days" type="number" min="1" max="30">
+      </div>
+
+      <div class="form-group">
+        <label>Summary</label>
+        <textarea name="summary" id="eg_summary" rows="2"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Day-by-Day Itinerary</label>
+        <textarea name="itinerary" id="eg_itinerary" rows="5"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Travel Tips</label>
+        <textarea name="tips" id="eg_tips" rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>New Cover Image (optional)</label>
+        <input type="file" name="cover_image" accept=".jpg,.jpeg,.png,.webp">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        💾 Save Changes
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+function filterG() {
+  var q = document.getElementById('gs').value.toLowerCase();
+  var cat = document.getElementById('gcat').value.toLowerCase();
+
+  document.querySelectorAll('.card[data-dest]').forEach(function(c) {
+    var match = c.textContent.toLowerCase().includes(q) &&
+                (!cat || c.dataset.dest.toLowerCase() === cat);
+
+    c.style.display = match ? '' : 'none';
+  });
+}
+
+function openEditGuide(btn) {
+  var gid = btn.dataset.gid;
+
+  document.getElementById('editGuideForm').action = '/edit_guide/' + gid;
+  document.getElementById('eg_title').value = btn.dataset.title;
+  document.getElementById('eg_dest').value = btn.dataset.dest;
+  document.getElementById('eg_days').value = btn.dataset.days;
+  document.getElementById('eg_summary').value = btn.dataset.summary;
+  document.getElementById('eg_itinerary').value = btn.dataset.itinerary;
+  document.getElementById('eg_tips').value = btn.dataset.tips;
+
+  document.getElementById('editGuideModal').classList.add('open');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('addGuideModal').classList.remove('open');
+    document.getElementById('editGuideModal').classList.remove('open');
+  }
+});
+</script>
+
+{% endblock %}

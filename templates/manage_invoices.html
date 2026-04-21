@@ -1,0 +1,42 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+    <h1>🧾 Invoice Management</h1>
+</div>
+
+<div class="card">
+    <h3>Booking Invoices</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Traveler</th>
+                <th>Package</th>
+                <th>Travel Date</th>
+                <th>Total Amount</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for b in bookings %}
+            <tr>
+                <td>#{{ b.booking_id }}</td>
+                <td>{{ b.traveler_name }}</td>
+                <td>{{ b.category }}</td>
+                <td>{{ b.travel_date }}</td>
+                <td>₹{{ b.total_amount }}</td>
+                <td>
+                    <span class="status {{ b.status }}">
+                        {{ b.status }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

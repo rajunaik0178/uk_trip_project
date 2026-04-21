@@ -1,0 +1,42 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+    <h1>💳 Payment Management</h1>
+</div>
+
+<div class="card">
+    <h3>Payment Records</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Traveler</th>
+                <th>Package</th>
+                <th>Amount</th>
+                <th>Payment Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>#101</td>
+                <td>Prasanna</td>
+                <td>London Tour</td>
+                <td>₹45,000</td>
+                <td><span class="status Approved">Paid</span></td>
+            </tr>
+
+            <tr>
+                <td>#102</td>
+                <td>Rahul</td>
+                <td>Scotland Trip</td>
+                <td>₹38,000</td>
+                <td><span class="status Booked">Pending</span></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

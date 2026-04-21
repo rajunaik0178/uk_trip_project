@@ -1,0 +1,42 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+    <h1>🚖 Transport Management</h1>
+</div>
+
+<div class="card">
+    <h3>Transport Services</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Vehicle Type</th>
+                <th>Driver Name</th>
+                <th>Contact</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>#1</td>
+                <td>Airport Pickup</td>
+                <td>John Driver</td>
+                <td>9876543210</td>
+                <td><span class="status Approved">Available</span></td>
+            </tr>
+
+            <tr>
+                <td>#2</td>
+                <td>City Tour Cab</td>
+                <td>Mike Travels</td>
+                <td>9123456780</td>
+                <td><span class="status Booked">Busy</span></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

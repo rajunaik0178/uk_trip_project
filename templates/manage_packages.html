@@ -250,15 +250,7 @@ function handleDrop(e, type) {
 }
 
 /* ── GALLERY MODAL — fetches package media via AJAX ─ */
-var packageData = {
-  {% for p in packages %}
-  "{{ p.package_id }}": {
-    "name": "{{ p.category | e }}",
-    "images": [{% for img in p.images %}"{{ img }}"{% if not loop.last %},{% endif %}{% endfor %}],
-    "videos": [{% if p.videos is defined %}{% for v in p.videos %}"{{ v }}"{% if not loop.last %},{% endif %}{% endfor %}{% endif %}]
-  }{% if not loop.last %},{% endif %}
-  {% endfor %}
-};
+var packageData = JSON.parse(`{{ package_data | tojson | safe }}`);
 
 function openGalleryModal(pid) {
   var data = packageData[pid];
