@@ -2,57 +2,232 @@
 {% block title %}FAQ{% endblock %}
 {% block content %}
 
+<style>
+.faq-item{
+  background:#fff;
+  border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.07);
+  margin-bottom:12px;
+  overflow:hidden;
+}
+.faq-q{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 20px;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:600;
+  color:#1e3c72;
+  user-select:none;
+  transition:.2s;
+}
+.faq-q:hover{ background:#f0f4ff; }
+.faq-q .arrow{
+  font-size:18px;
+  transition:transform .3s;
+  color:#2a5298;
+  flex-shrink:0;
+}
+.faq-a{
+  display:none;
+  padding:0 20px 16px;
+  font-size:13.5px;
+  color:#555;
+  line-height:1.75;
+  border-top:1px solid #e5e7eb;
+}
+.faq-item.open .faq-a{ display:block; }
+.faq-item.open .faq-q{ background:#f0f4ff; }
+.faq-item.open .arrow{ transform:rotate(180deg); }
+
+.faq-category{
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:#6b7280;
+  margin:22px 0 8px;
+  font-weight:600;
+  padding-left:4px;
+}
+</style>
+
 <div class="topbar">
   <h1>❓ Frequently Asked Questions</h1>
-  <a href="/dashboard" class="btn btn-outline">← Dashboard</a>
+  <a href="/contact" class="btn btn-primary">📞 Ask Us Something</a>
 </div>
 
-<div class="card" style="max-width:720px;">
-  {% set faqs = [
-    ("How do I book a package?",
-     "Go to Browse Packages, click Book Now on any package, pick a travel date, and confirm. Your booking will show as Pending until admin approves it."),
-    ("When will my booking be approved?",
-     "Admin typically approves within 24 hours. You will receive a notification and can check status in My Bookings."),
-    ("Can I cancel a booking?",
-     "Yes — you can cancel any Pending booking from My Bookings. Once Approved, please contact support to cancel."),
-    ("How do I write a review?",
-     "After a booking is Approved, go to Write a Review in the sidebar, pick your trip, choose a star rating, and submit."),
-    ("What is the Wishlist?",
-     "You can save packages you like by clicking the heart icon on the Packages page. View saved packages in My Wishlist."),
-    ("Where do I see my booking receipt?",
-     "Click the Receipt button next to any booking in My Bookings. You can also print it using your browser."),
-    ("Is my Aadhaar data safe?",
-     "Yes. Your Aadhaar is used only as a unique ID within our system and is never shared with third parties."),
-    ("What documents do I need for a UK trip?",
-     "Valid passport (6+ months validity), UK visa, return ticket, travel insurance, and accommodation proof are mandatory."),
-    ("How do I change my password?",
-     "Go to My Profile, scroll to Change Password, enter your current password and new password, then click Save Changes."),
-    ("How do I contact support?",
-     "Use the Contact Us page in the sidebar, or call our helpline at +91 80000 00000 (24×7 for emergencies)."),
-  ] %}
+<div style="max-width:780px;margin:0 auto;">
 
-  {% for q, a in faqs %}
-  <div class="faq-item" style="border-bottom:1px solid #f0f0f0;"
-    onclick="toggleFaq(this)">
-    <div style="display:flex;justify-content:space-between;align-items:center;
-      padding:15px 4px;cursor:pointer;">
-      <strong style="font-size:14px;color:#1e3c72;padding-right:16px;">{{ q }}</strong>
-      <span class="faq-icon" style="color:#888;font-size:18px;flex-shrink:0;">▾</span>
-    </div>
-    <p style="display:none;font-size:13px;color:#555;line-height:1.75;
-      padding:0 4px 15px;">{{ a }}</p>
+  <div style="background:#e8f0fe;border-radius:10px;padding:14px 18px;
+    margin-bottom:22px;font-size:13.5px;color:#1e3c72;">
+    Can't find your answer below? <a href="/contact" style="color:#2a5298;font-weight:600;">
+    Send us a message</a> and we'll respond within 24 hours.
   </div>
-  {% endfor %}
+
+  <!-- BOOKING -->
+  <div class="faq-category">📄 Bookings</div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">How do I book a UK tour package? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Browse packages from the <strong>Browse Packages</strong> page. Click <em>Book Now</em>
+      on any package, select your preferred travel date, and confirm. Your booking will be
+      sent for admin approval and you'll receive a notification once it's confirmed.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">Can I cancel my booking? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Yes — you can cancel a <strong>Pending (Booked)</strong> booking from <em>My Bookings</em>
+      at any time before it is approved. Once approved, please contact us via
+      <a href="/contact">Contact Us</a> to request a cancellation.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">How long does approval take? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Bookings are typically reviewed within <strong>24–48 hours</strong>. You will receive
+      a notification in the app as soon as your booking is approved or updated.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">Can I book multiple packages at the same time? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Yes, you can book multiple different packages. However, you cannot have more than
+      one <em>pending</em> booking for the same package at the same time.
+    </div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="faq-category">💳 Payments</div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">What payment methods are accepted? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      We accept <strong>Cash, UPI, Credit/Debit Card, and Bank Transfer</strong>.
+      Payments are recorded by our admin team after your booking is approved.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">How do I get a receipt or invoice? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Once your booking is approved and payment is recorded, you can view your receipt
+      from the <strong>My Bookings</strong> page by clicking the Receipt button.
+      Admins can also print or email invoices from the admin panel.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">Is my payment information secure? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Yes. Payments are recorded manually by our admin team and no card details are stored
+      on the platform. All data is handled securely.
+    </div>
+  </div>
+
+  <!-- PACKAGES -->
+  <div class="faq-category">🌍 Packages & Guides</div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">What does a tour package include? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Each package includes guided tours, accommodation arrangements, and transport.
+      Full details are listed on each package card. For more specific information,
+      use the <a href="/contact">Contact Us</a> form.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">What are Trip Guides? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      <strong>Trip Guides</strong> are detailed destination write-ups created by our team —
+      covering itineraries, local tips, must-see places, and day-wise plans for popular
+      UK destinations. View them from the <a href="/guides">Trip Guides</a> page.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">Will a personal tour guide be assigned to me? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Yes — once your booking is approved, our admin will assign a certified tour guide
+      to your trip. You will receive an in-app notification with the guide's name when
+      the assignment is made.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">Can I add a package to my wishlist? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Yes! Click the ❤️ heart icon on any package card to add it to your Wishlist.
+      Your wishlist is saved and accessible from the sidebar at any time.
+    </div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div class="faq-category">👤 My Account</div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">How do I update my profile? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Go to <strong>My Profile</strong> from the sidebar. You can update your name,
+      address, and mobile number. To change your password, enter your current password
+      and then the new one.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">How do I write a review? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      You can write a review only for bookings that have been <strong>Approved</strong>.
+      Go to <em>Write Review</em> from the sidebar, select your booking, choose a star
+      rating, and submit your feedback.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">I forgot my password. What should I do? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Please contact our support team via the <a href="/contact">Contact Us</a> page
+      and we will assist you with a password reset.
+    </div>
+  </div>
+
+  <!-- SUPPORT -->
+  <div class="faq-category">🆘 Support</div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">How do I contact support? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Use the <a href="/contact"><strong>Contact Us</strong></a> page to send a message
+      directly to our team. We respond within 24 hours on working days.
+      For urgent issues during your trip, call our helpline: <strong>+91 80000 00000</strong>.
+    </div>
+  </div>
+
+  <div class="faq-item" onclick="toggle(this)">
+    <div class="faq-q">What are your support hours? <span class="arrow">▾</span></div>
+    <div class="faq-a">
+      Our support team is available <strong>Monday to Saturday, 9am – 6pm IST</strong>.
+      Emergency support is available 24×7 on <strong>+91 80000 00000</strong>.
+    </div>
+  </div>
+
 </div>
 
 <script>
-function toggleFaq(el){
-  const p    = el.querySelector('p');
-  const icon = el.querySelector('.faq-icon');
-  const open = p.style.display === 'block';
-  p.style.display    = open ? 'none' : 'block';
-  icon.textContent   = open ? '▾' : '▴';
-  el.style.background= open ? '' : '#f8faff';
+function toggle(item) {
+  var isOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item').forEach(function(el) {
+    el.classList.remove('open');
+  });
+  // Open clicked if it was closed
+  if (!isOpen) item.classList.add('open');
 }
 </script>
 
