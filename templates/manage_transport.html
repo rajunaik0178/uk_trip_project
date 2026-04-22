@@ -1,6 +1,24 @@
 {% extends "admin_base.html" %}
 {% block content %}
 
+<style>
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;margin-top:8px;}
+.detail-grid label{color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+.detail-grid span{color:#1f2937;font-weight:500;}
+.veh-card{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);
+  padding:18px;border-left:5px solid #e5e7eb;transition:.2s;}
+.veh-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.13);}
+.veh-card.available{border-left-color:#16a34a;}
+.veh-card.ontrip{border-left-color:#d97706;}
+.veh-card.maintenance{border-left-color:#dc2626;}
+.badge-avail{background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+.badge-trip {background:#fff3cd;color:#856404;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+.badge-maint{background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+.tab-btn{padding:8px 18px;border:1.5px solid #e5e7eb;background:#fff;border-radius:8px;
+  cursor:pointer;font-size:13px;font-weight:500;color:#6b7280;transition:.2s;}
+.tab-btn.active{background:#004e92;color:#fff;border-color:#004e92;}
+</style>
+
 <div class="topbar">
   <h1>🚖 Transport Management</h1>
   <button class="btn btn-primary"
@@ -9,15 +27,16 @@
   </button>
 </div>
 
-<!-- STATS -->
-<div class="stats-container" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:20px;">
+<!-- STAT CARDS -->
+<div class="stats-container"
+  style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:22px;">
   <div class="stat-card" style="background:linear-gradient(135deg,#1e3c72,#2a5298);">
-    <h3>Total</h3><h1>{{ stats.get('total',0) }}</h1><div class="sub">Vehicles</div>
+    <h3>Total Fleet</h3><h1>{{ stats.get('total',0) }}</h1><div class="sub">Vehicles</div>
   </div>
   <div class="stat-card" style="background:linear-gradient(135deg,#16a34a,#4ade80);color:#052e16;">
-    <h3>Available</h3><h1>{{ stats.get('available',0) }}</h1><div class="sub">Ready</div>
+    <h3>Available</h3><h1>{{ stats.get('available',0) }}</h1><div class="sub">Ready to deploy</div>
   </div>
-  <div class="stat-card" style="background:linear-gradient(135deg,#d97706,#fbbf24);color:#1a1a00;">
+  <div class="stat-card" style="background:linear-gradient(135deg,#d97706,#fbbf24);color:#1a1000;">
     <h3>On Trip</h3><h1>{{ stats.get('on_trip',0) }}</h1><div class="sub">Deployed</div>
   </div>
   <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#f87171);">
@@ -25,164 +44,398 @@
   </div>
 </div>
 
-<!-- VEHICLE TABLE -->
-<div class="card" style="overflow-x:auto;">
-  <h3>Fleet Overview</h3>
-  <table style="min-width:820px;">
-    <thead>
-      <tr>
-        <th>#</th><th>Type</th><th>Vehicle No.</th><th>Driver</th>
-        <th>Mobile</th><th>Capacity</th><th>Status</th><th>Assigned To</th><th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for v in vehicles %}
-      <tr>
-        <td>{{ v.id }}</td>
-        <td><strong>{{ v.vehicle_type }}</strong></td>
-        <td style="font-family:monospace;color:#2a5298;">{{ v.vehicle_number or '—' }}</td>
-        <td>{{ v.driver_name or '—' }}</td>
-        <td>{{ v.driver_mobile or '—' }}</td>
-        <td style="text-align:center;">{{ v.capacity }}</td>
-        <td>
-          {% if v.status == 'Available' %}
-            <span class="status Approved">Available</span>
-          {% elif v.status == 'On Trip' %}
-            <span class="status Booked">On Trip</span>
-          {% else %}
-            <span class="status Cancelled">Maintenance</span>
-          {% endif %}
-        </td>
-        <td style="font-size:12px;color:#666;">
-          {% if v.traveler_name %}
-            {{ v.traveler_name }}<br>
-            <span style="color:#888;">{{ v.category }}</span>
-          {% else %}—{% endif %}
-        </td>
-        <td>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            <button class="btn btn-warning btn-sm"
-              data-id="{{ v.id }}"
-              data-status="{{ v.status }}"
-              data-booking="{{ v.assigned_booking_id or '' }}"
-              data-notes="{{ v.notes or '' }}"
-              onclick="openUpdateVehicle(this)">✏️ Update</button>
-            <a href="/delete_transport/{{ v.id }}"
-               onclick="return confirm('Delete this vehicle?')">
-              <button class="btn btn-danger btn-sm">🗑</button>
-            </a>
-          </div>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="9" style="text-align:center;color:#888;padding:30px;">
-          No vehicles added yet. Click "+ Add Vehicle" to get started.
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<!-- VIEW TOGGLE -->
+<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center;">
+  <button class="tab-btn active" id="tab-cards" onclick="switchView('cards')">🃏 Card View</button>
+  <button class="tab-btn" id="tab-table" onclick="switchView('table')">📋 Table View</button>
+  <input type="text" id="vsearch" placeholder="🔍 Search vehicles…"
+    oninput="filterVehicles()"
+    style="margin-left:auto;padding:8px 12px;border:1.5px solid #e5e7eb;
+      border-radius:8px;font-size:13px;outline:none;min-width:200px;">
+  <select id="vstatusf" onchange="filterVehicles()"
+    style="padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;">
+    <option value="">All Status</option>
+    <option value="Available">Available</option>
+    <option value="On Trip">On Trip</option>
+    <option value="Maintenance">Maintenance</option>
+  </select>
 </div>
 
-<!-- ADD VEHICLE MODAL -->
+<!-- ══ CARD VIEW ══ -->
+<div id="cardsView"
+  style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:22px;">
+  {% for v in vehicles %}
+  {% set sc = 'available' if v.status=='Available' else ('ontrip' if v.status=='On Trip' else 'maintenance') %}
+  <div class="veh-card {{ sc }}"
+    data-search="{{ (v.vehicle_type~' '~(v.vehicle_number or '')~' '~(v.driver_name or '')~' '~(v.notes or ''))|lower }}"
+    data-status="{{ v.status }}">
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#1e3c72;">
+          {{ v.vehicle_type }}
+          <span style="font-size:12px;font-family:monospace;background:#f0f4ff;
+            padding:2px 7px;border-radius:5px;color:#2a5298;margin-left:6px;">
+            {{ v.vehicle_number or 'No Reg.' }}
+          </span>
+        </div>
+        <div style="font-size:12px;color:#6b7280;margin-top:3px;">Vehicle #{{ v.id }}</div>
+      </div>
+      {% if v.status == 'Available' %}
+        <span class="badge-avail">● Available</span>
+      {% elif v.status == 'On Trip' %}
+        <span class="badge-trip">🚗 On Trip</span>
+      {% else %}
+        <span class="badge-maint">🔧 Maintenance</span>
+      {% endif %}
+    </div>
+
+    <div class="detail-grid">
+      <div><label>Driver</label><br><span>{{ v.driver_name or '—' }}</span></div>
+      <div><label>Mobile</label><br><span>{{ v.driver_mobile or '—' }}</span></div>
+      <div><label>Capacity</label><br><span>{{ v.capacity }} seats</span></div>
+      <div><label>Assigned To</label><br>
+        <span>{% if v.traveler_name %}{{ v.traveler_name }}{% else %}—{% endif %}</span>
+      </div>
+    </div>
+
+    {% if v.traveler_name %}
+    <div style="background:#f0f4ff;border-radius:7px;padding:8px 12px;margin-top:10px;font-size:12px;">
+      📦 <strong>{{ v.category }}</strong>
+      &nbsp;·&nbsp; Booking #{{ v.assigned_booking_id }}
+    </div>
+    {% endif %}
+
+    {% if v.notes %}
+    <div style="margin-top:8px;font-size:12px;color:#6b7280;font-style:italic;">
+      📝 {{ v.notes }}
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:7px;margin-top:14px;">
+      <button class="btn btn-warning btn-sm" style="flex:1;"
+        data-id="{{ v.id }}"
+        data-vtype="{{ v.vehicle_type }}"
+        data-vnum="{{ v.vehicle_number or '' }}"
+        data-driver="{{ v.driver_name or '' }}"
+        data-mobile="{{ v.driver_mobile or '' }}"
+        data-cap="{{ v.capacity }}"
+        data-status="{{ v.status }}"
+        data-booking="{{ v.assigned_booking_id or '' }}"
+        data-notes="{{ v.notes or '' | e }}"
+        onclick="openEditVehicle(this)">✏️ Edit</button>
+      <button class="btn btn-primary btn-sm" style="flex:1;"
+        data-id="{{ v.id }}"
+        data-status="{{ v.status }}"
+        data-booking="{{ v.assigned_booking_id or '' }}"
+        data-notes="{{ v.notes or '' | e }}"
+        onclick="openAssignModal(this)">🔗 Assign / Status</button>
+      <a href="/delete_transport/{{ v.id }}"
+         onclick="return confirm('Delete vehicle {{ v.vehicle_type }} {{ v.vehicle_number or '' }}?')">
+        <button class="btn btn-danger btn-sm">🗑</button>
+      </a>
+    </div>
+  </div>
+  {% else %}
+  <div style="grid-column:1/-1;text-align:center;color:#888;padding:50px 0;">
+    <div style="font-size:40px;margin-bottom:12px;">🚖</div>
+    <h3 style="margin-bottom:8px;">No vehicles added yet</h3>
+    <p style="font-size:13px;">Click "+ Add Vehicle" to add your first vehicle to the fleet.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ══ TABLE VIEW (hidden by default) ══ -->
+<div id="tableView" style="display:none;">
+  <div class="card" style="overflow-x:auto;">
+    <table style="min-width:900px;" id="vTable">
+      <thead>
+        <tr>
+          <th>#</th><th>Type</th><th>Reg. No.</th><th>Driver</th>
+          <th>Mobile</th><th>Seats</th><th>Status</th><th>Assigned Booking</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vehicles %}
+        <tr data-search="{{ (v.vehicle_type~' '~(v.vehicle_number or '')~' '~(v.driver_name or ''))|lower }}"
+            data-status="{{ v.status }}">
+          <td><strong>#{{ v.id }}</strong></td>
+          <td><strong>{{ v.vehicle_type }}</strong></td>
+          <td style="font-family:monospace;color:#2a5298;">{{ v.vehicle_number or '—' }}</td>
+          <td>{{ v.driver_name or '—' }}</td>
+          <td>{{ v.driver_mobile or '—' }}</td>
+          <td style="text-align:center;">{{ v.capacity }}</td>
+          <td>
+            {% if v.status == 'Available' %}
+              <span class="badge-avail">Available</span>
+            {% elif v.status == 'On Trip' %}
+              <span class="badge-trip">On Trip</span>
+            {% else %}
+              <span class="badge-maint">Maintenance</span>
+            {% endif %}
+          </td>
+          <td style="font-size:12px;color:#666;">
+            {% if v.traveler_name %}
+              <strong>{{ v.traveler_name }}</strong><br>{{ v.category }}<br>
+              <span style="color:#aaa;">#{{ v.assigned_booking_id }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:5px;">
+              <button class="btn btn-warning btn-sm"
+                data-id="{{ v.id }}"
+                data-vtype="{{ v.vehicle_type }}"
+                data-vnum="{{ v.vehicle_number or '' }}"
+                data-driver="{{ v.driver_name or '' }}"
+                data-mobile="{{ v.driver_mobile or '' }}"
+                data-cap="{{ v.capacity }}"
+                data-status="{{ v.status }}"
+                data-booking="{{ v.assigned_booking_id or '' }}"
+                data-notes="{{ v.notes or '' | e }}"
+                onclick="openEditVehicle(this)">✏️</button>
+              <button class="btn btn-primary btn-sm"
+                data-id="{{ v.id }}"
+                data-status="{{ v.status }}"
+                data-booking="{{ v.assigned_booking_id or '' }}"
+                data-notes="{{ v.notes or '' | e }}"
+                onclick="openAssignModal(this)">🔗</button>
+              <a href="/delete_transport/{{ v.id }}"
+                 onclick="return confirm('Delete this vehicle?')">
+                <button class="btn btn-danger btn-sm">🗑</button>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;color:#888;padding:30px;">No vehicles found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ══ ADD VEHICLE MODAL ══ -->
 <div class="modal-overlay" id="addVehicleModal">
-  <div class="modal" style="width:520px;">
+  <div class="modal" style="width:560px;">
     <button class="modal-close"
       onclick="document.getElementById('addVehicleModal').classList.remove('open')">✕</button>
     <h3>🚖 Add New Vehicle</h3>
     <form method="POST" action="/add_transport">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
         <div class="form-group">
           <label>Vehicle Type *</label>
           <select name="vehicle_type" required>
-            <option value="">Select type</option>
+            <option value="">Select type…</option>
             <option>Sedan</option>
             <option>SUV</option>
             <option>Van</option>
             <option>Mini Bus</option>
             <option>Coach Bus</option>
             <option>Luxury Car</option>
+            <option>Taxi</option>
+            <option>Minivan</option>
           </select>
         </div>
+
         <div class="form-group">
-          <label>Vehicle Number</label>
-          <input name="vehicle_number" placeholder="e.g. UK-AB-1234">
+          <label>Registration Number</label>
+          <input name="vehicle_number" placeholder="e.g. LK21 ABC" style="text-transform:uppercase;">
         </div>
+
         <div class="form-group">
-          <label>Driver Name *</label>
-          <input name="driver_name" placeholder="Full name" required>
+          <label>Driver Full Name *</label>
+          <input name="driver_name" placeholder="e.g. James Wilson" required>
         </div>
+
         <div class="form-group">
           <label>Driver Mobile</label>
           <input name="driver_mobile" placeholder="+44 7700 000000">
         </div>
+
         <div class="form-group">
           <label>Seating Capacity</label>
           <input name="capacity" type="number" min="1" max="60" value="4">
         </div>
+
+        <div class="form-group">
+          <label>Initial Status</label>
+          <select name="initial_status">
+            <option value="Available">Available</option>
+            <option value="Maintenance">Maintenance</option>
+          </select>
+        </div>
+
       </div>
+
       <div class="form-group">
-        <label>Notes</label>
-        <textarea name="notes" rows="2" placeholder="Any special notes about this vehicle…"></textarea>
+        <label>Notes / Remarks</label>
+        <textarea name="notes" rows="2"
+          placeholder="e.g. AC, wheelchair accessible, GPS fitted…"></textarea>
       </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
-        ➕ Add Vehicle
+
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;">
+        ➕ Add Vehicle to Fleet
       </button>
     </form>
   </div>
 </div>
 
-<!-- UPDATE STATUS MODAL -->
-<div class="modal-overlay" id="updateVehicleModal">
-  <div class="modal" style="width:460px;">
+
+<!-- ══ EDIT VEHICLE DETAILS MODAL ══ -->
+<div class="modal-overlay" id="editVehicleModal">
+  <div class="modal" style="width:540px;">
     <button class="modal-close"
-      onclick="document.getElementById('updateVehicleModal').classList.remove('open')">✕</button>
-    <h3>✏️ Update Vehicle Status</h3>
-    <form method="POST" id="updateVehicleForm">
-      <div class="form-group">
-        <label>Status</label>
-        <select name="status" id="uv_status">
-          <option value="Available">Available</option>
-          <option value="On Trip">On Trip</option>
-          <option value="Maintenance">Maintenance</option>
-        </select>
+      onclick="document.getElementById('editVehicleModal').classList.remove('open')">✕</button>
+    <h3>✏️ Edit Vehicle Details</h3>
+    <form method="POST" id="editVehicleForm">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Vehicle Type *</label>
+          <select name="vehicle_type" id="ev_vtype" required>
+            <option>Sedan</option><option>SUV</option><option>Van</option>
+            <option>Mini Bus</option><option>Coach Bus</option>
+            <option>Luxury Car</option><option>Taxi</option><option>Minivan</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Registration Number</label>
+          <input name="vehicle_number" id="ev_vnum" placeholder="LK21 ABC"
+            style="text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+          <label>Driver Full Name *</label>
+          <input name="driver_name" id="ev_driver" required>
+        </div>
+        <div class="form-group">
+          <label>Driver Mobile</label>
+          <input name="driver_mobile" id="ev_mobile">
+        </div>
+        <div class="form-group">
+          <label>Seating Capacity</label>
+          <input name="capacity" id="ev_cap" type="number" min="1" max="60">
+        </div>
       </div>
       <div class="form-group">
-        <label>Assign to Booking (optional)</label>
-        <select name="assigned_booking_id" id="uv_booking">
-          <option value="">— None —</option>
+        <label>Notes</label>
+        <textarea name="notes" id="ev_notes" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
+        💾 Save Vehicle Details
+      </button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ══ ASSIGN / STATUS MODAL ══ -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal" style="width:480px;">
+    <button class="modal-close"
+      onclick="document.getElementById('assignModal').classList.remove('open')">✕</button>
+    <h3>🔗 Assign / Update Status</h3>
+    <form method="POST" id="assignForm">
+
+      <div class="form-group">
+        <label>Status *</label>
+        <select name="status" id="as_status" onchange="toggleBookingField(this.value)">
+          <option value="Available">✅ Available</option>
+          <option value="On Trip">🚗 On Trip</option>
+          <option value="Maintenance">🔧 Maintenance</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="bookingField">
+        <label>Assign to Approved Booking</label>
+        <select name="assigned_booking_id" id="as_booking">
+          <option value="">— None / Unassign —</option>
           {% for b in bookings %}
           <option value="{{ b.booking_id }}">
             #{{ b.booking_id }} — {{ b.traveler_name }} | {{ b.category }} | {{ b.travel_date }}
           </option>
           {% endfor %}
         </select>
+        <small style="color:#6b7280;font-size:11px;">
+          Only approved bookings are listed. Assign the vehicle to a specific trip.
+        </small>
       </div>
+
       <div class="form-group">
-        <label>Notes</label>
-        <textarea name="notes" id="uv_notes" rows="2"></textarea>
+        <label>Notes / Remarks</label>
+        <textarea name="notes" id="as_notes" rows="2"
+          placeholder="e.g. Sent for service, trip notes…"></textarea>
       </div>
+
       <button type="submit" class="btn btn-primary" style="width:100%;padding:11px;">
-        💾 Save Changes
+        💾 Update
       </button>
     </form>
   </div>
 </div>
 
+
 <script>
-function openUpdateVehicle(btn) {
-  var id = btn.dataset.id;
-  document.getElementById('updateVehicleForm').action = '/update_transport/' + id;
-  document.getElementById('uv_status').value  = btn.dataset.status;
-  document.getElementById('uv_booking').value = btn.dataset.booking;
-  document.getElementById('uv_notes').value   = btn.dataset.notes;
-  document.getElementById('updateVehicleModal').classList.add('open');
+/* ── VIEW TOGGLE ────────────────────────────────── */
+function switchView(v) {
+  document.getElementById('cardsView').style.display = v === 'cards' ? 'grid' : 'none';
+  document.getElementById('tableView').style.display = v === 'table' ? 'block' : 'none';
+  document.getElementById('tab-cards').classList.toggle('active', v === 'cards');
+  document.getElementById('tab-table').classList.toggle('active', v === 'table');
 }
+
+/* ── FILTER ─────────────────────────────────────── */
+function filterVehicles() {
+  var q  = document.getElementById('vsearch').value.toLowerCase();
+  var st = document.getElementById('vstatusf').value;
+  ['cardsView','tableView'].forEach(function(vid) {
+    var container = document.getElementById(vid);
+    var items = container.querySelectorAll('[data-search]');
+    items.forEach(function(el) {
+      var ok = el.dataset.search.includes(q) && (!st || el.dataset.status === st);
+      el.style.display = ok ? '' : 'none';
+    });
+  });
+}
+
+/* ── ADD: carry initial_status through */
+// (handled server-side)
+
+/* ── EDIT VEHICLE ───────────────────────────────── */
+function openEditVehicle(btn) {
+  var id = btn.dataset.id;
+  document.getElementById('editVehicleForm').action = '/edit_transport/' + id;
+  document.getElementById('ev_vtype').value  = btn.dataset.vtype;
+  document.getElementById('ev_vnum').value   = btn.dataset.vnum;
+  document.getElementById('ev_driver').value = btn.dataset.driver;
+  document.getElementById('ev_mobile').value = btn.dataset.mobile;
+  document.getElementById('ev_cap').value    = btn.dataset.cap;
+  document.getElementById('ev_notes').value  = btn.dataset.notes;
+  document.getElementById('editVehicleModal').classList.add('open');
+}
+
+/* ── ASSIGN / STATUS ────────────────────────────── */
+function openAssignModal(btn) {
+  var id = btn.dataset.id;
+  document.getElementById('assignForm').action = '/update_transport/' + id;
+  document.getElementById('as_status').value  = btn.dataset.status;
+  document.getElementById('as_booking').value = btn.dataset.booking;
+  document.getElementById('as_notes').value   = btn.dataset.notes;
+  toggleBookingField(btn.dataset.status);
+  document.getElementById('assignModal').classList.add('open');
+}
+
+function toggleBookingField(status) {
+  document.getElementById('bookingField').style.display =
+    status === 'On Trip' ? '' : 'none';
+}
+
+/* ── ESCAPE ─────────────────────────────────────── */
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    document.getElementById('addVehicleModal').classList.remove('open');
-    document.getElementById('updateVehicleModal').classList.remove('open');
+    ['addVehicleModal','editVehicleModal','assignModal'].forEach(function(id) {
+      document.getElementById(id).classList.remove('open');
+    });
   }
 });
 </script>

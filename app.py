@@ -825,21 +825,7 @@ def my_reviews():
 #  USER — STATIC PAGES
 # ══════════════════════════════════════════════════════
 
-@app.route("/contact")
-@login_required
-def contact():
-    return render_template("contact.html")
 
-
-@app.route("/faq")
-@login_required
-def faq():
-    return render_template("faq.html")
-
-
-# ══════════════════════════════════════════════════════
-#  ADMIN — DASHBOARD
-# ══════════════════════════════════════════════════════
 
 @app.route("/admin_dashboard")
 @admin_required
@@ -1670,6 +1656,41 @@ OPERATIONS_TABLES = [
 #  TRANSPORT ROUTES — replace /manage_transport
 # ══════════════════════════════════════════════════════
 
+
+
+#  app.py ADDITIONS & REPLACEMENTS
+#  For: Transport, Invoices, Payments, Tour Guides
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 1 — Add these columns to create_new_tables()
+#           Add to the existing stmts list, or run as ALTER if DB already exists
+# ─────────────────────────────────────────────────────────────────────────────
+
+NEW_ALTERS = [
+    # Transport: add initial_status support (existing status column already exists)
+    # No new columns needed — existing schema is fine.
+
+    # Guide: add guide_fee and fee_paid columns
+    "ALTER TABLE guide ADD COLUMN IF NOT EXISTS guide_fee DECIMAL(10,2) DEFAULT NULL",
+    "ALTER TABLE guide ADD COLUMN IF NOT EXISTS fee_paid TINYINT DEFAULT 0",
+]
+
+# In create_new_tables(), add:
+#   for a in NEW_ALTERS:
+#       try:
+#           cursor.execute(a)
+#           conn.commit()
+#       except Exception:
+#           pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 2 — TRANSPORT ROUTES
+#           Replace existing /manage_transport and add /edit_transport
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/manage_transport", methods=["GET"])
 @admin_required
 def manage_transport():
@@ -1682,6 +1703,7 @@ def manage_transport():
             LEFT JOIN package p ON b.package_id = p.package_id
             ORDER BY t.id DESC
         """) or []
+
         bookings = query("""
             SELECT b.booking_id, t.name AS traveler_name, p.category, b.travel_date
             FROM booking b
@@ -1690,13 +1712,15 @@ def manage_transport():
             WHERE b.status = 'Approved'
             ORDER BY b.travel_date ASC
         """) or []
+
         stats = {
             'total':       int((query("SELECT COUNT(*) AS c FROM transport", one=True) or {}).get("c", 0)),
             'available':   int((query("SELECT COUNT(*) AS c FROM transport WHERE status='Available'", one=True) or {}).get("c", 0)),
             'on_trip':     int((query("SELECT COUNT(*) AS c FROM transport WHERE status='On Trip'", one=True) or {}).get("c", 0)),
             'maintenance': int((query("SELECT COUNT(*) AS c FROM transport WHERE status='Maintenance'", one=True) or {}).get("c", 0)),
         }
-        return render_template("manage_transport.html", vehicles=vehicles, bookings=bookings, stats=stats)
+        return render_template("manage_transport.html",
+                               vehicles=vehicles, bookings=bookings, stats=stats)
     except Exception as e:
         flash(f"Could not load transport: {e}", "danger")
         return render_template("manage_transport.html", vehicles=[], bookings=[], stats={})
@@ -1706,34 +1730,68 @@ def manage_transport():
 @admin_required
 def add_transport():
     try:
+        initial_status = request.form.get("initial_status", "Available")
         query("""
-            INSERT INTO transport (vehicle_type, vehicle_number, driver_name, driver_mobile, capacity, notes)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO transport
+            (vehicle_type, vehicle_number, driver_name, driver_mobile, capacity, status, notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (
-            request.form.get("vehicle_type","").strip(),
-            request.form.get("vehicle_number","").strip(),
-            request.form.get("driver_name","").strip(),
-            request.form.get("driver_mobile","").strip(),
+            request.form.get("vehicle_type", "").strip(),
+            request.form.get("vehicle_number", "").strip().upper(),
+            request.form.get("driver_name", "").strip(),
+            request.form.get("driver_mobile", "").strip(),
             int(request.form.get("capacity", 4) or 4),
-            request.form.get("notes","").strip()
+            initial_status,
+            request.form.get("notes", "").strip()
         ), commit=True)
-        flash("Vehicle added successfully.", "success")
+        flash("Vehicle added to fleet.", "success")
     except Exception as e:
         flash(f"Could not add vehicle: {e}", "danger")
+    return redirect("/manage_transport")
+
+
+@app.route("/edit_transport/<int:id>", methods=["POST"])
+@admin_required
+def edit_transport(id):
+    """Edit vehicle details (type, driver, reg, capacity) — separate from status update."""
+    try:
+        query("""
+            UPDATE transport
+            SET vehicle_type=%s, vehicle_number=%s, driver_name=%s,
+                driver_mobile=%s, capacity=%s, notes=%s
+            WHERE id=%s
+        """, (
+            request.form.get("vehicle_type", "").strip(),
+            request.form.get("vehicle_number", "").strip().upper(),
+            request.form.get("driver_name", "").strip(),
+            request.form.get("driver_mobile", "").strip(),
+            int(request.form.get("capacity", 4) or 4),
+            request.form.get("notes", "").strip(),
+            id
+        ), commit=True)
+        flash("Vehicle details updated.", "success")
+    except Exception as e:
+        flash(f"Could not update vehicle: {e}", "danger")
     return redirect("/manage_transport")
 
 
 @app.route("/update_transport/<int:id>", methods=["POST"])
 @admin_required
 def update_transport(id):
+    """Update status / assignment only."""
     try:
         status     = request.form.get("status", "Available")
         booking_id = request.form.get("assigned_booking_id") or None
-        notes      = request.form.get("notes","").strip()
+        notes      = request.form.get("notes", "").strip()
+
+        # When not on trip, clear booking assignment
+        if status != "On Trip":
+            booking_id = None
+
         query("""
             UPDATE transport SET status=%s, assigned_booking_id=%s, notes=%s WHERE id=%s
         """, (status, booking_id, notes, id), commit=True)
-        flash("Transport updated.", "success")
+        flash(f"Transport #{id} updated to {status}.", "success")
     except Exception as e:
         flash(f"Could not update: {e}", "danger")
     return redirect("/manage_transport")
@@ -1744,15 +1802,72 @@ def update_transport(id):
 def delete_transport(id):
     try:
         query("DELETE FROM transport WHERE id=%s", (id,), commit=True)
-        flash("Vehicle deleted.", "info")
+        flash("Vehicle removed from fleet.", "info")
     except Exception as e:
         flash(f"Could not delete: {e}", "danger")
     return redirect("/manage_transport")
 
 
-# ══════════════════════════════════════════════════════
-#  PAYMENT ROUTES — replace /manage_payments
-# ══════════════════════════════════════════════════════
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 3 — INVOICES ROUTE
+#           Updated to also pass payments list for the payment history panel
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/manage_invoices", methods=["GET"])
+@admin_required
+def manage_invoices():
+    try:
+        bookings = query("""
+            SELECT b.*, t.name AS traveler_name, t.mobile, t.address, t.adharno,
+                   p.category, p.duration, p.description,
+                   COALESCE(pay_total.paid, 0) AS amount_paid,
+                   (b.total_amount - COALESCE(pay_total.paid, 0)) AS balance_due
+            FROM booking b
+            LEFT JOIN traveler t ON b.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            LEFT JOIN (
+                SELECT booking_id, SUM(amount) AS paid
+                FROM payment WHERE payment_status='Paid'
+                GROUP BY booking_id
+            ) pay_total ON b.booking_id = pay_total.booking_id
+            ORDER BY b.booking_id DESC
+        """) or []
+
+        # All payment records for the history panel at the bottom
+        payments = query("""
+            SELECT pay.*, t.name AS traveler_name, p.category,
+                   b.travel_date, b.total_amount AS booking_amount
+            FROM payment pay
+            LEFT JOIN booking b ON pay.booking_id = b.booking_id
+            LEFT JOIN traveler t ON pay.adharno = t.adharno
+            LEFT JOIN package p ON b.package_id = p.package_id
+            ORDER BY pay.id DESC
+        """) or []
+
+        total_invoiced = float((query(
+            "SELECT COALESCE(SUM(total_amount),0) AS s FROM booking WHERE status='Approved'",
+            one=True) or {}).get("s", 0))
+        total_paid = float((query(
+            "SELECT COALESCE(SUM(amount),0) AS s FROM payment WHERE payment_status='Paid'",
+            one=True) or {}).get("s", 0))
+        outstanding = total_invoiced - total_paid
+
+        return render_template("manage_invoices.html",
+            bookings=bookings,
+            payments=payments,
+            total_invoiced=total_invoiced,
+            total_paid=total_paid,
+            outstanding=outstanding)
+    except Exception as e:
+        flash(f"Could not load invoices: {e}", "danger")
+        return render_template("manage_invoices.html",
+            bookings=[], payments=[],
+            total_invoiced=0, total_paid=0, outstanding=0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 4 — PAYMENTS ROUTE  (updated to pass bookings for the add-payment modal)
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/manage_payments", methods=["GET"])
 @admin_required
@@ -1783,8 +1898,11 @@ def manage_payments():
         pending_amount = float((query(
             "SELECT COALESCE(SUM(amount),0) AS s FROM payment WHERE payment_status='Pending'",
             one=True) or {}).get("s", 0))
-        total_payments = int((query("SELECT COUNT(*) AS c FROM payment", one=True) or {}).get("c", 0))
-        paid_count     = int((query("SELECT COUNT(*) AS c FROM payment WHERE payment_status='Paid'", one=True) or {}).get("c", 0))
+        total_payments = int((query(
+            "SELECT COUNT(*) AS c FROM payment", one=True) or {}).get("c", 0))
+        paid_count = int((query(
+            "SELECT COUNT(*) AS c FROM payment WHERE payment_status='Paid'",
+            one=True) or {}).get("c", 0))
 
         return render_template("manage_payments.html",
             payments=payments, bookings=bookings,
@@ -1793,66 +1911,15 @@ def manage_payments():
     except Exception as e:
         flash(f"Could not load payments: {e}", "danger")
         return render_template("manage_payments.html",
-            payments=[], bookings=[], total_collected=0,
-            pending_amount=0, total_payments=0, paid_count=0)
+            payments=[], bookings=[],
+            total_collected=0, pending_amount=0,
+            total_payments=0, paid_count=0)
 
 
-@app.route("/add_payment", methods=["POST"])
-@admin_required
-def add_payment():
-    try:
-        booking_id     = request.form.get("booking_id")
-        amount         = float(request.form.get("amount", 0) or 0)
-        payment_mode   = request.form.get("payment_mode", "Cash")
-        payment_status = request.form.get("payment_status", "Paid")
-        transaction_id = request.form.get("transaction_id","").strip()
-        notes          = request.form.get("notes","").strip()
-
-        booking = query("SELECT adharno FROM booking WHERE booking_id=%s", (booking_id,), one=True)
-        if not booking:
-            flash("Booking not found.", "danger")
-            return redirect("/manage_payments")
-
-        query("""
-            INSERT INTO payment (booking_id, adharno, amount, payment_mode, payment_status, transaction_id, notes)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (booking_id, booking["adharno"], amount, payment_mode, payment_status, transaction_id, notes), commit=True)
-
-        # Notify traveler
-        notify(booking["adharno"], f"Payment of ₹{amount:.0f} recorded as {payment_status}.")
-        flash("Payment recorded.", "success")
-    except Exception as e:
-        flash(f"Could not record payment: {e}", "danger")
-    return redirect("/manage_payments")
-
-
-@app.route("/update_payment_status/<int:id>/<status>")
-@admin_required
-def update_payment_status(id, status):
-    if status not in ("Paid","Pending","Failed","Refunded"):
-        return redirect("/manage_payments")
-    try:
-        query("UPDATE payment SET payment_status=%s WHERE id=%s", (status, id), commit=True)
-        flash(f"Payment marked as {status}.", "success")
-    except Exception as e:
-        flash(f"Could not update: {e}", "danger")
-    return redirect("/manage_payments")
-
-
-@app.route("/delete_payment/<int:id>")
-@admin_required
-def delete_payment(id):
-    try:
-        query("DELETE FROM payment WHERE id=%s", (id,), commit=True)
-        flash("Payment deleted.", "info")
-    except Exception as e:
-        flash(f"Could not delete: {e}", "danger")
-    return redirect("/manage_payments")
-
-
-# ══════════════════════════════════════════════════════
-#  TOUR GUIDE (REAL) ROUTES — replace /manage_guides_admin
-# ══════════════════════════════════════════════════════
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 5 — TOUR GUIDE ROUTES
+#           Updated to handle guide_fee, fee_paid, and separate edit vs assign
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/manage_guides_admin", methods=["GET"])
 @admin_required
@@ -1877,53 +1944,148 @@ def manage_guides_admin():
         """) or []
 
         stats = {
-            'total':      int((query("SELECT COUNT(*) AS c FROM guide", one=True) or {}).get("c", 0)),
-            'available':  int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Available'", one=True) or {}).get("c", 0)),
-            'assigned':   int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Assigned'", one=True) or {}).get("c", 0)),
-            'on_leave':   int((query("SELECT COUNT(*) AS c FROM guide WHERE status='On Leave'", one=True) or {}).get("c", 0)),
+            'total':     int((query("SELECT COUNT(*) AS c FROM guide", one=True) or {}).get("c", 0)),
+            'available': int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Available'", one=True) or {}).get("c", 0)),
+            'assigned':  int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Assigned'", one=True) or {}).get("c", 0)),
+            'on_leave':  int((query("SELECT COUNT(*) AS c FROM guide WHERE status='On Leave'", one=True) or {}).get("c", 0)),
         }
-        return render_template("manage_guides_admin.html", guides=guides, bookings=bookings, stats=stats)
+
+        # Total unpaid guide fees
+        fee_row = query(
+            "SELECT COALESCE(SUM(guide_fee),0) AS s FROM guide WHERE fee_paid=0 AND guide_fee IS NOT NULL",
+            one=True)
+        total_guide_fees_due = float(fee_row["s"]) if fee_row else 0
+
+        return render_template("manage_guides_admin.html",
+            guides=guides, bookings=bookings,
+            stats=stats, total_guide_fees_due=total_guide_fees_due)
     except Exception as e:
         flash(f"Could not load guides: {e}", "danger")
-        return render_template("manage_guides_admin.html", guides=[], bookings=[], stats={})
+        return render_template("manage_guides_admin.html",
+            guides=[], bookings=[], stats={}, total_guide_fees_due=0)
 
 
 @app.route("/add_guide_admin", methods=["POST"])
 @admin_required
 def add_guide_admin():
     try:
+        initial_status = request.form.get("initial_status", "Available")
+        guide_fee_raw  = request.form.get("guide_fee", "").strip()
+        guide_fee      = float(guide_fee_raw) if guide_fee_raw else None
+
         query("""
-            INSERT INTO guide (name, mobile, email, specialization, experience_years, languages, notes)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO guide
+            (name, mobile, email, specialization, experience_years, languages,
+             status, notes, guide_fee, fee_paid)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
         """, (
-            request.form.get("name","").strip(),
-            request.form.get("mobile","").strip(),
-            request.form.get("email","").strip(),
-            request.form.get("specialization","").strip(),
+            request.form.get("name", "").strip(),
+            request.form.get("mobile", "").strip(),
+            request.form.get("email", "").strip(),
+            request.form.get("specialization", "").strip(),
             int(request.form.get("experience_years", 0) or 0),
-            request.form.get("languages","").strip(),
-            request.form.get("notes","").strip()
+            request.form.get("languages", "").strip(),
+            initial_status,
+            request.form.get("notes", "").strip(),
+            guide_fee
         ), commit=True)
-        flash("Tour guide added.", "success")
+        flash("Guide registered successfully.", "success")
     except Exception as e:
         flash(f"Could not add guide: {e}", "danger")
+    return redirect("/manage_guides_admin")
+
+
+@app.route("/edit_guide_admin/<int:id>", methods=["POST"])
+@admin_required
+def edit_guide_admin(id):
+    """Edit guide profile details (name, contact, specialization, rating)."""
+    try:
+        rating_raw = request.form.get("rating", "").strip()
+        rating     = float(rating_raw) if rating_raw else None
+
+        query("""
+            UPDATE guide
+            SET name=%s, mobile=%s, email=%s, specialization=%s,
+                experience_years=%s, languages=%s, notes=%s
+                {rating_clause}
+            WHERE guide_id=%s
+        """.replace(
+            "{rating_clause}",
+            ", rating=%s" if rating is not None else ""
+        ), (
+            *(
+                (request.form.get("name","").strip(),
+                 request.form.get("mobile","").strip(),
+                 request.form.get("email","").strip(),
+                 request.form.get("specialization","").strip(),
+                 int(request.form.get("experience_years",0) or 0),
+                 request.form.get("languages","").strip(),
+                 request.form.get("notes","").strip(),
+                 rating, id) if rating is not None else
+                (request.form.get("name","").strip(),
+                 request.form.get("mobile","").strip(),
+                 request.form.get("email","").strip(),
+                 request.form.get("specialization","").strip(),
+                 int(request.form.get("experience_years",0) or 0),
+                 request.form.get("languages","").strip(),
+                 request.form.get("notes","").strip(),
+                 id)
+            ),
+        ), commit=True)
+        flash("Guide details updated.", "success")
+    except Exception as e:
+        flash(f"Could not update guide: {e}", "danger")
     return redirect("/manage_guides_admin")
 
 
 @app.route("/update_guide_admin/<int:id>", methods=["POST"])
 @admin_required
 def update_guide_admin(id):
+    """Assign guide to booking, set status, set fee."""
     try:
         status     = request.form.get("status", "Available")
         booking_id = request.form.get("assigned_booking_id") or None
-        rating     = float(request.form.get("rating", 0) or 0)
-        notes      = request.form.get("notes","").strip()
-        query("""
-            UPDATE guide SET status=%s, assigned_booking_id=%s, rating=%s, notes=%s WHERE guide_id=%s
-        """, (status, booking_id, rating, notes, id), commit=True)
-        flash("Guide updated.", "success")
+        notes      = request.form.get("notes", "").strip()
+
+        guide_fee_raw = request.form.get("guide_fee", "").strip()
+        guide_fee     = float(guide_fee_raw) if guide_fee_raw else None
+        fee_paid      = int(request.form.get("fee_paid", 0))
+
+        rating_raw = request.form.get("rating", "").strip()
+        rating     = float(rating_raw) if rating_raw else None
+
+        # When not assigned, clear booking
+        if status != "Assigned":
+            booking_id = None
+
+        if rating is not None:
+            query("""
+                UPDATE guide
+                SET status=%s, assigned_booking_id=%s, notes=%s,
+                    guide_fee=%s, fee_paid=%s, rating=%s
+                WHERE guide_id=%s
+            """, (status, booking_id, notes, guide_fee, fee_paid, rating, id), commit=True)
+        else:
+            query("""
+                UPDATE guide
+                SET status=%s, assigned_booking_id=%s, notes=%s,
+                    guide_fee=%s, fee_paid=%s
+                WHERE guide_id=%s
+            """, (status, booking_id, notes, guide_fee, fee_paid, id), commit=True)
+
+        flash(f"Guide assignment updated to {status}.", "success")
+
+        # Notify traveler if guide was just assigned
+        if status == "Assigned" and booking_id:
+            bk = query("SELECT adharno FROM booking WHERE booking_id=%s",
+                       (booking_id,), one=True)
+            g  = query("SELECT name FROM guide WHERE guide_id=%s", (id,), one=True)
+            if bk and g:
+                notify(bk["adharno"],
+                       f"Your tour guide '{g['name']}' has been assigned to your upcoming trip.")
+
     except Exception as e:
-        flash(f"Could not update: {e}", "danger")
+        flash(f"Could not update guide: {e}", "danger")
     return redirect("/manage_guides_admin")
 
 
@@ -1932,105 +2094,164 @@ def update_guide_admin(id):
 def delete_guide_admin(id):
     try:
         query("DELETE FROM guide WHERE guide_id=%s", (id,), commit=True)
-        flash("Guide deleted.", "info")
+        flash("Guide removed.", "info")
     except Exception as e:
         flash(f"Could not delete: {e}", "danger")
     return redirect("/manage_guides_admin")
+# ══════════════════════════════════════════════════════════════════════════════
+#  PASTE INSTRUCTIONS FOR app.py
+#
+#  STEP 1 — Add this CREATE TABLE to the stmts list inside create_new_tables()
+#            (alongside the existing notification / wishlist / announcement tables)
+#
+#  STEP 2 — Add the new routes below to the appropriate sections of app.py.
+#
+#  STEP 3 — Add unread_queries_count to inject_globals() context processor.
+# ══════════════════════════════════════════════════════════════════════════════
 
 
-# ══════════════════════════════════════════════════════
-#  INVOICE ROUTES — replace /manage_invoices
-# ══════════════════════════════════════════════════════
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 1 — Add inside create_new_tables(), in the stmts list:
+# ─────────────────────────────────────────────────────────────────────────────
 
-@app.route("/manage_invoices", methods=["GET"])
+CONTACT_QUERY_TABLE = """CREATE TABLE IF NOT EXISTS contact_query (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    adharno     VARCHAR(20),
+    name        VARCHAR(150) NOT NULL,
+    subject     VARCHAR(200) NOT NULL,
+    message     TEXT NOT NULL,
+    is_read     TINYINT DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)"""
+
+# Simply append CONTACT_QUERY_TABLE to the stmts list in create_new_tables():
+#
+#   stmts = [
+#       ...existing tables...,
+#       CONTACT_QUERY_TABLE,   # <-- add this line
+#   ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 2a — Add to inject_globals() context processor (inside try block,
+#            alongside the existing pending_admin query):
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Add this variable initialisation BEFORE the try block:
+#   unread_queries_count = 0
+
+# Add this INSIDE the try block, after the pending_admin block:
+#
+#   if "admin" in session:
+#       uqrow = query(
+#           "SELECT COUNT(*) AS cnt FROM contact_query WHERE is_read=0",
+#           one=True
+#       )
+#       unread_queries_count = int(uqrow["cnt"]) if uqrow and uqrow.get("cnt") else 0
+
+# Add unread_queries_count to the return dict:
+#   return dict(
+#       notif_count=notif_count,
+#       pending_admin=pending_admin,
+#       announcements=announcements,
+#       wishlist_count=wishlist_count,
+#       unread_queries_count=unread_queries_count,  # <-- add this
+#   )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 2c — ADMIN: View, mark-read, delete user queries
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/admin_queries")
 @admin_required
-def manage_invoices():
+def admin_queries():
     try:
-        bookings = query("""
-            SELECT b.*, t.name AS traveler_name, t.mobile, t.address,
-                   p.category, p.duration, p.description,
-                   COALESCE(pay_total.paid, 0) AS amount_paid,
-                   (b.total_amount - COALESCE(pay_total.paid, 0)) AS balance_due
-            FROM booking b
-            LEFT JOIN traveler t ON b.adharno = t.adharno
-            LEFT JOIN package p ON b.package_id = p.package_id
-            LEFT JOIN (
-                SELECT booking_id, SUM(amount) AS paid
-                FROM payment WHERE payment_status='Paid'
-                GROUP BY booking_id
-            ) pay_total ON b.booking_id = pay_total.booking_id
-            ORDER BY b.booking_id DESC
-        """) or []
-
-        total_invoiced = float((query(
-            "SELECT COALESCE(SUM(total_amount),0) AS s FROM booking WHERE status='Approved'",
-            one=True) or {}).get("s", 0))
-        total_paid = float((query(
-            "SELECT COALESCE(SUM(amount),0) AS s FROM payment WHERE payment_status='Paid'",
-            one=True) or {}).get("s", 0))
-        outstanding = total_invoiced - total_paid
-
-        return render_template("manage_invoices.html",
-            bookings=bookings, total_invoiced=total_invoiced,
-            total_paid=total_paid, outstanding=outstanding)
+        queries_list = query(
+            "SELECT * FROM contact_query ORDER BY is_read ASC, created_at DESC"
+        ) or []
+        return render_template("admin_queries.html", queries=queries_list)
     except Exception as e:
-        flash(f"Could not load invoices: {e}", "danger")
-        return render_template("manage_invoices.html",
-            bookings=[], total_invoiced=0, total_paid=0, outstanding=0)
+        flash(f"Could not load queries: {e}", "danger")
+        return render_template("admin_queries.html", queries=[])
 
 
-@app.route("/invoice/<int:booking_id>")
+@app.route("/admin_query_read/<int:id>")
 @admin_required
-def view_invoice(booking_id):
+def admin_query_read(id):
     try:
-        b = query("""
-            SELECT b.*, t.name AS traveler_name, t.mobile, t.address, t.adharno,
-                   p.category, p.duration, p.description, p.amt_rate,
-                   COALESCE(pay_total.paid, 0) AS amount_paid
-            FROM booking b
-            LEFT JOIN traveler t ON b.adharno = t.adharno
-            LEFT JOIN package p ON b.package_id = p.package_id
-            LEFT JOIN (
-                SELECT booking_id, SUM(amount) AS paid
-                FROM payment WHERE payment_status='Paid'
-                GROUP BY booking_id
-            ) pay_total ON b.booking_id = pay_total.booking_id
-            WHERE b.booking_id = %s
-        """, (booking_id,), one=True)
-
-        payments = query("""
-            SELECT * FROM payment WHERE booking_id=%s ORDER BY payment_date DESC
-        """, (booking_id,)) or []
-
-        if not b:
-            flash("Invoice not found.", "danger")
-            return redirect("/manage_invoices")
-        return render_template("invoice_view.html", b=b, payments=payments)
+        query(
+            "UPDATE contact_query SET is_read=1 WHERE id=%s",
+            (id,), commit=True
+        )
+        flash("Message marked as read.", "success")
     except Exception as e:
-        flash(f"Could not load invoice: {e}", "danger")
-        return redirect("/manage_invoices")
-    # ══════════════════════════════════════════════════════
-#  USER — TRIP GUIDES (read-only view for travelers)
-#  Add this route to app.py, in the USER section,
-#  just after the /faq route (around line 882).
-# ══════════════════════════════════════════════════════
+        flash(f"Could not update: {e}", "danger")
+    return redirect("/admin_queries")
 
-@app.route("/guides")
+
+@app.route("/admin_query_delete/<int:id>")
+@admin_required
+def admin_query_delete(id):
+    try:
+        query(
+            "DELETE FROM contact_query WHERE id=%s",
+            (id,), commit=True
+        )
+        flash("Message deleted.", "info")
+    except Exception as e:
+        flash(f"Could not delete: {e}", "danger")
+    return redirect("/admin_queries")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 2d — WISHLIST: Add a JSON-friendly toggle route for AJAX calls
+#            from the packages page heart button.
+#            The existing /wishlist/add/<pid> and /wishlist/remove/<pid>
+#            routes already work but redirect — the AJAX JS calls them and
+#            ignores the redirect, so NO change is needed in app.py for
+#            the wishlist AJAX to work (fetch() handles the redirect silently).
+#
+#            However, if you want a cleaner JSON endpoint, add this optional route:
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/wishlist/toggle/<int:pid>")
 @login_required
-def guides():
+def wishlist_toggle(pid):
+    """
+    AJAX-friendly toggle.  Returns JSON {in_wishlist: bool, count: int}.
+    Called by the heart button on packages.html.
+    """
+    from flask import jsonify
     try:
-        guides_list = query(
-            "SELECT * FROM trip_guide ORDER BY id DESC"
-        ) or []
+        existing = query(
+            "SELECT id FROM wishlist WHERE adharno=%s AND package_id=%s",
+            (session["user_id"], pid), one=True
+        )
+        if existing:
+            query(
+                "DELETE FROM wishlist WHERE adharno=%s AND package_id=%s",
+                (session["user_id"], pid), commit=True
+            )
+            in_wishlist = False
+        else:
+            query(
+                "INSERT INTO wishlist (adharno, package_id) VALUES (%s,%s)",
+                (session["user_id"], pid), commit=True
+            )
+            in_wishlist = True
 
-        packages = query(
-            "SELECT DISTINCT category FROM package ORDER BY category ASC"
-        ) or []
-
-        return render_template("guides.html", guides=guides_list, packages=packages)
+        count_row = query(
+            "SELECT COUNT(*) AS cnt FROM wishlist WHERE adharno=%s",
+            (session["user_id"],), one=True
+        )
+        count = int(count_row["cnt"]) if count_row and count_row.get("cnt") else 0
+        return jsonify({"ok": True, "in_wishlist": in_wishlist, "count": count})
     except Exception as e:
-        flash(f"Could not load guides: {e}", "danger")
-        return render_template("guides.html", guides=[], packages=[])
+        return jsonify({"ok": False, "error": str(e)}), 500
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     app.run(debug=debug_mode, host="0.0.0.0", port=5000)

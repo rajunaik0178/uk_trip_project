@@ -142,17 +142,27 @@ tbody tr:hover td{background:#f8faff;}
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════════════
+     USER SIDEBAR — includes Trip Guides link
+══════════════════════════════════════════════════ -->
 <div class="sidebar">
   <div class="sb-hd">
     <h2>✈️ UK Trip</h2>
     <p>Travel Management</p>
   </div>
+
+  <!-- MAIN -->
   <div class="sb-sec">Main</div>
   <a href="/dashboard"  {% if request.path=='/dashboard'  %}class="active"{% endif %}>🏠 Dashboard</a>
   <a href="/packages"   {% if request.path=='/packages'   %}class="active"{% endif %}>🌍 Browse Packages</a>
   <a href="/wishlist"   {% if request.path=='/wishlist'   %}class="active"{% endif %}>❤️ Wishlist
     {% if wishlist_count %}<span class="sb-badge">{{ wishlist_count }}</span>{% endif %}
   </a>
+  <!-- NEW: Trip Guides link added here -->
+  <a href="/guides"     {% if request.path=='/guides'     %}class="active"{% endif %}>🧭 Trip Guides</a>
+
+  <!-- MY ACCOUNT -->
   <div class="sb-sec">My Account</div>
   <a href="/my_bookings" {% if request.path=='/my_bookings' %}class="active"{% endif %}>📄 My Bookings</a>
   <a href="/my_reviews"  {% if request.path=='/my_reviews'  %}class="active"{% endif %}>📝 My Reviews</a>
@@ -161,9 +171,12 @@ tbody tr:hover td{background:#f8faff;}
     {% if notif_count %}<span class="sb-badge">{{ notif_count }}</span>{% endif %}
   </a>
   <a href="/profile"    {% if request.path=='/profile'    %}class="active"{% endif %}>👤 My Profile</a>
+
+  <!-- HELP -->
   <div class="sb-sec">Help</div>
   <a href="/contact" {% if request.path=='/contact' %}class="active"{% endif %}>📞 Contact Us</a>
   <a href="/faq"     {% if request.path=='/faq'     %}class="active"{% endif %}>❓ FAQ</a>
+
   <div class="sb-ft">
     <div class="sb-user"><span>Logged in as</span>{{ session.get('user','User') }}</div>
     <a href="/logout" style="color:#fff;font-size:13px;display:flex;align-items:center;gap:7px;">🚪 Logout</a>
@@ -183,5 +196,6 @@ tbody tr:hover td{background:#f8faff;}
   {% endwith %}
   {% block content %}{% endblock %}
 </div>
+
 </body>
 </html>

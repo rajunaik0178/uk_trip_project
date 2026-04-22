@@ -35,7 +35,6 @@ body{
 }
 
 /* ================= SIDEBAR ================= */
-
 .sidebar{
   width:250px;
   min-height:100vh;
@@ -113,7 +112,6 @@ body{
 }
 
 /* ================= CONTENT ================= */
-
 .content{
   margin-left:250px;
   padding:24px;
@@ -139,7 +137,6 @@ body{
 }
 
 /* ================= STATS ================= */
-
 .stats-container{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
@@ -178,31 +175,13 @@ body{
   margin-top:3px;
 }
 
-.c-users{
-  background:linear-gradient(135deg,#36d1dc,#5b86e5);
-}
-
-.c-pkg{
-  background:linear-gradient(135deg,#8e44ad,#c0392b);
-}
-
-.c-book{
-  background:linear-gradient(135deg,#f7971e,#ffd200);
-  color:#333;
-}
-
-.c-appr{
-  background:linear-gradient(135deg,#16a34a,#4ade80);
-  color:#052e16;
-}
-
-.c-rev{
-  background:linear-gradient(135deg,#11998e,#38ef7d);
-  color:#1a3a2a;
-}
+.c-users{ background:linear-gradient(135deg,#36d1dc,#5b86e5); }
+.c-pkg  { background:linear-gradient(135deg,#8e44ad,#c0392b); }
+.c-book { background:linear-gradient(135deg,#f7971e,#ffd200); color:#333; }
+.c-appr { background:linear-gradient(135deg,#16a34a,#4ade80); color:#052e16; }
+.c-rev  { background:linear-gradient(135deg,#11998e,#38ef7d); color:#1a3a2a; }
 
 /* ================= CARDS ================= */
-
 .card{
   background:#fff;
   border-radius:12px;
@@ -218,6 +197,14 @@ body{
   margin-bottom:14px;
 }
 
+.card-title{
+  font-size:15px;
+  font-weight:600;
+  color:var(--blue);
+  margin-bottom:14px;
+  display:block;
+}
+
 .two-col{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -225,7 +212,6 @@ body{
 }
 
 /* ================= TABLE ================= */
-
 table{
   width:100%;
   border-collapse:collapse;
@@ -256,7 +242,6 @@ tbody tr:hover td{
 }
 
 /* ================= BUTTONS ================= */
-
 .btn{
   padding:8px 14px;
   border:none;
@@ -266,111 +251,64 @@ tbody tr:hover td{
   font-weight:500;
   text-decoration:none;
   transition:.2s;
+  display:inline-block;
 }
 
-.btn-primary{
-  background:var(--blue);
-  color:#fff;
-}
-
-.btn-primary:hover{
-  background:var(--dblue);
-}
-
-.btn-success{
-  background:var(--green);
-  color:#fff;
-}
-
-.btn-warning{
-  background:var(--orange);
-  color:#fff;
-}
-
-.btn-outline{
-  background:#fff;
-  border:1px solid var(--blue);
-  color:var(--blue);
-}
-
-.btn-sm{
-  padding:5px 10px;
-  font-size:12px;
-}
+.btn-primary { background:var(--blue); color:#fff; }
+.btn-primary:hover { background:var(--dblue); }
+.btn-success { background:var(--green); color:#fff; }
+.btn-warning { background:var(--orange); color:#fff; }
+.btn-danger  { background:var(--red); color:#fff; }
+.btn-outline { background:#fff; border:1px solid var(--blue); color:var(--blue); }
+.btn-sm      { padding:5px 10px; font-size:12px; }
 
 /* ================= STATUS ================= */
+.status{ padding:4px 10px; border-radius:20px; font-size:12px; font-weight:500; }
+.status.Booked    { background:#fff3cd; color:#856404; }
+.status.Approved  { background:#d1fae5; color:#065f46; }
+.status.Rejected  { background:#fee2e2; color:#991b1b; }
+.status.Cancelled { background:#f3f4f6; color:#6b7280; }
 
-.status{
-  padding:4px 10px;
-  border-radius:20px;
-  font-size:12px;
-  font-weight:500;
+/* ================= FORMS ================= */
+.form-group{ margin-bottom:13px; }
+.form-group label{ display:block;font-size:12.5px;color:#444;margin-bottom:4px;font-weight:500; }
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:9px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:13px;outline:none;transition:.2s;background:#fff;
 }
-
-.status.Booked{
-  background:#fff3cd;
-  color:#856404;
-}
-
-.status.Approved{
-  background:#d1fae5;
-  color:#065f46;
-}
-
-.status.Rejected{
-  background:#fee2e2;
-  color:#991b1b;
-}
-
-.status.Cancelled{
-  background:#f3f4f6;
-  color:#6b7280;
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,78,146,.1);
 }
 
 /* ================= ALERTS ================= */
+.alert{ padding:11px 15px;border-radius:8px;margin-bottom:14px;font-size:13px;border-left:4px solid; }
+.alert-success { background:#d1fae5;color:#065f46;border-color:var(--green); }
+.alert-danger  { background:#fee2e2;color:#991b1b;border-color:var(--red); }
+.alert-warning { background:#fff3cd;color:#856404;border-color:var(--orange); }
+.alert-info    { background:#dbeafe;color:#1e40af;border-color:var(--blue); }
 
-.alert{
-  padding:11px 15px;
-  border-radius:8px;
-  margin-bottom:14px;
-  font-size:13px;
-  border-left:4px solid;
-}
+/* ================= MODALS ================= */
+.modal-overlay{ display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:999;align-items:center;justify-content:center; }
+.modal-overlay.open{ display:flex; }
+.modal{ background:#fff;border-radius:16px;padding:26px;width:460px;
+  max-width:95vw;max-height:90vh;overflow-y:auto;position:relative; }
+.modal h3{ font-size:17px;font-weight:600;margin-bottom:16px;color:var(--dblue); }
+.modal-close{ position:absolute;top:14px;right:16px;font-size:19px;
+  cursor:pointer;color:var(--muted);background:none;border:none; }
 
-.alert-success{
-  background:#d1fae5;
-  color:#065f46;
-  border-color:var(--green);
-}
-
-.alert-danger{
-  background:#fee2e2;
-  color:#991b1b;
-  border-color:var(--red);
-}
-
-.alert-warning{
-  background:#fff3cd;
-  color:#856404;
-  border-color:var(--orange);
-}
-
-.alert-info{
-  background:#dbeafe;
-  color:#1e40af;
-  border-color:var(--blue);
-}
+/* ================= SEARCH BAR ================= */
+.search-bar{ display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+  background:var(--card);padding:13px 16px;border-radius:var(--r);
+  box-shadow:var(--shadow);margin-bottom:18px; }
+.search-bar input,.search-bar select{
+  padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;
+  font-size:13px;outline:none;background:#fff; }
 
 /* ================= RESPONSIVE ================= */
-
 @media(max-width:900px){
-  .two-col{
-    grid-template-columns:1fr;
-  }
-
-  .stats-container{
-    grid-template-columns:1fr;
-  }
+  .two-col{ grid-template-columns:1fr; }
+  .stats-container{ grid-template-columns:1fr; }
 }
 </style>
 </head>
@@ -433,7 +371,7 @@ tbody tr:hover td{
     🧾 Invoices
   </a>
 
-  <!-- BOOKINGS -->
+  <!-- BOOKINGS & USERS -->
   <div class="sb-sec">Bookings & Users</div>
 
   <a href="/manage_travelers" {% if request.path == '/manage_travelers' %}class="active"{% endif %}>
@@ -449,6 +387,14 @@ tbody tr:hover td{
 
   <a href="/view_reviews" {% if request.path == '/view_reviews' %}class="active"{% endif %}>
     ⭐ Reviews
+  </a>
+
+  <!-- NEW: User Queries link -->
+  <a href="/admin_queries" {% if request.path == '/admin_queries' %}class="active"{% endif %}>
+    💬 User Queries
+    {% if unread_queries_count is defined and unread_queries_count %}
+      <span class="sb-badge">{{ unread_queries_count }}</span>
+    {% endif %}
   </a>
 
   <!-- REPORTS -->

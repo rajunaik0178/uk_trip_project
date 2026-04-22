@@ -9,32 +9,38 @@
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
 
-  <!-- CONTACT FORM -->
+  <!-- CONTACT FORM — now POSTs to /contact_submit and saves to DB -->
   <div class="card">
     <span class="card-title">Send a Message</span>
-    <form style="margin-top:10px;">
+
+    <form method="POST" action="/contact_submit" style="margin-top:10px;">
+
       <div class="form-group">
         <label>Your Name</label>
-        <input value="{{ session.get('user','') }}" readonly
+        <input name="name" value="{{ session.get('user','') }}" readonly
           style="background:#f9fafb;color:#888;">
       </div>
+
       <div class="form-group">
         <label>Subject</label>
-        <select>
-          <option>Booking Query</option>
-          <option>Package Information</option>
-          <option>Payment Issue</option>
-          <option>Refund Request</option>
-          <option>Other</option>
+        <select name="subject" required>
+          <option value="">— Select a subject —</option>
+          <option value="Booking Query">Booking Query</option>
+          <option value="Package Information">Package Information</option>
+          <option value="Payment Issue">Payment Issue</option>
+          <option value="Refund Request">Refund Request</option>
+          <option value="Other">Other</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>Message</label>
-        <textarea rows="5" placeholder="Type your message here…"></textarea>
+        <textarea name="message" rows="5"
+          placeholder="Type your message here…" required></textarea>
       </div>
-      <button type="button" class="btn btn-primary" style="padding:11px 24px;"
-        onclick="alert('✅ Message sent! Our team will get back to you within 24 hours.')">
-        Send Message
+
+      <button type="submit" class="btn btn-primary" style="padding:11px 24px;">
+        📨 Send Message
       </button>
     </form>
   </div>

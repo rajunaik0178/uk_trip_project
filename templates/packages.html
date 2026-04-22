@@ -3,7 +3,7 @@
 {% block content %}
 
 <style>
-/* Wishlist heart button — use classes not inline Jinja style */
+/* Wishlist heart button */
 .heart-btn {
   position: absolute;
   top: 10px;
@@ -19,6 +19,8 @@
   text-decoration: none;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   transition: transform 0.15s;
+  cursor: pointer;
+  border: none;
 }
 .heart-btn:hover { transform: scale(1.15); }
 .heart-btn.wishlisted { background: #fee2e2; }
@@ -63,6 +65,29 @@
   padding: 2px 8px;
   border-radius: 10px;
 }
+
+/* Toast notification */
+#wl-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #1e3c72;
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  transition: transform .3s ease, opacity .3s ease;
+  opacity: 0;
+  z-index: 9000;
+  pointer-events: none;
+}
+#wl-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
 </style>
 
 <div class="topbar">
@@ -97,12 +122,6 @@
   style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:20px;">
 
 {% for p in packages %}
-
-{#
-  BUG FIX 1: Store package data in data-* attributes on the card itself.
-  The openBook() JS reads these — avoids putting Jinja/quotes inside onclick.
-  BUG FIX 2: data-name uses |lower for reliable client-side search.
-#}
 <div class="pkg-card"
   data-pid="{{ p.package_id }}"
   data-name="{{ p.category | lower }}"
@@ -125,17 +144,19 @@
     <div class="no-img-box">No image available</div>
     {% endif %}
 
-    {#
-      BUG FIX 3: Wishlist heart — use CSS class instead of Jinja inside style="background:..."
-      The href uses /add or /remove — no Jinja inside a CSS value.
-    #}
-    {% if p.in_wishlist %}
-    <a href="/wishlist/remove/{{ p.package_id }}"
-      class="heart-btn wishlisted" title="Remove from wishlist">❤️</a>
-    {% else %}
-    <a href="/wishlist/add/{{ p.package_id }}"
-      class="heart-btn" title="Add to wishlist">🤍</a>
-    {% endif %}
+    <!--
+      WISHLIST HEART — AJAX toggle (no page redirect).
+      Uses a <button> with data-pid and data-in-wishlist attributes.
+      JS reads these and calls /wishlist/toggle/<pid> via fetch().
+    -->
+    <button
+      class="heart-btn {% if p.in_wishlist %}wishlisted{% endif %}"
+      data-pid="{{ p.package_id }}"
+      data-in-wishlist="{{ '1' if p.in_wishlist else '0' }}"
+      title="{% if p.in_wishlist %}Remove from wishlist{% else %}Add to wishlist{% endif %}"
+      onclick="toggleWishlist(this)">
+      {% if p.in_wishlist %}❤️{% else %}🤍{% endif %}
+    </button>
   </div>
 
   <!-- THUMBNAIL STRIP -->
@@ -176,10 +197,6 @@
     </div>
 
     <div style="display:flex;gap:7px;">
-      {#
-        BUG FIX 4: onclick uses data-* attributes read by JS — NO Jinja/quotes inside onclick.
-        This prevents broken JS when category names contain apostrophes or special chars.
-      #}
       <button class="btn btn-primary" style="flex:1;padding:9px;"
         onclick="openBookFromCard(this.closest('.pkg-card'))">
         Book Now
@@ -227,18 +244,63 @@
   </div>
 </div>
 
-<script>
-// ── MODAL STATE ──────────────────────────────────────
-let _bid = null;
+<!-- TOAST -->
+<div id="wl-toast"></div>
 
-// Set min date to today
+<script>
+// ── WISHLIST TOGGLE (AJAX, no redirect) ─────────────────────
+function toggleWishlist(btn) {
+  var pid  = btn.dataset.pid;
+  var inWL = btn.dataset.inWishlist === '1';
+  var url  = inWL ? '/wishlist/remove/' + pid : '/wishlist/add/' + pid;
+
+  // Optimistic UI update
+  btn.dataset.inWishlist = inWL ? '0' : '1';
+  btn.textContent        = inWL ? '🤍' : '❤️';
+  btn.title              = inWL ? 'Add to wishlist' : 'Remove from wishlist';
+  btn.classList.toggle('wishlisted', !inWL);
+
+  // Update sidebar counter optimistically
+  var badge = document.querySelector('.sidebar .sb-badge');
+  var cur   = badge ? parseInt(badge.textContent) || 0 : 0;
+  var delta = inWL ? -1 : 1;
+  var next  = cur + delta;
+  if (badge) {
+    badge.textContent = next;
+    badge.style.display = next > 0 ? '' : 'none';
+  }
+
+  // Show toast
+  showToast(inWL ? '💔 Removed from wishlist' : '❤️ Added to wishlist!');
+
+  // Fire the request in the background
+  fetch(url, { credentials: 'same-origin' })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Network error');
+    })
+    .catch(function() {
+      // Revert on failure
+      btn.dataset.inWishlist = inWL ? '1' : '0';
+      btn.textContent        = inWL ? '❤️' : '🤍';
+      btn.title              = inWL ? 'Remove from wishlist' : 'Add to wishlist';
+      btn.classList.toggle('wishlisted', inWL);
+      if (badge) badge.textContent = cur;
+      showToast('⚠️ Could not update wishlist. Try again.');
+    });
+}
+
+function showToast(msg) {
+  var t = document.getElementById('wl-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function() { t.classList.remove('show'); }, 2200);
+}
+
+// ── MODAL STATE ──────────────────────────────────────────────
+var _bid = null;
 document.getElementById('tDate').min = new Date().toISOString().split('T')[0];
 
-/**
- * BUG FIX: Read package data from data-* attributes on the card element.
- * This avoids embedding Jinja strings inside onclick="..." which breaks
- * when package names contain quotes, apostrophes, or special characters.
- */
 function openBookFromCard(card) {
   _bid = card.dataset.pid;
   document.getElementById('mName').textContent = card.dataset.title;
@@ -252,38 +314,37 @@ function closeBook() {
 }
 
 function confirmBook() {
-  const d = document.getElementById('tDate').value;
+  var d = document.getElementById('tDate').value;
   if (!d) { alert('Please select a travel date.'); return; }
   window.location.href = '/book/' + _bid + '?travel_date=' + d;
 }
 
-// ── THUMBNAIL SWITCHER ───────────────────────────────
+// ── THUMBNAIL SWITCHER ───────────────────────────────────────
 function switchImg(thumb) {
-  var strip = thumb.closest(".thumb-strip"); var mainId = strip.dataset.main; document.getElementById(mainId).src = thumb.src;
-  // Remove active border from all thumbs in same strip
-  thumb.closest('.thumb-strip').querySelectorAll('img').forEach(function(t) {
-    t.classList.remove('active');
-  });
+  var strip  = thumb.closest('.thumb-strip');
+  var mainId = strip.dataset.main;
+  document.getElementById(mainId).src = thumb.src;
+  strip.querySelectorAll('img').forEach(function(t) { t.classList.remove('active'); });
   thumb.classList.add('active');
 }
 
-// ── FILTER / SEARCH / SORT ───────────────────────────
+// ── FILTER / SEARCH / SORT ───────────────────────────────────
 function filterPkg() {
-  const q    = document.getElementById('q').value.toLowerCase().trim();
-  const sort = document.getElementById('sort').value;
-  const dur  = document.getElementById('dur').value;
-  const maxp = parseFloat(document.getElementById('maxp').value) || Infinity;
-  let vis = 0;
+  var q    = document.getElementById('q').value.toLowerCase().trim();
+  var sort = document.getElementById('sort').value;
+  var dur  = document.getElementById('dur').value;
+  var maxp = parseFloat(document.getElementById('maxp').value) || Infinity;
+  var vis  = 0;
 
   document.querySelectorAll('#pgrid .pkg-card').forEach(function(c) {
-    const name  = c.dataset.name;
-    const price = parseFloat(c.dataset.price);
-    const dd    = parseInt(c.dataset.dur) || 0;
+    var name  = c.dataset.name;
+    var price = parseFloat(c.dataset.price);
+    var dd    = parseInt(c.dataset.dur) || 0;
 
-    let ok = name.includes(q) && price <= maxp;
-    if (dur === 'short'  && dd > 5)           ok = false;
+    var ok = name.includes(q) && price <= maxp;
+    if (dur === 'short'  && dd > 5)              ok = false;
     if (dur === 'medium' && (dd < 6 || dd > 10)) ok = false;
-    if (dur === 'long'   && dd < 11)          ok = false;
+    if (dur === 'long'   && dd < 11)             ok = false;
 
     c.style.display = ok ? '' : 'none';
     if (ok) vis++;
@@ -292,9 +353,9 @@ function filterPkg() {
   document.getElementById('nores').style.display = vis === 0 ? 'block' : 'none';
 
   if (sort) {
-    const grid  = document.getElementById('pgrid');
-    const cards = Array.from(grid.querySelectorAll('.pkg-card'))
-                       .filter(function(c){ return c.style.display !== 'none'; });
+    var grid  = document.getElementById('pgrid');
+    var cards = Array.from(grid.querySelectorAll('.pkg-card'))
+                     .filter(function(c) { return c.style.display !== 'none'; });
     cards.sort(function(a, b) {
       if (sort === 'pasc')   return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
       if (sort === 'pdesc')  return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
@@ -302,7 +363,7 @@ function filterPkg() {
       if (sort === 'rating') return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
       return 0;
     });
-    cards.forEach(function(c){ grid.appendChild(c); });
+    cards.forEach(function(c) { grid.appendChild(c); });
   }
 }
 
@@ -313,6 +374,11 @@ function clearF() {
   document.getElementById('dur').value  = '';
   filterPkg();
 }
+
+// Close modal on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeBook();
+});
 </script>
 
 {% endblock %}

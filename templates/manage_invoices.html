@@ -1,108 +1,193 @@
 {% extends "admin_base.html" %}
 {% block content %}
 
+<style>
+.pay-bar-wrap{background:#e5e7eb;border-radius:4px;height:6px;margin-top:5px;min-width:80px;}
+.pay-bar{height:6px;border-radius:4px;background:#16a34a;transition:.3s;}
+.inv-pill{padding:3px 10px;border-radius:12px;font-size:11.5px;font-weight:600;}
+.inv-paid{background:#d1fae5;color:#065f46;}
+.inv-partial{background:#fff3cd;color:#856404;}
+.inv-unpaid{background:#fee2e2;color:#991b1b;}
+
+/* Print styles for the receipt popup */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+}
+</style>
+
 <div class="topbar">
-  <h1>🧾 Invoice Management</h1>
+  <h1>🧾 Invoice & Receipts</h1>
+  <div style="display:flex;gap:8px;">
+    <a href="/export_bookings" class="btn btn-outline">📥 Export CSV</a>
+  </div>
 </div>
 
-<!-- STATS -->
-<div class="stats-container" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:20px;">
+<!-- SUMMARY STATS -->
+<div class="stats-container"
+  style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:22px;">
   <div class="stat-card c-book">
     <h3>Total Invoiced</h3>
     <h1>₹{{ "{:,.0f}".format(total_invoiced) }}</h1>
     <div class="sub">Approved bookings</div>
   </div>
   <div class="stat-card c-rev">
-    <h3>Amount Paid</h3>
+    <h3>Amount Collected</h3>
     <h1>₹{{ "{:,.0f}".format(total_paid) }}</h1>
-    <div class="sub">Collected</div>
+    <div class="sub">Payments received</div>
   </div>
   <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#f87171);">
     <h3>Outstanding</h3>
     <h1>₹{{ "{:,.0f}".format(outstanding) }}</h1>
     <div class="sub">Pending collection</div>
   </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+    <h3>Fully Paid</h3>
+    <h1>{{ bookings | selectattr('balance_due','le',0) | list | length }}</h1>
+    <div class="sub">Cleared invoices</div>
+  </div>
 </div>
 
-<!-- SEARCH & FILTER -->
+<!-- FILTER BAR -->
 <div class="search-bar">
-  <input type="text" id="isearch" placeholder="🔍 Search by traveler or package…"
+  <input type="text" id="isearch" placeholder="🔍 Search traveler, package, invoice…"
     oninput="filterInvoices()" style="flex:1;">
-  <select id="istatus" onchange="filterInvoices()">
-    <option value="">All Status</option>
+  <select id="ibstatus" onchange="filterInvoices()">
+    <option value="">All Booking Status</option>
     <option value="Approved">Approved</option>
     <option value="Booked">Pending</option>
     <option value="Cancelled">Cancelled</option>
     <option value="Rejected">Rejected</option>
   </select>
   <select id="ipaid" onchange="filterInvoices()">
-    <option value="">Payment Status</option>
-    <option value="paid">Fully Paid</option>
-    <option value="partial">Partially Paid</option>
-    <option value="unpaid">Unpaid</option>
+    <option value="">All Payment Status</option>
+    <option value="paid">✅ Fully Paid</option>
+    <option value="partial">⚠️ Partial</option>
+    <option value="unpaid">❌ Unpaid</option>
   </select>
 </div>
 
 <!-- INVOICE TABLE -->
 <div class="card" style="overflow-x:auto;">
-  <h3>Booking Invoices</h3>
-  <table style="min-width:1000px;" id="invoiceTable">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <h3 style="margin:0;">Traveler Invoices</h3>
+    <span style="font-size:12px;color:#6b7280;">
+      Invoices are auto-created when a booking is placed.
+      Use the 💳 Pay button to record a payment against any invoice.
+    </span>
+  </div>
+
+  <table id="invoiceTable" style="min-width:1080px;">
     <thead>
       <tr>
-        <th>Invoice</th><th>Traveler</th><th>Package</th><th>Travel Date</th>
-        <th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th>
+        <th>Invoice #</th>
+        <th>Traveler</th>
+        <th>Package</th>
+        <th>Travel Date</th>
+        <th>Invoice Total</th>
+        <th>Paid</th>
+        <th>Balance</th>
+        <th>Payment Status</th>
+        <th>Booking Status</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for b in bookings %}
-      {% set balance = b.total_amount - (b.amount_paid or 0) %}
-      {% set paid_pct = ((b.amount_paid or 0) / b.total_amount * 100) if b.total_amount else 0 %}
-      {% set pay_label = 'paid' if balance <= 0 else ('partial' if (b.amount_paid or 0) > 0 else 'unpaid') %}
-      <tr data-status="{{ b.status }}" data-paid="{{ pay_label }}">
+      {% set balance  = b.total_amount - (b.amount_paid or 0) %}
+      {% set paid_pct = [((b.amount_paid or 0) / b.total_amount * 100) if b.total_amount else 0, 100] | min %}
+      {% set pay_lbl  = 'paid' if balance <= 0 else ('partial' if (b.amount_paid or 0) > 0 else 'unpaid') %}
+
+      <tr data-bstatus="{{ b.status }}" data-paid="{{ pay_lbl }}">
+
+        <!-- Invoice # -->
         <td>
           <strong style="color:#2a5298;">#INV-{{ "%04d"|format(b.booking_id) }}</strong><br>
           <span style="font-size:11px;color:#aaa;">Booking #{{ b.booking_id }}</span>
         </td>
+
+        <!-- Traveler -->
         <td>
-          <strong>{{ b.traveler_name }}</strong><br>
-          <span style="font-size:11px;color:#888;">{{ b.adharno }}</span>
+          <strong>{{ b.traveler_name or '—' }}</strong><br>
+          <span style="font-size:11px;color:#888;">{{ b.adharno }}</span><br>
+          <span style="font-size:11px;color:#aaa;">📱 {{ b.mobile or '—' }}</span>
         </td>
-        <td>{{ b.category or '—' }}<br>
+
+        <!-- Package -->
+        <td>
+          {{ b.category or '—' }}<br>
           <span style="font-size:11px;color:#888;">{{ b.duration or '' }}</span>
         </td>
-        <td style="font-size:13px;">{{ b.travel_date or '—' }}</td>
-        <td style="font-weight:600;">₹{{ "{:,.0f}".format(b.total_amount) }}</td>
-        <td>
-          <span style="color:#16a34a;font-weight:600;">₹{{ "{:,.0f}".format(b.amount_paid or 0) }}</span>
-          {% if b.total_amount > 0 %}
-          <div style="background:#e5e7eb;border-radius:4px;height:4px;margin-top:4px;">
-            <div style="background:#16a34a;height:4px;border-radius:4px;width:{{ [paid_pct,100]|min|round }}%;"></div>
-          </div>
-          {% endif %}
+
+        <!-- Travel Date -->
+        <td style="font-size:13px;white-space:nowrap;">
+          {{ b.travel_date or '—' }}
         </td>
+
+        <!-- Invoice Total -->
+        <td style="font-weight:700;font-size:14px;">
+          ₹{{ "{:,.0f}".format(b.total_amount) }}
+        </td>
+
+        <!-- Paid -->
+        <td>
+          <strong style="color:#16a34a;">₹{{ "{:,.0f}".format(b.amount_paid or 0) }}</strong>
+          <div class="pay-bar-wrap">
+            <div class="pay-bar" style="width:{{ paid_pct|round|int }}%;"></div>
+          </div>
+          <span style="font-size:11px;color:#6b7280;">{{ paid_pct|round|int }}%</span>
+        </td>
+
+        <!-- Balance -->
         <td>
           {% if balance <= 0 %}
-            <span style="color:#16a34a;font-weight:600;">✓ Cleared</span>
+            <span style="color:#16a34a;font-weight:700;">✓ Cleared</span>
           {% else %}
-            <span style="color:#dc2626;font-weight:600;">₹{{ "{:,.0f}".format(balance) }}</span>
+            <span style="color:#dc2626;font-weight:700;">₹{{ "{:,.0f}".format(balance) }}</span>
           {% endif %}
         </td>
+
+        <!-- Payment Status Pill -->
+        <td>
+          {% if pay_lbl == 'paid' %}
+            <span class="inv-pill inv-paid">✅ Fully Paid</span>
+          {% elif pay_lbl == 'partial' %}
+            <span class="inv-pill inv-partial">⚠️ Partial</span>
+          {% else %}
+            <span class="inv-pill inv-unpaid">❌ Unpaid</span>
+          {% endif %}
+        </td>
+
+        <!-- Booking Status -->
         <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
+
+        <!-- Actions -->
         <td>
           <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <!-- View full invoice/receipt -->
             <a href="/invoice/{{ b.booking_id }}">
               <button class="btn btn-outline btn-sm">🧾 View</button>
             </a>
-            <a href="/manage_payments"
-               onclick="sessionStorage.setItem('prefill_booking','{{ b.booking_id }}')">
-              <button class="btn btn-success btn-sm">💳 Pay</button>
-            </a>
+            <!-- Record / add a payment -->
+            {% if balance > 0 %}
+            <button class="btn btn-success btn-sm"
+              data-bid="{{ b.booking_id }}"
+              data-tname="{{ b.traveler_name | e }}"
+              data-balance="{{ balance | round(2) }}"
+              data-total="{{ b.total_amount }}"
+              onclick="openPayModal(this)">💳 Pay</button>
+            {% endif %}
+            <!-- Print receipt button -->
+            <button class="btn btn-primary btn-sm"
+              onclick="window.open('/invoice/{{ b.booking_id }}?print=1','_blank')">
+              🖨️ Print
+            </button>
           </div>
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="9" style="text-align:center;color:#888;padding:30px;">
+        <td colspan="10" style="text-align:center;color:#888;padding:40px;">
           No invoices yet. Invoices are created automatically when bookings are placed.
         </td>
       </tr>
@@ -111,25 +196,192 @@
   </table>
 </div>
 
+
+<!-- ══ PAYMENT MODAL (inline — no redirect to another page) ══ -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal" style="width:500px;">
+    <button class="modal-close"
+      onclick="document.getElementById('payModal').classList.remove('open')">✕</button>
+    <h3>💳 Record Payment</h3>
+
+    <!-- Invoice summary strip -->
+    <div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:18px;">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Invoice for</div>
+      <div id="pm_tname" style="font-weight:600;color:#1e3c72;font-size:15px;"></div>
+      <div style="display:flex;gap:20px;margin-top:8px;font-size:13px;">
+        <div>Invoice Total: <strong id="pm_total"></strong></div>
+        <div>Balance Due: <strong id="pm_balance" style="color:#dc2626;"></strong></div>
+      </div>
+    </div>
+
+    <form method="POST" action="/add_payment" id="payForm">
+      <input type="hidden" name="booking_id" id="pm_bid">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Amount Paying (₹) *</label>
+          <input type="number" name="amount" id="pm_amount"
+            min="1" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label>Payment Mode *</label>
+          <select name="payment_mode" required>
+            <option value="Cash">💵 Cash</option>
+            <option value="UPI">📱 UPI</option>
+            <option value="Card">💳 Card</option>
+            <option value="Bank Transfer">🏦 Bank Transfer</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Payment Status</label>
+          <select name="payment_status">
+            <option value="Paid">✅ Paid</option>
+            <option value="Pending">⏳ Pending</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Transaction / Ref ID</label>
+          <input name="transaction_id" placeholder="UPI ref, card last 4…">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Optional payment note…"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;">
+        💾 Record Payment
+      </button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ══ PAYMENT HISTORY PANEL (below table) ══ -->
+<div class="card" style="margin-top:8px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <h3 style="margin:0;">💳 All Payment Records</h3>
+    <input type="text" id="phsearch" placeholder="🔍 Filter payments…"
+      oninput="filterPayHist()"
+      style="padding:7px 11px;border:1.5px solid #e5e7eb;border-radius:7px;font-size:13px;">
+  </div>
+  <div style="overflow-x:auto;">
+    <table id="payHistTable" style="min-width:860px;">
+      <thead>
+        <tr>
+          <th>#</th><th>Booking</th><th>Traveler</th><th>Package</th>
+          <th>Amount</th><th>Mode</th><th>Ref ID</th><th>Status</th><th>Date</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pay in payments %}
+        <tr>
+          <td>#{{ pay.id }}</td>
+          <td><a href="/invoice/{{ pay.booking_id }}" style="color:#2a5298;">#{{ pay.booking_id }}</a></td>
+          <td>{{ pay.traveler_name or pay.adharno }}</td>
+          <td>{{ pay.category or '—' }}</td>
+          <td style="font-weight:600;">₹{{ "{:,.2f}".format(pay.amount) }}</td>
+          <td>
+            <span style="background:#e8f0fe;color:#1e40af;
+              padding:2px 8px;border-radius:8px;font-size:12px;">
+              {{ pay.payment_mode }}
+            </span>
+          </td>
+          <td style="font-size:11px;color:#888;font-family:monospace;">
+            {{ pay.transaction_id or '—' }}
+          </td>
+          <td>
+            {% if pay.payment_status == 'Paid' %}
+              <span class="inv-pill inv-paid">✅ Paid</span>
+            {% elif pay.payment_status == 'Pending' %}
+              <span class="inv-pill inv-partial">⏳ Pending</span>
+            {% elif pay.payment_status == 'Refunded' %}
+              <span class="inv-pill" style="background:#e9d5ff;color:#6d28d9;">↩ Refunded</span>
+            {% else %}
+              <span class="inv-pill inv-unpaid">Failed</span>
+            {% endif %}
+          </td>
+          <td style="font-size:12px;color:#888;white-space:nowrap;">
+            {{ pay.payment_date.strftime('%d %b %Y') if pay.payment_date else '—' }}
+          </td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              {% if pay.payment_status == 'Pending' %}
+              <a href="/update_payment_status/{{ pay.id }}/Paid">
+                <button class="btn btn-success btn-sm">✓ Mark Paid</button>
+              </a>
+              {% endif %}
+              {% if pay.payment_status == 'Paid' %}
+              <a href="/update_payment_status/{{ pay.id }}/Refunded"
+                 onclick="return confirm('Mark as Refunded?')">
+                <button class="btn btn-warning btn-sm">↩ Refund</button>
+              </a>
+              {% endif %}
+              <a href="/delete_payment/{{ pay.id }}"
+                 onclick="return confirm('Delete this payment record?')">
+                <button class="btn btn-danger btn-sm">🗑</button>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" style="text-align:center;color:#888;padding:30px;">
+            No payment records yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
 <script>
+/* ── INVOICE TABLE FILTER ──────────────────────── */
 function filterInvoices() {
   var q  = document.getElementById('isearch').value.toLowerCase();
-  var st = document.getElementById('istatus').value;
+  var bs = document.getElementById('ibstatus').value;
   var pd = document.getElementById('ipaid').value;
-  document.querySelectorAll('#invoiceTable tbody tr[data-status]').forEach(function(r) {
-    var match = r.textContent.toLowerCase().includes(q)
-             && (!st || r.dataset.status === st)
-             && (!pd || r.dataset.paid === pd);
-    r.style.display = match ? '' : 'none';
+  document.querySelectorAll('#invoiceTable tbody tr[data-bstatus]').forEach(function(r) {
+    var ok = r.textContent.toLowerCase().includes(q)
+          && (!bs || r.dataset.bstatus === bs)
+          && (!pd || r.dataset.paid === pd);
+    r.style.display = ok ? '' : 'none';
   });
 }
 
-// Auto-prefill booking in payment modal if navigated from here
-window.addEventListener('load', function() {
-  var bk = sessionStorage.getItem('prefill_booking');
-  if (bk) {
-    sessionStorage.removeItem('prefill_booking');
-  }
+/* ── PAYMENT HISTORY FILTER ───────────────────── */
+function filterPayHist() {
+  var q = document.getElementById('phsearch').value.toLowerCase();
+  document.querySelectorAll('#payHistTable tbody tr').forEach(function(r) {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+/* ── PAY MODAL ────────────────────────────────── */
+function openPayModal(btn) {
+  var bid     = btn.dataset.bid;
+  var tname   = btn.dataset.tname;
+  var balance = parseFloat(btn.dataset.balance);
+  var total   = parseFloat(btn.dataset.total);
+
+  document.getElementById('pm_bid').value      = bid;
+  document.getElementById('pm_tname').textContent = tname;
+  document.getElementById('pm_total').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('pm_balance').textContent = '₹' + balance.toLocaleString('en-IN');
+  document.getElementById('pm_amount').value   = balance.toFixed(2);
+  document.getElementById('pm_amount').max     = balance;
+
+  document.getElementById('payModal').classList.add('open');
+}
+
+/* ── ESCAPE ──────────────────────────────────── */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape')
+    document.getElementById('payModal').classList.remove('open');
 });
 </script>
 

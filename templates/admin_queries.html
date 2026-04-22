@@ -1,0 +1,158 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+  <h1>💬 User Queries / Messages</h1>
+  <span style="font-size:13px;color:#888;">
+    {{ queries|length }} message{{ 's' if queries|length != 1 }}
+  </span>
+</div>
+
+<!-- FILTER BAR -->
+<div class="search-bar">
+  <input type="text" id="qs" placeholder="🔍 Search by name, subject or message…"
+    oninput="filterQ()" style="flex:1;">
+  <select id="qsub" onchange="filterQ()">
+    <option value="">All Subjects</option>
+    <option value="Booking Query">Booking Query</option>
+    <option value="Package Information">Package Information</option>
+    <option value="Payment Issue">Payment Issue</option>
+    <option value="Refund Request">Refund Request</option>
+    <option value="Other">Other</option>
+  </select>
+  <select id="qread" onchange="filterQ()">
+    <option value="">All Status</option>
+    <option value="0">Unread</option>
+    <option value="1">Read</option>
+  </select>
+</div>
+
+<!-- STATS STRIP -->
+<div class="stats-container"
+  style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:20px;">
+  <div class="stat-card" style="background:linear-gradient(135deg,#1e3c72,#2a5298);">
+    <h3>Total</h3>
+    <h1>{{ queries|length }}</h1>
+    <div class="sub">Messages</div>
+  </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#f87171);">
+    <h3>Unread</h3>
+    <h1>{{ queries|selectattr('is_read','equalto',0)|list|length }}</h1>
+    <div class="sub">Pending review</div>
+  </div>
+  <div class="stat-card" style="background:linear-gradient(135deg,#16a34a,#4ade80);color:#052e16;">
+    <h3>Read</h3>
+    <h1>{{ queries|selectattr('is_read','equalto',1)|list|length }}</h1>
+    <div class="sub">Reviewed</div>
+  </div>
+</div>
+
+<!-- QUERIES TABLE -->
+<div class="card" style="overflow-x:auto;">
+  <table id="qTable" style="min-width:750px;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>From</th>
+        <th>Subject</th>
+        <th>Message</th>
+        <th>Received</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="qRows">
+      {% for q in queries %}
+      <tr data-subject="{{ q.subject }}" data-read="{{ q.is_read }}"
+        style="{% if not q.is_read %}background:#fefce8;{% endif %}">
+        <td><strong>#{{ q.id }}</strong></td>
+        <td>
+          <strong>{{ q.name }}</strong>
+          {% if q.adharno %}
+          <br><span style="font-size:11px;color:#888;">{{ q.adharno }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <span style="background:#dbeafe;color:#1e40af;
+            padding:2px 9px;border-radius:12px;font-size:12px;white-space:nowrap;">
+            {{ q.subject }}
+          </span>
+        </td>
+        <td style="max-width:320px;color:#444;font-size:13px;">
+          {{ q.message[:120] }}{% if q.message|length > 120 %}
+          <a href="#" style="color:#2a5298;font-size:12px;"
+            onclick="showFull(this, {{ q.message|tojson }});return false;">… more</a>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:#888;white-space:nowrap;">
+          {{ q.created_at.strftime('%d %b %Y, %I:%M %p') if q.created_at else '—' }}
+        </td>
+        <td>
+          {% if q.is_read %}
+            <span class="status Approved">✓ Read</span>
+          {% else %}
+            <span class="status Booked">● Unread</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            {% if not q.is_read %}
+            <a href="/admin_query_read/{{ q.id }}">
+              <button class="btn btn-success btn-sm">✓ Mark Read</button>
+            </a>
+            {% endif %}
+            <a href="/admin_query_delete/{{ q.id }}"
+               onclick="return confirm('Delete this message?')">
+              <button class="btn btn-danger btn-sm">🗑</button>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:#888;padding:40px;">
+          No messages yet.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- FULL MESSAGE MODAL -->
+<div class="modal-overlay" id="msgModal">
+  <div class="modal" style="width:520px;">
+    <button class="modal-close"
+      onclick="document.getElementById('msgModal').classList.remove('open')">✕</button>
+    <h3>💬 Full Message</h3>
+    <p id="msgBody"
+      style="font-size:14px;color:#444;line-height:1.75;white-space:pre-wrap;
+        margin-top:6px;"></p>
+  </div>
+</div>
+
+<script>
+function filterQ() {
+  var q    = document.getElementById('qs').value.toLowerCase();
+  var sub  = document.getElementById('qsub').value;
+  var read = document.getElementById('qread').value;
+  document.querySelectorAll('#qRows tr[data-subject]').forEach(function(r) {
+    var textOk = r.textContent.toLowerCase().includes(q);
+    var subOk  = !sub  || r.dataset.subject === sub;
+    var readOk = read === '' || r.dataset.read === read;
+    r.style.display = (textOk && subOk && readOk) ? '' : 'none';
+  });
+}
+
+function showFull(link, fullText) {
+  document.getElementById('msgBody').textContent = fullText;
+  document.getElementById('msgModal').classList.add('open');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape')
+    document.getElementById('msgModal').classList.remove('open');
+});
+</script>
+
+{% endblock %}
