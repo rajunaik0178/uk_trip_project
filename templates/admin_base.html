@@ -4,446 +4,445 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Admin — UK Trip</title>
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --blue:#004e92;
-  --dblue:#000428;
-  --green:#16a34a;
-  --red:#dc2626;
-  --orange:#d97706;
-  --bg:#f0f4f8;
-  --card:#ffffff;
-  --border:#e5e7eb;
-  --text:#1f2937;
-  --muted:#6b7280;
-  --r:12px;
-  --shadow:0 2px 8px rgba(0,0,0,.08);
+  --bg:#0d1117;
+  --bg2:#131920;
+  --bg3:#1a2332;
+  --card:#161d27;
+  --card2:#1e2a38;
+  --border:#1f2d3d;
+  --border2:#243447;
+  --accent:#00e5a0;
+  --accent2:#00c98a;
+  --accent-dim:rgba(0,229,160,0.12);
+  --accent-dim2:rgba(0,229,160,0.06);
+  --text:#e8edf2;
+  --text2:#8fa3b8;
+  --text3:#5c7a96;
+  --blue:#3b7dd8;
+  --blue-dim:rgba(59,125,216,0.15);
+  --red:#ef4444;
+  --red-dim:rgba(239,68,68,0.15);
+  --orange:#f59e0b;
+  --orange-dim:rgba(245,158,11,0.15);
+  --green:#10b981;
+  --green-dim:rgba(16,185,129,0.15);
+  --purple:#8b5cf6;
+  --purple-dim:rgba(139,92,246,0.15);
+  --sidebar-w:210px;
+  --r:10px;
+  --shadow:0 4px 20px rgba(0,0,0,0.4);
+  --shadow2:0 8px 40px rgba(0,0,0,0.5);
 }
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:'Segoe UI',system-ui,sans-serif;
-}
-
+*{margin:0;padding:0;box-sizing:border-box;}
 body{
   display:flex;
   background:var(--bg);
   color:var(--text);
-}
-
-/* ================= SIDEBAR ================= */
-.sidebar{
-  width:250px;
-  height:100vh;
-  background:linear-gradient(180deg,#000428,#004e92);
-  color:#fff;
-  display:flex;
-  flex-direction:column;
-  position:fixed;
-  top:0;
-  left:0;
-  overflow-y:auto;
-  overflow-x:hidden;
-  z-index:200;
-}
-
-.sb-hd{
-  padding:20px 18px 14px;
-  border-bottom:1px solid rgba(255,255,255,.12);
-}
-
-.sb-hd h2{
-  font-size:16px;
-  font-weight:700;
-}
-
-.sb-hd p{
-  font-size:11px;
-  opacity:.65;
-  margin-top:3px;
-}
-
-.sb-sec{
-  padding:8px 18px 3px;
-  font-size:10px;
-  text-transform:uppercase;
-  letter-spacing:1.2px;
-  opacity:.45;
-  margin-top:6px;
-}
-
-.sidebar a{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  color:#fff;
-  padding:9px 18px;
-  text-decoration:none;
-  font-size:13px;
-  transition:.2s;
-}
-
-.sidebar a:hover{
-  background:rgba(255,255,255,.15);
-  padding-left:24px;
-}
-
-.sidebar a.active{
-  background:rgba(255,255,255,.22);
-  border-left:3px solid #7eb8ff;
-}
-
-.sb-badge{
-  margin-left:auto;
-  background:#dc2626;
-  color:#fff;
-  font-size:10px;
-  padding:1px 6px;
-  border-radius:10px;
-  font-weight:600;
-}
-
-.sb-ft{
-  margin-top:auto;
-  padding:14px 18px;
-  border-top:1px solid rgba(255,255,255,.12);
-}
-
-/* ================= CONTENT ================= */
-.content{
-  margin-left:250px;
-  padding:24px;
-  width:calc(100% - 250px);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
   min-height:100vh;
 }
 
+/* ═════════════════ SIDEBAR ═════════════════ */
+.sidebar{
+  width:var(--sidebar-w);
+  min-height:100vh;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;
+  overflow-y:auto;z-index:200;
+}
+.sb-hd{
+  padding:20px 18px 15px;
+  border-bottom:1px solid var(--border);
+}
+.sb-hd h2{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;font-weight:700;
+  color:var(--accent);letter-spacing:0.3px;
+}
+.sb-hd p{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-top:3px;}
+.sb-sec{
+  padding:14px 18px 5px;
+  font-size:9px;text-transform:uppercase;
+  letter-spacing:1.5px;color:var(--text3);
+}
+.sidebar a{
+  display:flex;align-items:center;gap:9px;
+  color:var(--text2);padding:9px 18px;
+  text-decoration:none;font-size:12.5px;font-weight:500;
+  transition:all .15s;border-left:2px solid transparent;
+}
+.sidebar a:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.sidebar a.active{color:var(--accent);background:var(--accent-dim2);border-left-color:var(--accent);}
+.sb-badge{
+  margin-left:auto;background:var(--red);color:#fff;
+  font-size:9px;padding:2px 6px;border-radius:10px;font-weight:700;
+}
+.sb-ft{
+  margin-top:auto;padding:14px 18px;
+  border-top:1px solid var(--border);
+}
+
+/* ═════════════════ CONTENT ═════════════════ */
+.content{
+  margin-left:var(--sidebar-w);
+  padding:0;
+  width:calc(100% - var(--sidebar-w));
+  min-height:100vh;
+  display:flex;flex-direction:column;
+}
+.topnav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 28px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.topnav-search{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;padding:7px 14px;min-width:220px;
+}
+.topnav-search input{
+  background:none;border:none;outline:none;
+  color:var(--text);font-size:12.5px;width:180px;
+}
+.topnav-search input::placeholder{color:var(--text3);}
+.topnav-right{display:flex;align-items:center;gap:8px;}
+.topnav-icon-btn{
+  width:34px;height:34px;border-radius:8px;
+  border:1px solid var(--border2);background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text2);cursor:pointer;font-size:14px;
+  text-decoration:none;transition:.15s;
+}
+.topnav-icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+.topnav-user{
+  display:flex;align-items:center;gap:9px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;padding:5px 12px 5px 6px;
+}
+.topnav-avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#0d1117;
+}
+.topnav-user-name{font-size:12px;font-weight:600;color:var(--text);}
+.topnav-user-role{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;}
+
+.page-body{padding:28px;flex:1;}
+
+/* TOPBAR (page header row) */
 .topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background:var(--card);
-  border-radius:var(--r);
-  padding:13px 20px;
-  box-shadow:var(--shadow);
-  margin-bottom:20px;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;
 }
-
 .topbar h1{
-  font-size:19px;
-  font-weight:600;
-  color:var(--dblue);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:22px;font-weight:700;color:var(--text);
 }
 
-/* ================= STATS ================= */
+/* STATS */
 .stats-container{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:14px;
-  margin-bottom:20px;
+  gap:14px;margin-bottom:24px;
 }
-
 .stat-card{
-  border-radius:12px;
-  padding:18px;
-  color:#fff;
-  box-shadow:0 4px 15px rgba(0,0,0,.15);
-  transition:.25s;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;
+  position:relative;overflow:hidden;transition:.2s;
 }
-
-.stat-card:hover{
-  transform:translateY(-3px);
-}
-
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);}
 .stat-card h3{
-  font-size:11px;
-  opacity:.85;
-  margin-bottom:8px;
-  text-transform:uppercase;
-  letter-spacing:.5px;
+  font-size:10px;text-transform:uppercase;letter-spacing:1px;
+  color:var(--text3);margin-bottom:10px;
 }
-
 .stat-card h1{
-  font-size:26px;
-  font-weight:700;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:26px;font-weight:700;color:var(--text);
 }
+.stat-card .sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.c-users::before{background:var(--blue);}
+.c-pkg::before{background:var(--purple);}
+.c-book::before{background:var(--orange);}
+.c-appr::before{background:var(--green);}
+.c-rev::before{background:var(--accent);}
 
-.stat-card .sub{
-  font-size:11px;
-  opacity:.75;
-  margin-top:3px;
-}
-
-.c-users{ background:linear-gradient(135deg,#36d1dc,#5b86e5); }
-.c-pkg{ background:linear-gradient(135deg,#8e44ad,#c0392b); }
-.c-book{ background:linear-gradient(135deg,#f7971e,#ffd200); color:#333; }
-.c-appr{ background:linear-gradient(135deg,#16a34a,#4ade80); color:#052e16; }
-.c-rev{ background:linear-gradient(135deg,#11998e,#38ef7d); color:#1a3a2a; }
-
-/* ================= CARDS ================= */
+/* CARD */
 .card{
-  background:#fff;
-  border-radius:12px;
-  padding:20px;
-  box-shadow:var(--shadow);
-  margin-bottom:18px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;margin-bottom:18px;
 }
-
 .card h3{
-  font-size:15px;
-  font-weight:600;
-  color:var(--blue);
-  margin-bottom:14px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;
 }
 
-.two-col{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:18px;
-}
-
-/* ================= TABLE ================= */
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-thead tr{
-  background:#f0f4ff;
-}
-
+/* TABLE */
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--bg3);}
 th{
-  padding:10px 12px;
-  text-align:left;
-  font-size:12px;
-  color:var(--blue);
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.4px;
-}
-
-td{
-  padding:10px 12px;
+  padding:10px 14px;text-align:left;
+  font-size:10px;color:var(--text3);
+  font-weight:600;text-transform:uppercase;letter-spacing:.8px;
   border-bottom:1px solid var(--border);
-  font-size:13px;
 }
-
-tbody tr:hover td{
-  background:#f8faff;
+td{
+  padding:12px 14px;
+  border-bottom:1px solid var(--border);
+  font-size:12.5px;color:var(--text2);
 }
+tbody tr:hover td{background:rgba(255,255,255,0.02);}
 
-/* ================= BUTTONS ================= */
+/* STATUS */
+.status{
+  display:inline-flex;align-items:center;
+  padding:3px 10px;border-radius:4px;
+  font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.status.Booked{background:var(--orange-dim);color:var(--orange);}
+.status.Approved{background:var(--green-dim);color:var(--green);}
+.status.Rejected{background:var(--red-dim);color:var(--red);}
+.status.Cancelled{background:rgba(92,122,150,0.15);color:var(--text3);}
+
+/* BUTTONS */
 .btn{
-  padding:8px 14px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:13px;
-  font-weight:500;
-  text-decoration:none;
-  transition:.2s;
+  padding:7px 16px;border:none;border-radius:7px;
+  cursor:pointer;font-size:12px;font-weight:600;
+  transition:all .15s;text-decoration:none;
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'Inter',sans-serif;line-height:1;
 }
+.btn-primary{background:var(--accent);color:#0d1117;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-success{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,0.3);}
+.btn-success:hover{background:var(--green);color:#fff;}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+.btn-danger:hover{background:var(--red);color:#fff;}
+.btn-warning{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(245,158,11,0.3);}
+.btn-warning:hover{background:var(--orange);color:#fff;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.btn-lg{padding:10px 22px;font-size:13px;}
 
-.btn-primary{
-  background:var(--blue);
-  color:#fff;
+/* FORMS */
+.form-group{margin-bottom:14px;}
+.form-group label{
+  display:block;font-size:11px;color:var(--text3);
+  margin-bottom:5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.7px;
 }
-
-.btn-primary:hover{
-  background:var(--dblue);
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:9px 12px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;font-size:13px;outline:none;
+  transition:.15s;color:var(--text);font-family:'Inter',sans-serif;
 }
-
-.btn-success{
-  background:var(--green);
-  color:#fff;
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);
 }
+.form-group select option{background:var(--card);}
 
-.btn-warning{
-  background:var(--orange);
-  color:#fff;
-}
-
-.btn-danger{
-  background:var(--red);
-  color:#fff;
-}
-
-.btn-outline{
-  background:#fff;
-  border:1px solid var(--blue);
-  color:var(--blue);
-}
-
-.btn-sm{
-  padding:5px 10px;
-  font-size:12px;
-}
-
-/* ================= ALERTS ================= */
+/* ALERTS */
 .alert{
-  padding:11px 15px;
-  border-radius:8px;
-  margin-bottom:14px;
-  font-size:13px;
-  border-left:4px solid;
+  padding:11px 15px;border-radius:8px;margin-bottom:14px;
+  font-size:12.5px;border:1px solid;
+  display:flex;align-items:center;gap:8px;
+}
+.alert-success{background:var(--green-dim);color:var(--green);border-color:rgba(16,185,129,0.3);}
+.alert-danger{background:var(--red-dim);color:var(--red);border-color:rgba(239,68,68,0.3);}
+.alert-warning{background:var(--orange-dim);color:var(--orange);border-color:rgba(245,158,11,0.3);}
+.alert-info{background:var(--blue-dim);color:var(--blue);border-color:rgba(59,125,216,0.3);}
+
+/* SEARCH BAR */
+.search-bar{
+  display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+  background:var(--card);border:1px solid var(--border);
+  padding:12px 16px;border-radius:var(--r);margin-bottom:16px;
+}
+.search-bar input,.search-bar select{
+  padding:7px 11px;background:var(--bg3);
+  border:1px solid var(--border2);border-radius:7px;
+  font-size:12.5px;outline:none;color:var(--text);
+}
+.search-bar input:focus{border-color:var(--accent);}
+.search-bar select option{background:var(--card);}
+
+/* MODALS */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
+  z-index:999;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--card2);border:1px solid var(--border2);
+  border-radius:14px;padding:26px;
+  width:460px;max-width:95vw;max-height:90vh;
+  overflow-y:auto;position:relative;
+  box-shadow:var(--shadow2);
+}
+.modal h3{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:17px;font-weight:600;
+  margin-bottom:18px;color:var(--text);
+}
+.modal-close{
+  position:absolute;top:14px;right:16px;
+  font-size:18px;cursor:pointer;color:var(--text3);
+  background:none;border:none;
+}
+.modal-close:hover{color:var(--text);}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:900px){.two-col{grid-template-columns:1fr;}.stats-container{grid-template-columns:1fr;}}
+
+/* FOOTER */
+.site-footer{
+  padding:14px 28px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:11px;color:var(--text3);background:var(--bg2);
+}
+.footer-dot::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--accent);display:inline-block;margin-right:5px;
 }
 
-.alert-success{
-  background:#d1fae5;
-  color:#065f46;
-  border-color:var(--green);
-}
-
-.alert-danger{
-  background:#fee2e2;
-  color:#991b1b;
-  border-color:var(--red);
-}
-
-.alert-warning{
-  background:#fff3cd;
-  color:#856404;
-  border-color:var(--orange);
-}
-
-.alert-info{
-  background:#dbeafe;
-  color:#1e40af;
-  border-color:var(--blue);
-}
-
-/* ================= RESPONSIVE ================= */
-@media(max-width:900px){
-  .two-col{
-    grid-template-columns:1fr;
-  }
-
-  .stats-container{
-    grid-template-columns:1fr;
-  }
-}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 </style>
 </head>
-
 <body>
 
+<!-- ADMIN SIDEBAR -->
 <div class="sidebar">
-
   <div class="sb-hd">
-    <h2>🛡️ Admin Panel</h2>
-    <p>UK Trip Management</p>
+    <h2>Nocturne</h2>
+    <p>Executive Suite</p>
   </div>
 
-  <!-- OVERVIEW -->
   <div class="sb-sec">Overview</div>
-
-  <a href="/admin_dashboard" {% if request.path == '/admin_dashboard' %}class="active"{% endif %}>
-    🏠 Dashboard
+  <a href="/admin_dashboard" {% if request.path=='/admin_dashboard' %}class="active"{% endif %}>
+    ⊞ &nbsp;Executive Desk
+  </a>
+  <a href="/stats" {% if request.path=='/stats' %}class="active"{% endif %}>
+    ◈ &nbsp;Statistics
   </a>
 
-  <a href="/stats" {% if request.path == '/stats' %}class="active"{% endif %}>
-    📊 Statistics
-  </a>
-
-  <!-- CONTENT -->
   <div class="sb-sec">Content</div>
-
-  <a href="/manage_packages" {% if request.path == '/manage_packages' %}class="active"{% endif %}>
-    📦 Packages & Media
+  <a href="/manage_packages" {% if request.path=='/manage_packages' %}class="active"{% endif %}>
+    ◧ &nbsp;Strategic Assets
+  </a>
+  <a href="/manage_guides" {% if request.path=='/manage_guides' %}class="active"{% endif %}>
+    ◎ &nbsp;Trip Guides
+  </a>
+  <a href="/manage_gallery" {% if request.path=='/manage_gallery' %}class="active"{% endif %}>
+    ▣ &nbsp;Photo Gallery
+  </a>
+  <a href="/announcements" {% if request.path=='/announcements' %}class="active"{% endif %}>
+    ◁ &nbsp;Announcements
   </a>
 
-  <a href="/manage_guides" {% if request.path == '/manage_guides' %}class="active"{% endif %}>
-    🧭 Trip Guides
-  </a>
-
-  <a href="/manage_gallery" {% if request.path == '/manage_gallery' %}class="active"{% endif %}>
-    🖼️ Photo Gallery
-  </a>
-
-  <a href="/announcements" {% if request.path == '/announcements' %}class="active"{% endif %}>
-    📢 Announcements
-  </a>
-
-  <!-- OPERATIONS -->
   <div class="sb-sec">Operations</div>
-
-  <a href="/manage_transport" {% if request.path == '/manage_transport' %}class="active"{% endif %}>
-    🚖 Transport
+  <a href="/manage_transport" {% if request.path=='/manage_transport' %}class="active"{% endif %}>
+    ▷ &nbsp;Transport
+  </a>
+  <a href="/manage_payments" {% if request.path=='/manage_payments' %}class="active"{% endif %}>
+    ◈ &nbsp;Capital Flow
+  </a>
+  <a href="/manage_guides_admin" {% if request.path=='/manage_guides_admin' %}class="active"{% endif %}>
+    ◉ &nbsp;Tour Guides
+  </a>
+  <a href="/manage_invoices" {% if request.path=='/manage_invoices' %}class="active"{% endif %}>
+    ≡ &nbsp;Invoices
   </a>
 
-  <a href="/manage_payments" {% if request.path == '/manage_payments' %}class="active"{% endif %}>
-    💳 Payments
-  </a>
-
-  <a href="/manage_guides_admin" {% if request.path == '/manage_guides_admin' %}class="active"{% endif %}>
-    👨‍💼 Tour Guides
-  </a>
-
-  <a href="/manage_invoices" {% if request.path == '/manage_invoices' %}class="active"{% endif %}>
-    🧾 Invoices
-  </a>
-
-  <!-- BOOKINGS & USERS -->
   <div class="sb-sec">Bookings & Users</div>
-
-  <a href="/manage_travelers" {% if request.path == '/manage_travelers' %}class="active"{% endif %}>
-    👥 Travelers
+  <a href="/manage_travelers" {% if request.path=='/manage_travelers' %}class="active"{% endif %}>
+    ◈ &nbsp;Travelers
   </a>
-
-  <a href="/view_bookings" {% if request.path == '/view_bookings' %}class="active"{% endif %}>
-    📄 Bookings
-    {% if pending_admin %}
-      <span class="sb-badge">{{ pending_admin }}</span>
-    {% endif %}
+  <a href="/view_bookings" {% if request.path=='/view_bookings' %}class="active"{% endif %}>
+    ≡ &nbsp;Bookings
+    {% if pending_admin %}<span class="sb-badge">{{ pending_admin }}</span>{% endif %}
   </a>
-
-  <a href="/view_reviews" {% if request.path == '/view_reviews' %}class="active"{% endif %}>
-    ⭐ Reviews
+  <a href="/view_reviews" {% if request.path=='/view_reviews' %}class="active"{% endif %}>
+    ★ &nbsp;Reviews
   </a>
-
-  <a href="/admin_queries" {% if request.path == '/admin_queries' %}class="active"{% endif %}>
-    💬 User Queries
+  <a href="/admin_queries" {% if request.path=='/admin_queries' %}class="active"{% endif %}>
+    ◁ &nbsp;User Queries
     {% if unread_queries_count is defined and unread_queries_count %}
       <span class="sb-badge">{{ unread_queries_count }}</span>
     {% endif %}
   </a>
 
-  <!-- REPORTS -->
   <div class="sb-sec">Reports</div>
+  <a href="/export_bookings">↓ &nbsp;Export Bookings</a>
+  <a href="/export_travelers">↓ &nbsp;Export Travelers</a>
 
-  <a href="/export_bookings">
-    📥 Export Bookings
-  </a>
-
-  <a href="/export_travelers">
-    📥 Export Travelers
-  </a>
-
-  <!-- LOGOUT -->
   <div class="sb-ft">
-    <a href="/logout" style="color:#fff;font-size:13px;display:flex;align-items:center;gap:7px;text-decoration:none;">
-      🚪 Logout
+    <a href="/logout" style="display:flex;align-items:center;gap:8px;color:var(--text3);font-size:12px;text-decoration:none;padding:4px 0;transition:.15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">
+      ⏻ &nbsp;Sign Out
     </a>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- TOP NAV -->
+  <div class="topnav">
+    <div class="topnav-search">
+      <span style="color:var(--text3);font-size:13px;">⌕</span>
+      <input type="text" placeholder="Search parameters...">
+    </div>
+    <div class="topnav-right">
+      <div class="topnav-icon-btn">🔔</div>
+      <div class="topnav-icon-btn">⚙</div>
+      <div class="topnav-icon-btn">?</div>
+      <div class="topnav-user">
+        <div class="topnav-avatar">A</div>
+        <div>
+          <div class="topnav-user-name">{{ session.get('admin','Admin') }}</div>
+          <div class="topnav-user-role">Senior Executive</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE BODY -->
+  <div class="page-body">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- FOOTER -->
+  <div class="site-footer">
+    <span>© 2024 Emerald Nocturne Executive Suite. All rights reserved.</span>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span class="footer-dot">SYSTEMS OPTIMAL</span>
+      <span>NODE 04-EMERALD</span>
+    </div>
   </div>
 
 </div>
-
-<div class="content">
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-      <div class="alert alert-{{ cat }}">
-        {{ msg }}
-      </div>
-    {% endfor %}
-  {% endwith %}
-
-  {% block content %}
-  {% endblock %}
-
-</div>
-
 </body>
 </html>
