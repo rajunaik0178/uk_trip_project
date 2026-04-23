@@ -4,6 +4,9 @@ import os, csv, io, datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+import random
+import smtplib
+from email.mime.text import MIMEText
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "uktrip_secret_2024")
@@ -56,7 +59,28 @@ def query(sql, params=(), one=False, commit=False):
         return result
     except Exception:
         return None
+def send_email_otp(to_email, otp):
+    sender_email = "rajunaik0178@gmail.com"
+    sender_password = "dqkf fsnx seli rxvy"
 
+    subject = "UK Trip Password Reset OTP"
+    body = f"Your OTP for password reset is: {otp}"
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = sender_email
+    msg["To"] = to_email
+
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, to_email, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print("Email Error:", e)
+        return False
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -366,39 +390,132 @@ def register_user():
     adhar    = request.form.get("adhar", "").strip()
     name     = request.form.get("name", "").strip()
     address  = request.form.get("address", "").strip()
+    email    = request.form.get("email", "").strip()
     mobile   = request.form.get("mobile", "").strip()
     password = request.form.get("password", "")
 
-    if not all([adhar, name, address, mobile, password]):
+    if not all([adhar, name, address, email, mobile, password]):
         flash("All fields are required.", "danger")
         return redirect("/register")
+
     if not adhar.isdigit() or len(adhar) != 12:
         flash("Aadhaar must be exactly 12 digits.", "danger")
         return redirect("/register")
+
     if not mobile.isdigit() or len(mobile) != 10:
         flash("Mobile must be exactly 10 digits.", "danger")
         return redirect("/register")
+
     if len(password) < 6:
         flash("Password must be at least 6 characters.", "danger")
         return redirect("/register")
 
     try:
-        existing = query("SELECT adharno FROM traveler WHERE adharno=%s", (adhar,), one=True)
+        existing = query(
+            "SELECT adharno FROM traveler WHERE adharno=%s",
+            (adhar,),
+            one=True
+        )
+
         if existing:
             flash("This Aadhaar number is already registered.", "warning")
             return redirect("/register")
+
         hashed = generate_password_hash(password)
+
         query(
-            "INSERT INTO traveler (adharno, name, address, mobile, password) VALUES (%s,%s,%s,%s,%s)",
-            (adhar, name, address, mobile, hashed), commit=True
+            "INSERT INTO traveler (adharno, name, address, email, mobile, password) VALUES (%s, %s, %s, %s, %s, %s)",
+            (adhar, name, address, email, mobile, hashed),
+            commit=True
         )
+
         flash("Registration successful! Please log in.", "success")
         return redirect("/")
+
     except Exception as e:
         flash(f"Registration failed: {e}", "danger")
         return redirect("/register")
+@app.route("/forgot_password")
+def forgot_password():
+    return render_template("forgot_password.html")
 
 
+@app.route("/send_otp", methods=["POST"])
+def send_otp():
+    email = request.form.get("email", "").strip()
+
+    user = query(
+        "SELECT * FROM traveler WHERE email=%s",
+        (email,),
+        one=True
+    )
+
+    if not user:
+        flash("Email not found.", "danger")
+        return redirect("/forgot_password")
+
+    otp = str(random.randint(100000, 999999))
+
+    session["reset_email"] = email
+    session["reset_otp"] = otp
+
+    if send_email_otp(email, otp):
+        flash("OTP sent to your email.", "success")
+        return redirect("/verify_otp")
+
+    flash("Failed to send OTP.", "danger")
+    return redirect("/forgot_password")
+
+
+@app.route("/verify_otp")
+def verify_otp():
+    return render_template("verify_otp.html")
+
+
+@app.route("/check_otp", methods=["POST"])
+def check_otp():
+    user_otp = request.form.get("otp", "").strip()
+
+    if user_otp == session.get("reset_otp"):
+        flash("OTP verified successfully.", "success")
+        return redirect("/reset_password")
+
+    flash("Invalid OTP.", "danger")
+    return redirect("/verify_otp")
+
+
+@app.route("/reset_password")
+def reset_password():
+    return render_template("reset_password.html")
+
+
+
+@app.route("/update_password", methods=["POST"])
+def update_password():
+    new_password = request.form.get("password", "").strip()
+    email = session.get("reset_email")
+
+    if not email:
+        flash("Session expired. Try again.", "danger")
+        return redirect("/forgot_password")
+
+    if len(new_password) < 6:
+        flash("Password must be at least 6 characters.", "danger")
+        return redirect("/reset_password")
+
+    hashed_password = generate_password_hash(new_password)
+
+    query(
+        "UPDATE traveler SET password=%s WHERE email=%s",
+        (hashed_password, email),
+        commit=True
+    )
+
+    session.pop("reset_email", None)
+    session.pop("reset_otp", None)
+
+    flash("Password updated successfully. Please login.", "success")
+    return redirect("/")
 @app.route("/logout")
 def logout():
     session.clear()

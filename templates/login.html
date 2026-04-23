@@ -30,6 +30,7 @@ body::before{
   background-size:40px 40px;
   pointer-events:none;
 }
+
 /* Glow orbs */
 .glow-1{
   position:fixed;top:-120px;left:-120px;
@@ -123,6 +124,21 @@ body::before{
 }
 .field-input::placeholder{color:var(--text3);}
 
+.forgot-link{
+  text-align:right;
+  margin-top:-8px;
+  margin-bottom:16px;
+}
+.forgot-link a{
+  color:var(--accent);
+  font-size:12px;
+  text-decoration:none;
+  font-weight:500;
+}
+.forgot-link a:hover{
+  text-decoration:underline;
+}
+
 .login-btn{
   width:100%;padding:12px;
   background:var(--accent);color:#0d1117;
@@ -132,13 +148,25 @@ body::before{
   font-family:'Space Grotesk',sans-serif;
   letter-spacing:0.3px;
 }
-.login-btn:hover{background:var(--accent2);transform:translateY(-1px);}
+.login-btn:hover{
+  background:var(--accent2);
+  transform:translateY(-1px);
+}
 
 .register-link{
-  text-align:center;margin-top:18px;font-size:12.5px;color:var(--text3);
+  text-align:center;
+  margin-top:18px;
+  font-size:12.5px;
+  color:var(--text3);
 }
-.register-link a{color:var(--accent);font-weight:500;text-decoration:none;}
-.register-link a:hover{text-decoration:underline;}
+.register-link a{
+  color:var(--accent);
+  font-weight:500;
+  text-decoration:none;
+}
+.register-link a:hover{
+  text-decoration:underline;
+}
 
 .alert{
   padding:10px 14px;border-radius:8px;margin-bottom:16px;
@@ -151,6 +179,7 @@ body::before{
 </style>
 </head>
 <body>
+
 <div class="glow-1"></div>
 <div class="glow-2"></div>
 
@@ -183,10 +212,24 @@ body::before{
       <input type="hidden" name="role" id="roleField" value="user">
 
       <label class="field-label">Username</label>
-      <input class="field-input" name="username" placeholder="Enter your name" required autocomplete="username">
+      <input class="field-input"
+             name="username"
+             placeholder="Enter your name"
+             required
+             autocomplete="username">
 
       <label class="field-label">Password</label>
-      <input class="field-input" type="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+      <input class="field-input"
+             type="password"
+             name="password"
+             placeholder="Enter your password"
+             required
+             autocomplete="current-password">
+
+      <!-- Forgot Password Added -->
+      <div class="forgot-link">
+        <a href="/forgot_password">Forgot Password?</a>
+      </div>
 
       <button type="submit" class="login-btn">Login →</button>
     </form>
@@ -200,11 +243,14 @@ body::before{
 
 <script>
 function setRole(role){
-  document.getElementById('roleField').value=role;
+  document.getElementById('roleField').value = role;
   document.getElementById('tabUser').classList.remove('active');
   document.getElementById('tabAdmin').classList.remove('active');
-  document.getElementById(role==='user'?'tabUser':'tabAdmin').classList.add('active');
+  document.getElementById(
+    role === 'user' ? 'tabUser' : 'tabAdmin'
+  ).classList.add('active');
 }
 </script>
+
 </body>
 </html>

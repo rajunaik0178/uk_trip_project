@@ -80,13 +80,14 @@ input.ok{border-color:#16a34a;}
 
       <!-- FIXED: name="address" not "email" -->
       <label>Address</label>
-      <input name="address" placeholder="Your home address" required>
+<input name="address" placeholder="Your home address" required>
 
-      <label>Mobile Number</label>
-      <input name="mobile" id="mobile" placeholder="10-digit mobile number"
-        maxlength="10" oninput="chkMobile()" required>
-      <div class="hint" id="mobileHint"></div>
+<label>Email Address</label>
+<input type="email" name="email" placeholder="Enter your email" required>
 
+<label>Mobile Number</label>
+<input name="mobile" id="mobile" placeholder="10-digit mobile number"
+  maxlength="10" oninput="chkMobile()" required>
       <label>Password</label>
       <input type="password" name="password" id="pw"
         placeholder="Minimum 6 characters" oninput="chkPw()" required>
