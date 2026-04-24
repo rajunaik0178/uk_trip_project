@@ -3,63 +3,104 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>UK Trip — Register</title>
+<title>UK Trip — Create Account</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;}
+:root{
+  --bg:#0d1117;--bg2:#131920;--bg3:#1a2332;
+  --card:#161d27;--border:#1f2d3d;--border2:#243447;
+  --accent:#00e5a0;--accent2:#00c98a;--accent-dim:rgba(0,229,160,0.12);
+  --text:#e8edf2;--text2:#8fa3b8;--text3:#5c7a96;
+  --blue:#3b7dd8;--red:#ef4444;--orange:#f59e0b;--green:#10b981;
+}
+*{ margin:0; padding:0; box-sizing:border-box; }
 body{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,#141e30,#243b55);padding:20px;
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:var(--bg); font-family:'Inter',sans-serif;
+  position:relative; overflow-x:hidden; padding:20px 0;
 }
-.box{
-  background:#fff;width:440px;border-radius:16px;
-  box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;
+body::before{
+  content:''; position:fixed; inset:0;
+  background-image: linear-gradient(rgba(0,229,160,.03) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(0,229,160,.03) 1px,transparent 1px);
+  background-size:40px 40px; pointer-events:none;
 }
-.box-top{
-  background:linear-gradient(135deg,#1e3c72,#2a5298);
-  padding:26px 30px 20px;text-align:center;color:#fff;
+.glow-1{ position:fixed;top:-120px;left:-120px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,160,.07) 0%,transparent 70%);pointer-events:none; }
+.glow-2{ position:fixed;bottom:-100px;right:-100px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(59,125,216,.06) 0%,transparent 70%);pointer-events:none; }
+
+.wrap{
+  width:460px; max-width:95vw;
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:16px; overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);
+  position:relative; z-index:1;
 }
-.box-top h1{font-size:22px;font-weight:700;margin-bottom:4px;}
-.box-top p{font-size:13px;opacity:.75;}
-.box-body{padding:26px 30px;}
+.head{
+  padding:28px 32px 22px;
+  background:linear-gradient(135deg,rgba(0,229,160,.06),rgba(59,125,216,.06));
+  border-bottom:1px solid var(--border);
+  position:relative; overflow:hidden;
+}
+.head::after{ content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,160,.1) 0%,transparent 70%); }
+.logo{ font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; color:var(--accent); display:flex; align-items:center; gap:10px; margin-bottom:5px; }
+.sub{ font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; }
 
-label{display:block;font-size:12.5px;color:#444;
-  margin-bottom:4px;font-weight:500;margin-top:13px;}
-input{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;
-  border-radius:8px;font-size:14px;outline:none;transition:.2s;background:#fff;}
-input:focus{border-color:#2a5298;box-shadow:0 0 0 3px rgba(42,82,152,.1);}
-input.err{border-color:#dc2626;}
-input.ok{border-color:#16a34a;}
+.body{ padding:24px 32px 30px; }
 
-.hint{font-size:11px;margin-top:3px;}
-.hint.err{color:#dc2626;}
-.hint.ok{color:#16a34a;}
+.fl{ font-size:10.5px; color:var(--text3); margin-bottom:5px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; display:block; }
+.fi{
+  width:100%; padding:9px 13px;
+  background:var(--bg3); border:1px solid var(--border2);
+  border-radius:8px; font-size:13px; outline:none;
+  transition:.15s; color:var(--text); margin-bottom:4px;
+  font-family:'Inter',sans-serif;
+}
+.fi:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,229,160,.1); }
+.fi::placeholder{ color:var(--text3); }
+.fi.ok{ border-color:var(--green); }
+.fi.err{ border-color:var(--red); }
+.hint{ font-size:11px; margin-bottom:12px; }
+.hint.ok{ color:var(--green); }
+.hint.err{ color:var(--red); }
+.hint.empty{ margin-bottom:12px; }
 
-.btn{width:100%;padding:12px;margin-top:18px;
-  background:linear-gradient(135deg,#16a34a,#4ade80);
-  color:#fff;border:none;border-radius:8px;cursor:pointer;
-  font-size:15px;font-weight:500;transition:.2s;}
-.btn:hover{opacity:.9;transform:translateY(-1px);}
+.two-col-form{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 
-.back-link{text-align:center;margin-top:16px;font-size:13px;color:#888;}
-.back-link a{color:#2a5298;font-weight:500;text-decoration:none;}
+.sub-btn{
+  width:100%; padding:12px;
+  background:var(--accent); color:#0d1117;
+  border:none; border-radius:9px;
+  cursor:pointer; font-size:14px; font-weight:700;
+  transition:.2s; margin-top:16px;
+  font-family:'Space Grotesk',sans-serif; letter-spacing:.3px;
+}
+.sub-btn:hover{ background:var(--accent2); transform:translateY(-1px); }
 
-.alert{padding:11px 14px;border-radius:8px;margin-bottom:14px;
-  font-size:13px;border-left:4px solid;}
-.alert-danger{background:#fee2e2;color:#991b1b;border-color:#dc2626;}
-.alert-warning{background:#fff3cd;color:#856404;border-color:#d97706;}
-.alert-success{background:#d1fae5;color:#065f46;border-color:#16a34a;}
+.link-row{ text-align:center; margin-top:16px; font-size:12.5px; color:var(--text3); }
+.link-row a{ color:var(--accent); font-weight:500; text-decoration:none; }
+.link-row a:hover{ text-decoration:underline; }
+
+.alert{ padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:12.5px; border:1px solid; display:flex; align-items:center; gap:8px; }
+.alert-danger{ background:rgba(239,68,68,.12); color:#ef4444; border-color:rgba(239,68,68,.25); }
+.alert-success{ background:rgba(16,185,129,.12); color:#10b981; border-color:rgba(16,185,129,.25); }
+.alert-warning{ background:rgba(245,158,11,.12); color:#f59e0b; border-color:rgba(245,158,11,.25); }
+.alert-info{ background:rgba(59,125,216,.12); color:#3b7dd8; border-color:rgba(59,125,216,.25); }
+
+.divider{ height:1px; background:var(--border); margin:16px 0; }
 </style>
 </head>
 <body>
+<div class="glow-1"></div>
+<div class="glow-2"></div>
 
-<div class="box">
-  <div class="box-top">
-    <div style="font-size:36px;margin-bottom:8px;">✈️</div>
-    <h1>Create Account</h1>
-    <p>Join UK Trip and start planning your journey</p>
+<div class="wrap">
+  <div class="head">
+    <div class="logo">✈ UK Trip</div>
+    <div class="sub">Create Your Traveler Account</div>
   </div>
 
-  <div class="box-body">
+  <div class="body">
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
@@ -67,37 +108,47 @@ input.ok{border-color:#16a34a;}
       {% endfor %}
     {% endwith %}
 
-    <!-- FIX: all field names match app.py exactly -->
     <form action="/register_user" method="POST" onsubmit="return validate()">
 
-      <label>Aadhaar Number</label>
-      <input name="adhar" id="adhar" placeholder="12-digit Aadhaar number"
-        maxlength="12" oninput="chkAdhar()" required>
-      <div class="hint" id="adharHint"></div>
+      <div class="two-col-form">
+        <div>
+          <label class="fl">Aadhaar Number</label>
+          <input class="fi" name="adhar" id="adhar" placeholder="12-digit number" maxlength="12" oninput="chkAdhar()" required>
+          <div class="hint empty" id="adharHint"></div>
+        </div>
+        <div>
+          <label class="fl">Full Name</label>
+          <input class="fi" name="name" placeholder="Your full name" required>
+          <div style="margin-bottom:12px;"></div>
+        </div>
+      </div>
 
-      <label>Full Name</label>
-      <input name="name" placeholder="Your full name" required>
+      <label class="fl">Address</label>
+      <input class="fi" name="address" placeholder="Your home address" required>
+      <div style="margin-bottom:12px;"></div>
 
-      <!-- FIXED: name="address" not "email" -->
-      <label>Address</label>
-<input name="address" placeholder="Your home address" required>
+      <label class="fl">Email Address</label>
+      <input class="fi" type="email" name="email" placeholder="Enter your email" required>
+      <div style="margin-bottom:12px;"></div>
 
-<label>Email Address</label>
-<input type="email" name="email" placeholder="Enter your email" required>
+      <div class="two-col-form">
+        <div>
+          <label class="fl">Mobile Number</label>
+          <input class="fi" name="mobile" id="mobile" placeholder="10-digit mobile" maxlength="10" oninput="chkMobile()" required>
+          <div class="hint empty" id="mobileHint"></div>
+        </div>
+        <div>
+          <label class="fl">Password</label>
+          <input class="fi" type="password" name="password" id="pw" placeholder="Min 6 characters" oninput="chkPw()" required>
+          <div class="hint empty" id="pwHint"></div>
+        </div>
+      </div>
 
-<label>Mobile Number</label>
-<input name="mobile" id="mobile" placeholder="10-digit mobile number"
-  maxlength="10" oninput="chkMobile()" required>
-      <label>Password</label>
-      <input type="password" name="password" id="pw"
-        placeholder="Minimum 6 characters" oninput="chkPw()" required>
-      <div class="hint" id="pwHint"></div>
-
-      <button type="submit" class="btn">Create Account →</button>
+      <button type="submit" class="sub-btn">Create Account →</button>
     </form>
 
-    <div class="back-link">
-      Already have an account? <a href="/">Login here</a>
+    <div class="link-row">
+      Already have an account? <a href="/">Sign in here</a>
     </div>
 
   </div>
@@ -105,36 +156,35 @@ input.ok{border-color:#16a34a;}
 
 <script>
 function chkAdhar(){
-  const v = document.getElementById('adhar').value;
-  const ok = /^\d{12}$/.test(v);
-  document.getElementById('adhar').className = v.length===0?'':ok?'ok':'err';
-  document.getElementById('adharHint').textContent = v.length===0?'':ok?'✅ Valid':'❌ Must be exactly 12 digits';
-  document.getElementById('adharHint').className = 'hint '+(ok?'ok':'err');
+  const v=document.getElementById('adhar').value;
+  const ok=/^\d{12}$/.test(v);
+  document.getElementById('adhar').className='fi '+(v.length===0?'':ok?'ok':'err');
+  const h=document.getElementById('adharHint');
+  h.textContent=v.length===0?'':ok?'✓ Valid':'✗ Must be exactly 12 digits';
+  h.className='hint '+(v.length===0?'empty':ok?'ok':'err');
 }
 function chkMobile(){
-  const v = document.getElementById('mobile').value;
-  const ok = /^\d{10}$/.test(v);
-  document.getElementById('mobile').className = v.length===0?'':ok?'ok':'err';
-  document.getElementById('mobileHint').textContent = v.length===0?'':ok?'✅ Valid':'❌ Must be exactly 10 digits';
-  document.getElementById('mobileHint').className = 'hint '+(ok?'ok':'err');
+  const v=document.getElementById('mobile').value;
+  const ok=/^\d{10}$/.test(v);
+  document.getElementById('mobile').className='fi '+(v.length===0?'':ok?'ok':'err');
+  const h=document.getElementById('mobileHint');
+  h.textContent=v.length===0?'':ok?'✓ Valid':'✗ Must be exactly 10 digits';
+  h.className='hint '+(v.length===0?'empty':ok?'ok':'err');
 }
 function chkPw(){
-  const v = document.getElementById('pw').value;
-  const ok = v.length>=6;
-  document.getElementById('pw').className = v.length===0?'':ok?'ok':'err';
-  document.getElementById('pwHint').textContent = v.length===0?'':ok?'✅ Strong enough':'❌ Minimum 6 characters';
-  document.getElementById('pwHint').className = 'hint '+(ok?'ok':'err');
+  const v=document.getElementById('pw').value;
+  const ok=v.length>=6;
+  document.getElementById('pw').className='fi '+(v.length===0?'':ok?'ok':'err');
+  const h=document.getElementById('pwHint');
+  h.textContent=v.length===0?'':ok?'✓ Strong enough':'✗ Min 6 characters';
+  h.className='hint '+(v.length===0?'empty':ok?'ok':'err');
 }
 function validate(){
-  const adhar  = document.getElementById('adhar').value;
-  const mobile = document.getElementById('mobile').value;
-  const pw     = document.getElementById('pw').value;
-  if(!/^\d{12}$/.test(adhar)){  alert('Aadhaar must be exactly 12 digits.');  return false; }
-  if(!/^\d{10}$/.test(mobile)){ alert('Mobile must be exactly 10 digits.');   return false; }
-  if(pw.length<6){              alert('Password must be at least 6 characters.'); return false; }
+  if(!/^\d{12}$/.test(document.getElementById('adhar').value)){ alert('Aadhaar must be exactly 12 digits.'); return false; }
+  if(!/^\d{10}$/.test(document.getElementById('mobile').value)){ alert('Mobile must be exactly 10 digits.'); return false; }
+  if(document.getElementById('pw').value.length<6){ alert('Password must be at least 6 characters.'); return false; }
   return true;
 }
 </script>
-
 </body>
 </html>

@@ -440,7 +440,7 @@ def forgot_password():
     return render_template("forgot_password.html")
 
 
-@app.route("/send_otp", methods=["POST"])
+@app.route("/send_otp", methods=["GET", "POST"])
 def send_otp():
     email = request.form.get("email", "").strip()
 
@@ -467,7 +467,7 @@ def send_otp():
     return redirect("/forgot_password")
 
 
-@app.route("/verify_otp")
+@app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
     return render_template("verify_otp.html")
 
@@ -484,7 +484,7 @@ def check_otp():
     return redirect("/verify_otp")
 
 
-@app.route("/reset_password")
+@app.route("/reset_password", methods=["GET", "POST"])
 def reset_password():
     return render_template("reset_password.html")
 

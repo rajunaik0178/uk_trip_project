@@ -1,210 +1,215 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Executive Desk{% endblock %}
 {% block content %}
 
-<div class="topbar">
-  <h1>Welcome back, {{ user }} 👋</h1>
-  <div class="topbar-right">
+<!-- PAGE HEADER -->
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;">
+  <div>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);">
+      Welcome back, {{ user }} 👋
+    </h1>
+    <p style="font-size:13px;color:var(--text3);margin-top:5px;">
+      Real-time metrics from your UK Trip account.
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
     <a href="/notifications" class="notif-btn">
       🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}
     </a>
-    <a href="/packages" class="btn btn-primary">+ Book a Trip</a>
+    <a href="/packages" class="btn btn-primary btn-lg">+ Book a Trip</a>
   </div>
 </div>
 
-<!-- ══ STAT CARDS ══ -->
+<!-- STAT CARDS — 5 cards in responsive grid -->
 <div class="cards-grid">
+
   <div class="stat-card" style="border-left-color:#2a5298;">
-    <div class="icon">📄</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">📄</div>
+    </div>
     <div class="num">{{ total_bookings }}</div>
     <div class="lbl">Total Bookings</div>
   </div>
+
   <div class="stat-card" style="border-left-color:#16a34a;">
-    <div class="icon">✅</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">✅</div>
+      <span style="font-size:10px;font-weight:700;color:var(--green);background:var(--green-dim);padding:2px 8px;border-radius:4px;">Active</span>
+    </div>
     <div class="num">{{ approved_bookings }}</div>
     <div class="lbl">Approved Trips</div>
   </div>
+
   <div class="stat-card" style="border-left-color:#d97706;">
-    <div class="icon">⏳</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--orange-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">⏳</div>
+      {% if pending_bookings %}<span style="font-size:10px;font-weight:700;color:var(--orange);background:var(--orange-dim);padding:2px 8px;border-radius:4px;">MTD</span>{% endif %}
+    </div>
     <div class="num">{{ pending_bookings }}</div>
     <div class="lbl">Pending Approval</div>
   </div>
+
   <div class="stat-card" style="border-left-color:#8e44ad;">
-    <div class="icon">💰</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">💰</div>
+    </div>
     <div class="num">₹{{ total_spent }}</div>
     <div class="lbl">Total Spent</div>
   </div>
+
   <div class="stat-card" style="border-left-color:#dc2626;">
-    <div class="icon">❤️</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">❤️</div>
+    </div>
     <div class="num">{{ wishlist_count }}</div>
     <div class="lbl">Wishlist Items</div>
   </div>
-</div>
-
-<!-- ══ FEATURE CARDS — user-facing operations ══ -->
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:22px;">
-
-  <div class="card" style="border-top:4px solid #2a5298;padding:16px;">
-    <div style="font-size:26px;margin-bottom:7px;">🌍</div>
-    <div class="card-title" style="margin-bottom:5px;">Browse Packages</div>
-    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Explore all available UK tour packages with photos and pricing.
-    </p>
-    <a href="/packages">
-      <button class="btn btn-primary" style="width:100%;">View Packages</button>
-    </a>
-  </div>
-
-  <div class="card" style="border-top:4px solid #dc2626;padding:16px;">
-    <div style="font-size:26px;margin-bottom:7px;">❤️</div>
-    <div class="card-title" style="margin-bottom:5px;">My Wishlist</div>
-    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Packages you saved for later.
-      {% if wishlist_count %}<strong style="color:#dc2626;">{{ wishlist_count }} saved.</strong>{% endif %}
-    </p>
-    <a href="/wishlist">
-      <button class="btn btn-primary" style="width:100%;background:#dc2626;">My Wishlist</button>
-    </a>
-  </div>
-
-  <div class="card" style="border-top:4px solid #16a34a;padding:16px;">
-    <div style="font-size:26px;margin-bottom:7px;">📄</div>
-    <div class="card-title" style="margin-bottom:5px;">My Bookings</div>
-    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Track all your bookings, view receipts, and cancel pending trips.
-    </p>
-    <a href="/my_bookings">
-      <button class="btn btn-primary" style="width:100%;background:#16a34a;">My Bookings</button>
-    </a>
-  </div>
-
-  <div class="card" style="border-top:4px solid #d97706;padding:16px;">
-    <div style="font-size:26px;margin-bottom:7px;">⭐</div>
-    <div class="card-title" style="margin-bottom:5px;">Reviews</div>
-    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Share your travel experience or read your past reviews.
-    </p>
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <a href="/add_review">
-        <button class="btn btn-warning" style="width:100%;">Write Review</button>
-      </a>
-      <a href="/my_reviews">
-        <button class="btn btn-outline" style="width:100%;">My Reviews</button>
-      </a>
-    </div>
-  </div>
-
-  <div class="card" style="border-top:4px solid #8e44ad;padding:16px;">
-    <div style="font-size:26px;margin-bottom:7px;">🧭</div>
-    <div class="card-title" style="margin-bottom:5px;">Trip Guides</div>
-    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6;">
-      Read curated destination guides, itineraries, and travel tips.
-    </p>
-    <a href="/guides">
-      <button class="btn btn-primary" style="width:100%;background:#8e44ad;">Browse Guides</button>
-    </a>
-  </div>
 
 </div>
 
-<!-- ══ MAIN CONTENT ROW ══ -->
-<div class="two-col">
-
-  <!-- RECENT BOOKINGS -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <span class="card-title" style="margin:0;">Recent Bookings</span>
-      <a href="/my_bookings" style="font-size:12px;color:#2a5298;">View all →</a>
-    </div>
-    {% if recent_bookings %}
-    <table>
-      <thead>
-        <tr>
-          <th>Package</th>
-          <th>Travel Date</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for b in recent_bookings %}
-        <tr>
-          <td>
-            <strong>{{ b.category or 'Package #'+b.package_id|string }}</strong>
-            <br><small style="color:#888;">{{ b.duration }}</small>
-          </td>
-          <td>{{ b.travel_date }}</td>
-          <td>₹{{ b.total_amount }}</td>
-          <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
-          <td>
-            {% if b.status in ['Approved','Booked','Cancelled','Rejected'] %}
-            <a href="/receipt/{{ b.booking_id }}">
-              <button class="btn btn-outline btn-sm">Receipt</button>
-            </a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p style="color:#888;font-size:14px;padding:20px 0;text-align:center;">
-      No bookings yet. <a href="/packages" style="color:#2a5298;">Browse packages →</a>
-    </p>
-    {% endif %}
+<!-- RECENT BOOKINGS TABLE -->
+<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:24px;overflow:hidden;">
+  <div style="padding:18px 22px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+    <span style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:var(--text);">Recent Strategic Bookings</span>
+    <a href="/my_bookings" style="font-size:12px;color:var(--accent);text-decoration:none;">View Full Ledger →</a>
   </div>
 
-  <!-- RIGHT COLUMN -->
-  <div>
+  {% if recent_bookings %}
+  <div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Client Identity</th>
+        <th>Destination</th>
+        <th>Deployment Date</th>
+        <th>Capital Allocation</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in recent_bookings %}
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0d1117;flex-shrink:0;">
+              {{ session.get('user','U')[0]|upper }}
+            </div>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">{{ session.get('user','Traveler') }}</span>
+          </div>
+        </td>
+        <td style="font-size:13px;color:var(--text2);">{{ b.category or 'Package #'+b.package_id|string }}</td>
+        <td style="font-size:12.5px;color:var(--text3);">{{ b.travel_date }}</td>
+        <td><span style="font-size:13px;font-weight:700;color:var(--accent);">₹{{ b.total_amount }}</span></td>
+        <td>
+          <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+            {% if b.status=='Approved' %}background:var(--green-dim);color:var(--green);
+            {% elif b.status=='Booked' %}background:var(--orange-dim);color:var(--orange);
+            {% elif b.status=='Rejected' %}background:var(--red-dim);color:var(--red);
+            {% else %}background:rgba(92,122,150,.15);color:var(--text3);{% endif %}">
+            {{ b.status }}
+          </span>
+        </td>
+        <td>
+          {% if b.status in ['Approved','Booked','Cancelled','Rejected'] %}
+          <a href="/receipt/{{ b.booking_id }}" class="btn btn-outline btn-sm">Receipt</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:50px;color:var(--text3);">
+    <div style="font-size:36px;margin-bottom:12px;">✈</div>
+    <p style="font-size:14px;margin-bottom:16px;">No bookings yet.</p>
+    <a href="/packages" class="btn btn-primary">Browse Packages</a>
+  </div>
+  {% endif %}
+</div>
 
-    <!-- QUICK ACTIONS — USER ONLY -->
-    <div class="card">
-      <span class="card-title">Quick Actions</span>
-      <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px;">
-        <a href="/packages">
-          <button class="btn btn-primary" style="width:100%;padding:11px;">🌍 Browse Packages</button>
-        </a>
-        <a href="/wishlist">
-          <button class="btn btn-outline" style="width:100%;padding:11px;">
-            ❤️ My Wishlist{% if wishlist_count %} ({{ wishlist_count }}){% endif %}
-          </button>
-        </a>
-        <a href="/my_bookings">
-          <button class="btn btn-outline" style="width:100%;padding:11px;">📄 My Bookings</button>
-        </a>
-        <a href="/add_review">
-          <button class="btn btn-outline" style="width:100%;padding:11px;">⭐ Write a Review</button>
-        </a>
-        <a href="/guides">
-          <button class="btn btn-outline" style="width:100%;padding:11px;">🧭 Trip Guides</button>
-        </a>
-        <a href="/notifications">
-          <button class="btn btn-outline" style="width:100%;padding:11px;">
-            🔔 Notifications{% if notif_count %} ({{ notif_count }}){% endif %}
-          </button>
-        </a>
-        <a href="/profile">
-          <button class="btn btn-outline" style="width:100%;padding:11px;">👤 Edit Profile</button>
-        </a>
+<!-- STRATEGIC ASSETS GRID -->
+<div style="margin-bottom:8px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;color:var(--text);">Strategic Assets</h2>
+    <div style="display:flex;gap:6px;">
+      <span class="btn btn-secondary btn-sm">⊞</span>
+      <span class="btn btn-secondary btn-sm">≡</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;">
+
+    <a href="/packages" style="text-decoration:none;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="height:120px;background:linear-gradient(135deg,#0d1a2b,#0f2e4a);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;">
+        🌍
+        <span style="position:absolute;top:10px;left:10px;background:var(--accent);color:#0d1117;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;">PREMIUM</span>
+      </div>
+      <div style="padding:14px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;">Browse Packages</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">📍 UK Destinations</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">Explore</span>
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--accent-dim);border:1px solid rgba(0,229,160,.3);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:16px;">+</div>
+        </div>
       </div>
     </div>
+    </a>
 
-    <!-- UK TRAVEL TIPS -->
-    <div class="card" style="margin-top:0;">
-      <span class="card-title">✈️ UK Travel Tips</span>
-      <ul style="font-size:13px;color:#555;line-height:2.3;padding-left:18px;margin-top:6px;">
-        <li>Book early for the best prices</li>
-        <li>Carry a Type G power adapter</li>
-        <li>Use an Oyster card for London transit</li>
-        <li>Check UK visa requirements early</li>
-        <li>Always carry travel insurance</li>
-        <li>Weather varies — always pack layers</li>
-      </ul>
+    <a href="/wishlist" style="text-decoration:none;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="height:120px;background:linear-gradient(135deg,#1a0d2e,#2d1555);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;">
+        ❤
+        <span style="position:absolute;top:10px;left:10px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;">SAVED</span>
+      </div>
+      <div style="padding:14px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;">My Wishlist</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">{{ wishlist_count }} saved item{{ 's' if wishlist_count != 1 }}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">View All</span>
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--purple-dim);border:1px solid rgba(139,92,246,.3);display:flex;align-items:center;justify-content:center;color:var(--purple);font-size:16px;">+</div>
+        </div>
+      </div>
     </div>
+    </a>
+
+    <a href="/my_bookings" style="text-decoration:none;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="height:120px;background:linear-gradient(135deg,#1c1a0d,#3d3310);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;">
+        📋
+        <span style="position:absolute;top:10px;left:10px;background:var(--orange);color:#0d1117;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;">{% if pending_bookings %}PENDING{% else %}ACTIVE{% endif %}</span>
+      </div>
+      <div style="padding:14px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;">My Bookings</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">{{ total_bookings }} total · {{ approved_bookings }} approved</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">View All</span>
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--orange-dim);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;color:var(--orange);font-size:16px;">+</div>
+        </div>
+      </div>
+    </div>
+    </a>
+
+    <a href="/guides" style="text-decoration:none;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="height:120px;background:linear-gradient(135deg,#0d1f1a,#0f3028);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;">
+        🧭
+        <span style="position:absolute;top:10px;left:10px;background:var(--accent);color:#0d1117;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;">FEATURED</span>
+      </div>
+      <div style="padding:14px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;">Trip Guides</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">📍 UK Destinations</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">Read Now</span>
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--accent-dim);border:1px solid rgba(0,229,160,.3);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:16px;">+</div>
+        </div>
+      </div>
+    </div>
+    </a>
 
   </div>
-
 </div>
 
 {% endblock %}
