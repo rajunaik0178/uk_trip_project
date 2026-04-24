@@ -360,7 +360,7 @@ def login():
             return redirect("/")
 
         user = query("SELECT * FROM traveler WHERE name=%s", (username,), one=True)
-        if user and verify_password(user["password"], password):
+        if user and check_password_hash(user["password"], password):
             if not is_hashed(user["password"]):
                 query(
                     "UPDATE traveler SET password=%s WHERE adharno=%s",
@@ -435,10 +435,9 @@ def register_user():
     except Exception as e:
         flash(f"Registration failed: {e}", "danger")
         return redirect("/register")
-@app.route("/forgot_password")
+@app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     return render_template("forgot_password.html")
-
 
 @app.route("/send_otp", methods=["GET", "POST"])
 def send_otp():
@@ -503,19 +502,29 @@ def update_password():
         flash("Password must be at least 6 characters.", "danger")
         return redirect("/reset_password")
 
-    hashed_password = generate_password_hash(new_password)
+    try:
+        # Hash new password before saving
+        hashed_password = generate_password_hash(new_password)
 
-    query(
-        "UPDATE traveler SET password=%s WHERE email=%s",
-        (hashed_password, email),
-        commit=True
-    )
+        # Update password using email
+        query(
+            "UPDATE traveler SET password=%s WHERE email=%s",
+            (hashed_password, email),
+            commit=True
+        )
 
-    session.pop("reset_email", None)
-    session.pop("reset_otp", None)
+        # Clear reset session values
+        session.pop("reset_email", None)
+        session.pop("reset_otp", None)
 
-    flash("Password updated successfully. Please login.", "success")
-    return redirect("/")
+        flash("Password updated successfully! Please login.", "success")
+        return redirect("/")
+
+    except Exception as e:
+        flash(f"Password update failed: {e}", "danger")
+        return redirect("/reset_password")
+
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -1162,6 +1171,42 @@ def manage_packages():
         flash(f"Could not load packages: {e}", "danger")
         return render_template("manage_packages.html", packages=[], package_data={})
 
+@app.route("/add_package", methods=["GET", "POST"])
+@admin_required
+def add_package():
+    if request.method == "POST":
+        category    = request.form.get("category", "").strip()
+        amt_rate    = request.form.get("amt_rate", 0)
+        duration    = request.form.get("duration", "").strip()
+        description = request.form.get("description", "").strip()
+        try:
+            query(
+                "INSERT INTO package (category, amt_rate, duration, description) VALUES (%s,%s,%s,%s)",
+                (category, amt_rate, duration, description), commit=True
+            )
+            pkg_row = query(
+                "SELECT package_id FROM package WHERE category=%s ORDER BY package_id DESC LIMIT 1",
+                (category,), one=True
+            )
+            if pkg_row:
+                pkg_id = pkg_row["package_id"]
+                for img in request.files.getlist("images"):
+                    if img and img.filename and allowed_file(img.filename):
+                        fname = secure_filename(img.filename)
+                        img.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+                        query("INSERT INTO package_images (package_id, image) VALUES (%s,%s)",
+                              (pkg_id, fname), commit=True)
+                for vid in request.files.getlist("videos"):
+                    if vid and vid.filename and allowed_video(vid.filename):
+                        fname = secure_filename(vid.filename)
+                        vid.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+                        query("INSERT INTO package_videos (package_id, video) VALUES (%s,%s)",
+                              (pkg_id, fname), commit=True)
+            flash(f"Package '{category}' added successfully!", "success")
+            return redirect("/manage_packages")
+        except Exception as e:
+            flash(f"Error adding package: {str(e)}", "danger")
+    return render_template("add_package.html")
 
 @app.route("/edit_package/<int:id>", methods=["GET", "POST"])
 @admin_required
