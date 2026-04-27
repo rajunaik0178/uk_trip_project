@@ -559,10 +559,8 @@ def dashboard():
         t.driver_name,
         t.driver_mobile,
 
-        g.name AS guide_name,
-        g.mobile AS guide_mobile,
-        g.specialization AS guide_specialization
-
+        g.title AS guide_name,
+        g.destination AS guide_specialization
     FROM booking b
 
     JOIN package p
@@ -571,9 +569,8 @@ def dashboard():
     LEFT JOIN transport t
         ON t.assigned_booking_id = b.booking_id
 
-    LEFT JOIN tour_guides g
-        ON g.assigned_booking_id = b.booking_id
-
+    LEFT JOIN trip_guide g
+    ON 1=1
     WHERE b.adharno = %s
 
     ORDER BY b.booking_id DESC
@@ -715,9 +712,8 @@ def wishlist():
         ) or []
 
         available_guides = query(
-            "SELECT * FROM tour_guides WHERE status='Available' ORDER BY name"
-        ) or []
-
+    "SELECT * FROM trip_guide ORDER BY title"
+) or []
         return render_template(
             "wishlist.html",
             packages=list(pkg_dict.values()),
@@ -851,20 +847,20 @@ def packages():
             p["avg_rating"] = round(float(rd["avg_rating"]), 1) if rd else None
             p["review_count"] = rd["review_count"] if rd else 0
 
-        available_vehicles = query(
-            "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
-        ) or []
+     available_vehicles = query(
+    "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
+) or []
 
-        available_guides = query(
-            "SELECT * FROM tour_guides WHERE status='Available' ORDER BY name"
-        ) or []
+available_guides = query(
+    "SELECT * FROM trip_guide ORDER BY title"
+) or []
 
-        return render_template(
-            "packages.html",
-            packages=pkg_list,
-            available_vehicles=available_vehicles,
-            available_guides=available_guides
-        )
+return render_template(
+    "packages.html",
+    packages=pkg_list,
+    available_vehicles=available_vehicles,
+    available_guides=available_guides
+)
 
     except Exception as e:
         flash(f"Could not load packages: {e}", "danger")
@@ -907,6 +903,14 @@ def book(id):
         vehicle_id = request.args.get("vehicle_id", "").strip()
         guide_id = request.args.get("guide_id", "").strip()
 
+        # NEW: member count
+        try:
+            num_members = max(1, int(request.args.get("num_members", 1)))
+        except (TypeError, ValueError):
+            num_members = 1
+
+        total_amount = pkg["amt_rate"] * num_members
+
         if travel_date:
             try:
                 td = datetime.date.fromisoformat(travel_date)
@@ -916,25 +920,33 @@ def book(id):
             except ValueError:
                 flash("Invalid travel date.", "danger")
                 return redirect("/packages")
+
             query(
-                "INSERT INTO booking(adharno,package_id,travel_date,total_amount,status) VALUES(%s,%s,%s,%s,'Booked')",
-                (session["user_id"], id, travel_date, pkg["amt_rate"]), commit=True
+                "INSERT INTO booking(adharno,package_id,travel_date,total_amount,num_members,status) VALUES(%s,%s,%s,%s,%s,'Booked')",
+                (session["user_id"], id, travel_date, total_amount, num_members),
+                commit=True
             )
         else:
             query(
-                "INSERT INTO booking(adharno,package_id,travel_date,total_amount,status) VALUES(%s,%s,CURDATE(),%s,'Booked')",
-                (session["user_id"], id, pkg["amt_rate"]), commit=True
+                "INSERT INTO booking(adharno,package_id,travel_date,total_amount,num_members,status) VALUES(%s,%s,CURDATE(),%s,%s,'Booked')",
+                (session["user_id"], id, total_amount, num_members),
+                commit=True
             )
 
-        notify(session["user_id"],
-               f"Your booking for '{pkg['category']}' (₹{pkg['amt_rate']}) is pending approval.")
-        flash(f"Booking placed for '{pkg['category']}'! Awaiting admin approval.", "success")
+        notify(
+            session["user_id"],
+            f"Your booking for '{pkg['category']}' (₹{total_amount}) is pending approval."
+        )
+
+        flash(
+            f"Booking placed for '{pkg['category']}'! Awaiting admin approval.",
+            "success"
+        )
         return redirect("/my_bookings")
 
     except Exception as e:
         flash(f"Booking failed: {e}", "danger")
         return redirect("/packages")
-
 
 @app.route("/my_bookings")
 @login_required
@@ -956,12 +968,8 @@ def my_bookings():
         t.capacity AS vehicle_capacity,
         t.notes AS vehicle_notes,
 
-        g.name AS guide_name,
-        g.mobile AS guide_mobile,
-        g.specialization AS guide_specialization,
-        g.languages AS guide_languages,
-        g.experience_years AS guide_experience,
-        g.notes AS guide_notes
+        g.title AS guide_name,
+        g.destination AS guide_specialization
 
     FROM booking b
 
@@ -974,8 +982,8 @@ def my_bookings():
     LEFT JOIN transport t
         ON t.assigned_booking_id = b.booking_id
 
-    LEFT JOIN tour_guides g
-        ON g.assigned_booking_id = b.booking_id
+    LEFT JOIN trip_guide g
+        ON 1=1
 
     WHERE b.adharno = %s
 
@@ -986,8 +994,6 @@ def my_bookings():
     except Exception as e:
         flash(f"Could not load bookings: {e}", "danger")
         return render_template("my_bookings.html", bookings=[])
-
-
 @app.route("/cancel/<int:id>")
 @login_required
 def cancel(id):

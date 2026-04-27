@@ -1,50 +1,80 @@
 {% extends "base.html" %}
-{% block title %}Wishlist{% endblock %}
+{% block title %}My Wishlist{% endblock %}
 {% block content %}
 
 <style>
-.option-grid{display:grid;grid-template-columns:1fr;gap:8px;max-height:200px;overflow-y:auto;padding-right:4px;}
-.option-card{border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:13px;}
-.option-card:hover{border-color:#2a5298;background:#f0f4ff;}
-.option-card.selected{border-color:#1e3c72;background:#e8f0fe;}
-.option-card .opt-title{font-weight:600;color:#1e3c72;margin-bottom:2px;}
-.option-card .opt-sub{font-size:11px;color:#888;}
-.option-card-none{border:1.5px dashed #e5e7eb;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:13px;color:#888;text-align:center;}
-.option-card-none:hover{border-color:#dc2626;background:#fff5f5;color:#dc2626;}
-.option-card-none.selected{border-color:#aaa;background:#f9fafb;color:#aaa;}
-.step-pills{display:flex;gap:8px;margin-bottom:16px;}
-.step-pill{flex:1;text-align:center;padding:6px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid #e5e7eb;color:#aaa;background:#f9fafb;}
-.step-pill.active{background:#1e3c72;color:#fff;border-color:#1e3c72;}
-.step-pill.done{background:#d1fae5;color:#065f46;border-color:#bbf7d0;}
+/* ── Step pills ── */
+.step-pills { display:flex; gap:8px; margin-bottom:18px; }
+.step-pill { flex:1; text-align:center; padding:6px; border-radius:8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; border:1.5px solid #e5e7eb; color:#aaa; background:#f9fafb; cursor:default; }
+.step-pill.active { background:#1e3c72; color:#fff; border-color:#1e3c72; }
+.step-pill.done { background:#d1fae5; color:#065f46; border-color:#bbf7d0; }
+
+/* ── Option cards ── */
+.option-grid { display:grid; grid-template-columns:1fr; gap:8px; max-height:240px; overflow-y:auto; padding-right:4px; }
+.option-card { border:1.5px solid #e5e7eb; border-radius:8px; padding:10px 12px; cursor:pointer; transition:.15s; font-size:13px; }
+.option-card:hover { border-color:#2a5298; background:#f0f4ff; }
+.option-card.selected { border-color:#1e3c72; background:#e8f0fe; }
+.option-card .opt-title { font-weight:600; color:#1e3c72; margin-bottom:2px; }
+.option-card .opt-sub { font-size:11px; color:#888; }
+.option-card-none { border:1.5px dashed #e5e7eb; border-radius:8px; padding:10px 12px; cursor:pointer; transition:.15s; font-size:13px; color:#888; text-align:center; }
+.option-card-none:hover { border-color:#dc2626; background:#fff5f5; color:#dc2626; }
+.option-card-none.selected { border-color:#dc2626; background:#fff5f5; color:#dc2626; }
+
+/* ── Member counter ── */
+.member-counter { display:flex; align-items:center; gap:0; border:1.5px solid #d1d5db; border-radius:9px; overflow:hidden; width:fit-content; }
+.member-counter button { width:38px; height:38px; border:none; background:#f3f4f6; cursor:pointer; font-size:18px; font-weight:700; color:#374151; display:flex; align-items:center; justify-content:center; transition:background .15s; padding:0; }
+.member-counter button:hover { background:#e0e7ff; color:#1e3c72; }
+.member-counter span { min-width:44px; text-align:center; font-size:18px; font-weight:700; color:#1e3c72; padding:0 4px; }
+
+/* ── Amount box ── */
+.amount-box { background:#f0f4ff; border-radius:10px; padding:14px 16px; margin-bottom:16px; }
+.amount-box .per-person { font-size:12px; color:#6b7280; margin-bottom:2px; }
+.amount-box .total-row { display:flex; align-items:baseline; justify-content:space-between; }
+.amount-box .total-label { font-size:13px; color:#374151; font-weight:500; }
+.amount-box .total-amount { font-size:24px; font-weight:800; color:#1e3c72; }
+.amount-box .breakdown { font-size:11px; color:#6b7280; margin-top:4px; }
+
+/* ── Summary rows ── */
+.sum-row { display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:12.5px; }
+.sum-row:last-child { border-bottom:none; margin-top:6px; padding-top:8px; }
+.sum-row .sum-icon { font-size:14px; flex-shrink:0; margin-top:1px; }
+.sum-row .sum-val { font-weight:600; color:#1e3c72; }
+.sum-total { font-size:17px !important; font-weight:800; color:#2a5298; }
+
+/* ── Package cards ── */
+.pkg-card {
+  background:#fff; border-radius:12px;
+  box-shadow:0 2px 12px rgba(0,0,0,.08);
+  overflow:hidden; transition:box-shadow .2s;
+}
+.pkg-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.13); }
 </style>
 
 <div class="topbar">
   <h1>❤️ My Wishlist</h1>
-  <a href="/packages" class="btn btn-primary">+ Add More</a>
+  <span style="font-size:13px;color:#888;">{{ packages|length }} saved package{{ 's' if packages|length != 1 }}</span>
 </div>
 
 {% if packages %}
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px;">
   {% for p in packages %}
-  <div class="pkg-card">
+  <div class="pkg-card"
+    data-pid="{{ p.package_id }}"
+    data-price="{{ p.amt_rate }}"
+    data-title="{{ p.category | e }}">
 
     {% if p.images %}
     <img src="/static/uploads/{{ p.images[0] }}"
       style="width:100%;height:180px;object-fit:cover;display:block;">
     {% else %}
-    <div style="width:100%;height:180px;background:#e8f0fe;
-      display:flex;align-items:center;justify-content:center;
-      color:#888;font-size:13px;">No image</div>
+    <div style="width:100%;height:180px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px;">No image</div>
     {% endif %}
 
     <div style="padding:15px;">
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:5px;color:#1e3c72;">
-        {{ p.category }}
-      </h3>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:5px;color:#1e3c72;">{{ p.category }}</h3>
       <p style="font-size:12px;color:#888;margin-bottom:4px;">⏱ {{ p.duration }}</p>
-      <p style="font-size:19px;font-weight:700;color:#2a5298;margin-bottom:12px;">
-        ₹{{ p.amt_rate }}
-      </p>
+      <p style="font-size:19px;font-weight:700;color:#2a5298;margin-bottom:4px;">₹{{ p.amt_rate }}</p>
+      <p style="font-size:11px;color:#aaa;margin-bottom:12px;">per person</p>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-primary" style="flex:1;padding:9px;"
           data-pid="{{ p.package_id }}"
@@ -55,13 +85,10 @@
         </button>
         <a href="/wishlist/remove/{{ p.package_id }}" style="flex:1;"
            onclick="return confirm('Remove from wishlist?')">
-          <button class="btn btn-danger" style="width:100%;padding:9px;">
-            ✕ Remove
-          </button>
+          <button class="btn btn-danger" style="width:100%;padding:9px;">✕ Remove</button>
         </a>
       </div>
     </div>
-
   </div>
   {% endfor %}
 </div>
@@ -70,47 +97,61 @@
 <div class="card" style="text-align:center;padding:50px;">
   <div style="font-size:40px;margin-bottom:14px;">❤️</div>
   <h3 style="color:#888;margin-bottom:10px;">Your wishlist is empty</h3>
-  <p style="color:#aaa;font-size:13px;margin-bottom:20px;">
-    Save packages you like while browsing.
-  </p>
-  <a href="/packages">
-    <button class="btn btn-primary" style="padding:11px 24px;">Browse Packages</button>
-  </a>
+  <p style="color:#aaa;font-size:13px;margin-bottom:20px;">Save packages you like while browsing.</p>
+  <a href="/packages"><button class="btn btn-primary" style="padding:11px 24px;">Browse Packages</button></a>
 </div>
 {% endif %}
 
-<!-- ════════════════════════════════════════════════════════ -->
-<!-- ENHANCED BOOKING MODAL (3 steps)                         -->
-<!-- ════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- ENHANCED BOOKING MODAL — 4 Steps                       -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="bookModal">
-  <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto;">
+  <div class="modal" style="width:550px;max-height:92vh;overflow-y:auto;">
     <button class="modal-close" onclick="closeBookModal()">✕</button>
     <h3>📅 Book Your Trip</h3>
 
     <!-- STEP PILLS -->
     <div class="step-pills">
-      <div class="step-pill active" id="spill1">1 · Dates</div>
+      <div class="step-pill active" id="spill1">1 · Details</div>
       <div class="step-pill" id="spill2">2 · Vehicle</div>
       <div class="step-pill" id="spill3">3 · Guide</div>
+      <div class="step-pill" id="spill4">4 · Confirm</div>
     </div>
 
     <!-- ── STEP 1 ── -->
     <div id="bookStep1">
-      <p id="modalPkgName" style="font-size:14px;font-weight:600;color:#1e3c72;margin-bottom:14px;"></p>
+      <p id="modalPkgName" style="font-size:14px;font-weight:600;color:#1e3c72;margin-bottom:16px;"></p>
 
       <div class="form-group">
-        <label>Travel Date</label>
-        <input type="date" id="travelDate">
+        <label>Travel Date *</label>
+        <input type="date" id="travelDate" style="width:100%;">
+        <div id="dateErr" style="color:#dc2626;font-size:11px;margin-top:4px;display:none;">Please select a travel date.</div>
       </div>
 
-      <div style="background:#f0f4ff;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
-        <div style="font-size:12px;color:#555;">Total Amount</div>
-        <div id="modalAmt" style="font-size:22px;font-weight:700;color:#2a5298;"></div>
+      <div class="form-group">
+        <label>Number of Travellers *</label>
+        <div style="display:flex;align-items:center;gap:16px;margin-top:6px;">
+          <div class="member-counter">
+            <button type="button" onclick="changeMember(-1)">−</button>
+            <span id="memberCount">1</span>
+            <button type="button" onclick="changeMember(1)">+</button>
+          </div>
+          <span style="font-size:12px;color:#6b7280;">person(s) travelling</span>
+        </div>
+      </div>
+
+      <div class="amount-box">
+        <div class="per-person">Price per person</div>
+        <div class="total-row">
+          <span class="total-label">Total Amount</span>
+          <span class="total-amount" id="modalAmt">₹0</span>
+        </div>
+        <div class="breakdown" id="amtBreakdown"></div>
       </div>
 
       <div style="display:flex;gap:8px;">
         <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="closeBookModal()">Cancel</button>
-        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="goStep(2)">Next: Vehicle →</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="goToStep2()">Next: Vehicle →</button>
       </div>
     </div>
 
@@ -120,7 +161,7 @@
         🚖 <strong>Select a vehicle</strong> — or skip and admin will assign after approval.
       </p>
       <div class="option-grid" id="vehicleGrid">
-        <div class="option-card-none selected" data-vid="" onclick="selectVehicle(this)">
+        <div class="option-card-none selected" data-vid="" data-label="" onclick="selectVehicle(this)">
           🚫 Skip — No vehicle / Admin will assign
         </div>
         {% for v in available_vehicles %}
@@ -133,6 +174,10 @@
             {% endif %}
           </div>
           <div class="opt-sub">👤 {{ v.driver_name or 'TBA' }} · 💺 {{ v.capacity }} seats</div>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:20px;color:#888;font-size:13px;border:1.5px dashed #e5e7eb;border-radius:8px;">
+          No vehicles available right now. Admin will assign after approval.
         </div>
         {% endfor %}
       </div>
@@ -149,7 +194,7 @@
         👨‍💼 <strong>Request a tour guide</strong> — or skip for admin assignment.
       </p>
       <div class="option-grid" id="guideGrid">
-        <div class="option-card-none selected" data-gid="" onclick="selectGuide(this)">
+        <div class="option-card-none selected" data-gid="" data-label="" onclick="selectGuide(this)">
           🚫 Skip — Admin will assign a guide
         </div>
         {% for g in available_guides %}
@@ -159,22 +204,61 @@
           <div class="opt-title">👨‍💼 {{ g.name }}</div>
           <div class="opt-sub">🧭 {{ g.specialization or 'General' }} · {{ g.experience_years or 0 }} yr exp.{% if g.rating %} · ★ {{ g.rating }}/5{% endif %}</div>
         </div>
+        {% else %}
+        <div style="text-align:center;padding:20px;color:#888;font-size:13px;border:1.5px dashed #e5e7eb;border-radius:8px;">
+          No guides available right now. Admin will assign after approval.
+        </div>
         {% endfor %}
       </div>
       <div id="guideChosen" style="display:none;background:#fff3cd;border-radius:7px;padding:8px 12px;margin-top:8px;font-size:12px;color:#856404;"></div>
-
-      <!-- SUMMARY -->
-      <div id="bookSummary" style="background:#f0f4ff;border-radius:8px;padding:14px 16px;margin-top:14px;font-size:13px;">
-        <div style="font-weight:600;color:#1e3c72;margin-bottom:8px;">📋 Summary</div>
-        <div id="sumPackage"></div>
-        <div id="sumDate"></div>
-        <div id="sumVehicle"></div>
-        <div id="sumGuide"></div>
-        <div id="sumAmount" style="margin-top:8px;font-size:16px;font-weight:700;color:#2a5298;"></div>
-      </div>
-
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="goStep(4)">Review Booking →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4 ── -->
+    <div id="bookStep4" style="display:none;">
+      <p style="font-size:13px;color:#555;margin-bottom:14px;">Please review your booking details before confirming.</p>
+
+      <div style="background:#f0f4ff;border-radius:10px;padding:16px 18px;margin-bottom:16px;">
+        <div style="font-weight:700;color:#1e3c72;margin-bottom:10px;font-size:14px;">📋 Booking Summary</div>
+        <div class="sum-row">
+          <span class="sum-icon">📦</span>
+          <div><div style="font-size:11px;color:#888;">Package</div><div class="sum-val" id="sumPackage">—</div></div>
+        </div>
+        <div class="sum-row">
+          <span class="sum-icon">📅</span>
+          <div><div style="font-size:11px;color:#888;">Travel Date</div><div class="sum-val" id="sumDate">—</div></div>
+        </div>
+        <div class="sum-row">
+          <span class="sum-icon">👥</span>
+          <div><div style="font-size:11px;color:#888;">Travellers</div><div class="sum-val" id="sumMembers">—</div></div>
+        </div>
+        <div class="sum-row">
+          <span class="sum-icon">🚖</span>
+          <div><div style="font-size:11px;color:#888;">Vehicle</div><div class="sum-val" id="sumVehicle">Admin will assign</div></div>
+        </div>
+        <div class="sum-row">
+          <span class="sum-icon">👨‍💼</span>
+          <div><div style="font-size:11px;color:#888;">Tour Guide</div><div class="sum-val" id="sumGuide">Admin will assign</div></div>
+        </div>
+        <div class="sum-row" style="margin-top:4px;">
+          <span class="sum-icon">💰</span>
+          <div style="width:100%;">
+            <div style="font-size:11px;color:#888;">Total Payment</div>
+            <div class="sum-val sum-total" id="sumAmount">₹0</div>
+            <div style="font-size:11px;color:#6b7280;" id="sumBreakdown"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#fff3cd;border-radius:8px;padding:10px 14px;font-size:12px;color:#856404;margin-bottom:14px;">
+        ℹ️ Your booking will be reviewed by admin. Payment is collected after approval.
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="goStep(3)">← Back</button>
         <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="confirmBook()">✅ Confirm Booking</button>
       </div>
     </div>
@@ -183,23 +267,28 @@
 </div>
 
 <script>
-var _bookId = null, _bookPrice = '', _bookTitle = '';
+// ── STATE ────────────────────────────────────────────────────
+var _bookId = null, _basePrice = 0, _bookTitle = '';
+var _members = 1;
 var _selectedVid = '', _selectedVLabel = '';
 var _selectedGid = '', _selectedGLabel = '';
 
 document.getElementById('travelDate').min = new Date().toISOString().split('T')[0];
 
 function openBookFromCard(btn) {
-  _bookId    = btn.getAttribute('data-pid');
-  _bookTitle = btn.getAttribute('data-title');
-  _bookPrice = btn.getAttribute('data-price');
+  _bookId     = btn.getAttribute('data-pid');
+  _bookTitle  = btn.getAttribute('data-title');
+  _basePrice  = parseFloat(btn.getAttribute('data-price')) || 0;
+  _members    = 1;
   _selectedVid = ''; _selectedVLabel = '';
   _selectedGid = ''; _selectedGLabel = '';
 
   document.getElementById('modalPkgName').textContent = '📦 ' + _bookTitle;
-  document.getElementById('modalAmt').textContent     = '₹' + _bookPrice;
   document.getElementById('travelDate').value = '';
+  document.getElementById('dateErr').style.display = 'none';
+  document.getElementById('memberCount').textContent = '1';
 
+  updateAmountDisplay();
   resetAll('vehicleGrid');
   resetAll('guideGrid');
   document.getElementById('vehicleChosen').style.display = 'none';
@@ -221,16 +310,44 @@ function closeBookModal() {
   document.getElementById('bookModal').classList.remove('open');
 }
 
+// ── MEMBER COUNTER ───────────────────────────────────────────
+function changeMember(delta) {
+  _members = Math.max(1, Math.min(20, _members + delta));
+  document.getElementById('memberCount').textContent = _members;
+  updateAmountDisplay();
+}
+
+function updateAmountDisplay() {
+  var total = _basePrice * _members;
+  document.getElementById('modalAmt').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('amtBreakdown').textContent = _members > 1
+    ? '₹' + _basePrice.toLocaleString('en-IN') + ' × ' + _members + ' persons'
+    : 'per person';
+}
+
+// ── STEPS ────────────────────────────────────────────────────
 function goStep(n) {
-  [1,2,3].forEach(function(i) {
+  [1,2,3,4].forEach(function(i) {
     document.getElementById('bookStep' + i).style.display = (i === n) ? 'block' : 'none';
     var p = document.getElementById('spill' + i);
     p.classList.toggle('active', i === n);
     p.classList.toggle('done',   i < n);
   });
-  if (n === 3) updateSummary();
+  if (n === 4) updateSummary();
 }
 
+function goToStep2() {
+  var d = document.getElementById('travelDate').value;
+  if (!d) {
+    document.getElementById('dateErr').style.display = 'block';
+    document.getElementById('travelDate').focus();
+    return;
+  }
+  document.getElementById('dateErr').style.display = 'none';
+  goStep(2);
+}
+
+// ── VEHICLE SELECTION ────────────────────────────────────────
 function selectVehicle(card) {
   document.getElementById('vehicleGrid').querySelectorAll('.option-card,.option-card-none').forEach(function(c) { c.classList.remove('selected'); });
   card.classList.add('selected');
@@ -241,6 +358,7 @@ function selectVehicle(card) {
   else { box.style.display = 'none'; }
 }
 
+// ── GUIDE SELECTION ──────────────────────────────────────────
 function selectGuide(card) {
   document.getElementById('guideGrid').querySelectorAll('.option-card,.option-card-none').forEach(function(c) { c.classList.remove('selected'); });
   card.classList.add('selected');
@@ -251,20 +369,28 @@ function selectGuide(card) {
   else { box.style.display = 'none'; }
 }
 
+// ── SUMMARY ──────────────────────────────────────────────────
 function updateSummary() {
-  document.getElementById('sumPackage').innerHTML = '📦 <strong>' + _bookTitle + '</strong>';
-  document.getElementById('sumDate').innerHTML    = '📅 <strong>' + (document.getElementById('travelDate').value || '—') + '</strong>';
-  document.getElementById('sumVehicle').innerHTML = '🚖 ' + (_selectedVid ? _selectedVLabel : 'Admin will assign');
-  document.getElementById('sumGuide').innerHTML   = '👨‍💼 ' + (_selectedGid ? _selectedGLabel : 'Admin will assign');
-  document.getElementById('sumAmount').innerHTML  = 'Total: ₹' + _bookPrice;
+  var total = _basePrice * _members;
+  document.getElementById('sumPackage').textContent  = _bookTitle;
+  document.getElementById('sumDate').textContent     = document.getElementById('travelDate').value || '—';
+  document.getElementById('sumMembers').textContent  = _members + ' person' + (_members > 1 ? 's' : '');
+  document.getElementById('sumVehicle').textContent  = _selectedVid ? _selectedVLabel : 'Admin will assign';
+  document.getElementById('sumGuide').textContent    = _selectedGid ? _selectedGLabel : 'Admin will assign';
+  document.getElementById('sumAmount').textContent   = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('sumBreakdown').textContent = '₹' + _basePrice.toLocaleString('en-IN') + ' × ' + _members + ' person' + (_members > 1 ? 's' : '');
 }
 
+// ── CONFIRM ──────────────────────────────────────────────────
 function confirmBook() {
   var d = document.getElementById('travelDate').value;
   if (!d) { alert('Please go back and select a travel date.'); goStep(1); return; }
-  var url = '/book/' + _bookId + '?travel_date=' + d;
-  if (_selectedVid) url += '&vehicle_id=' + _selectedVid;
-  if (_selectedGid) url += '&guide_id='   + _selectedGid;
+
+  var url = '/book/' + _bookId
+          + '?travel_date=' + encodeURIComponent(d)
+          + '&num_members=' + _members;
+  if (_selectedVid) url += '&vehicle_id=' + encodeURIComponent(_selectedVid);
+  if (_selectedGid) url += '&guide_id='   + encodeURIComponent(_selectedGid);
   window.location.href = url;
 }
 
