@@ -688,9 +688,9 @@ def wishlist():
         items = query(
             """SELECT p.*, pi.image
                FROM wishlist w
-               JOIN package p ON w.package_id=p.package_id
-               LEFT JOIN package_images pi ON p.package_id=pi.package_id
-               WHERE w.adharno=%s
+               JOIN package p ON w.package_id = p.package_id
+               LEFT JOIN package_images pi ON p.package_id = pi.package_id
+               WHERE w.adharno = %s
                GROUP BY p.package_id, pi.image""",
             (session["user_id"],)
         ) or []
@@ -712,8 +712,9 @@ def wishlist():
         ) or []
 
         available_guides = query(
-    "SELECT * FROM trip_guide ORDER BY title"
-) or []
+            "SELECT * FROM trip_guide ORDER BY title"
+        ) or []
+
         return render_template(
             "wishlist.html",
             packages=list(pkg_dict.values()),
@@ -833,7 +834,7 @@ def packages():
         ratings = query(
             """SELECT b.package_id, AVG(r.rating) AS avg_rating, COUNT(r.review_id) AS review_count
                FROM review r
-               JOIN booking b ON r.booking_id=b.booking_id
+               JOIN booking b ON r.booking_id = b.booking_id
                GROUP BY b.package_id"""
         ) or []
 
@@ -847,20 +848,20 @@ def packages():
             p["avg_rating"] = round(float(rd["avg_rating"]), 1) if rd else None
             p["review_count"] = rd["review_count"] if rd else 0
 
-     available_vehicles = query(
-    "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
-) or []
+        available_vehicles = query(
+            "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
+        ) or []
 
-available_guides = query(
-    "SELECT * FROM trip_guide ORDER BY title"
-) or []
+        available_guides = query(
+            "SELECT * FROM trip_guide ORDER BY title"
+        ) or []
 
-return render_template(
-    "packages.html",
-    packages=pkg_list,
-    available_vehicles=available_vehicles,
-    available_guides=available_guides
-)
+        return render_template(
+            "packages.html",
+            packages=pkg_list,
+            available_vehicles=available_vehicles,
+            available_guides=available_guides
+        )
 
     except Exception as e:
         flash(f"Could not load packages: {e}", "danger")
