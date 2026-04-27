@@ -59,6 +59,8 @@ def query(sql, params=(), one=False, commit=False):
         return result
     except Exception:
         return None
+
+
 def send_email_otp(to_email, otp):
     sender_email = "rajunaik0178@gmail.com"
     sender_password = "dqkf fsnx seli rxvy"
@@ -82,6 +84,7 @@ def send_email_otp(to_email, otp):
         print("Email Error:", e)
         return False
 
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -99,12 +102,14 @@ def is_hashed(pw):
 def verify_password(stored_password, provided_password):
     if not stored_password or not provided_password:
         return False
-    if is_hashed(stored_password):
+    stored_password = stored_password.strip()
+    provided_password = provided_password.strip()
+    if stored_password.startswith("pbkdf2:") or stored_password.startswith("scrypt:"):
         try:
             return check_password_hash(stored_password, provided_password)
         except Exception:
             return False
-    return stored_password.strip() == provided_password.strip()
+    return stored_password == provided_password
 
 
 # ══════════════════════════════════════════════════════
@@ -359,8 +364,11 @@ def login():
             flash("Invalid admin credentials.", "danger")
             return redirect("/")
 
-        user = query("SELECT * FROM traveler WHERE name=%s", (username,), one=True)
-        if user and check_password_hash(user["password"], password):
+        user = query(
+    "SELECT * FROM traveler WHERE name=%s OR email=%s",
+    (username, username), one=True
+)
+        if user and verify_password(user["password"], password):
             if not is_hashed(user["password"]):
                 query(
                     "UPDATE traveler SET password=%s WHERE adharno=%s",
@@ -435,9 +443,13 @@ def register_user():
     except Exception as e:
         flash(f"Registration failed: {e}", "danger")
         return redirect("/register")
+
+
+# ── FIX: added methods=["GET","POST"] ──
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     return render_template("forgot_password.html")
+
 
 @app.route("/send_otp", methods=["GET", "POST"])
 def send_otp():
@@ -488,7 +500,6 @@ def reset_password():
     return render_template("reset_password.html")
 
 
-
 @app.route("/update_password", methods=["POST"])
 def update_password():
     new_password = request.form.get("password", "").strip()
@@ -498,32 +509,18 @@ def update_password():
         flash("Session expired. Try again.", "danger")
         return redirect("/forgot_password")
 
-    if len(new_password) < 6:
-        flash("Password must be at least 6 characters.", "danger")
-        return redirect("/reset_password")
+    hashed_password = generate_password_hash(new_password)
 
-    try:
-        # Hash new password before saving
-        hashed_password = generate_password_hash(new_password)
+    query(
+        "UPDATE traveler SET password=%s WHERE email=%s",
+        (hashed_password, email), commit=True
+    )
 
-        # Update password using email
-        query(
-            "UPDATE traveler SET password=%s WHERE email=%s",
-            (hashed_password, email),
-            commit=True
-        )
+    session.pop("reset_email", None)
+    session.pop("reset_otp", None)
 
-        # Clear reset session values
-        session.pop("reset_email", None)
-        session.pop("reset_otp", None)
-
-        flash("Password updated successfully! Please login.", "success")
-        return redirect("/")
-
-    except Exception as e:
-        flash(f"Password update failed: {e}", "danger")
-        return redirect("/reset_password")
-
+    flash("Password updated! Please login with your new password.", "success")
+    return redirect("/")
 
 @app.route("/logout")
 def logout():
@@ -996,7 +993,7 @@ def my_reviews():
 
 
 # ══════════════════════════════════════════════════════
-#  USER — CONTACT US  (saves to DB)
+#  USER — CONTACT US
 # ══════════════════════════════════════════════════════
 
 @app.route("/contact")
@@ -1039,7 +1036,7 @@ def faq():
 
 
 # ══════════════════════════════════════════════════════
-#  USER — TRIP GUIDES  (view guides created by admin)
+#  USER — TRIP GUIDES
 # ══════════════════════════════════════════════════════
 
 @app.route("/guides")
@@ -1171,6 +1168,8 @@ def manage_packages():
         flash(f"Could not load packages: {e}", "danger")
         return render_template("manage_packages.html", packages=[], package_data={})
 
+
+# ── FIX: add_package route added ──
 @app.route("/add_package", methods=["GET", "POST"])
 @admin_required
 def add_package():
@@ -1179,6 +1178,11 @@ def add_package():
         amt_rate    = request.form.get("amt_rate", 0)
         duration    = request.form.get("duration", "").strip()
         description = request.form.get("description", "").strip()
+
+        if not category or not amt_rate or not duration:
+            flash("Category, price and duration are required.", "danger")
+            return redirect("/add_package")
+
         try:
             query(
                 "INSERT INTO package (category, amt_rate, duration, description) VALUES (%s,%s,%s,%s)",
@@ -1206,7 +1210,9 @@ def add_package():
             return redirect("/manage_packages")
         except Exception as e:
             flash(f"Error adding package: {str(e)}", "danger")
+
     return render_template("add_package.html")
+
 
 @app.route("/edit_package/<int:id>", methods=["GET", "POST"])
 @admin_required
@@ -1465,7 +1471,7 @@ def export_travelers():
 
 
 # ══════════════════════════════════════════════════════
-#  ADMIN — INVOICE (print/view single invoice)
+#  ADMIN — INVOICE
 # ══════════════════════════════════════════════════════
 
 @app.route("/invoice/<int:id>")
@@ -1825,7 +1831,7 @@ def stats():
 
 
 # ══════════════════════════════════════════════════════
-#  ADMIN — TRIP GUIDES (admin create/edit/delete)
+#  ADMIN — TRIP GUIDES
 # ══════════════════════════════════════════════════════
 
 @app.route("/manage_guides")
@@ -2043,7 +2049,7 @@ def delete_transport(id):
 
 
 # ══════════════════════════════════════════════════════
-#  ADMIN — TOUR GUIDES (staff guides, not trip_guide)
+#  ADMIN — TOUR GUIDES (manage_guides_admin)
 # ══════════════════════════════════════════════════════
 
 @app.route("/manage_guides_admin")
@@ -2051,7 +2057,8 @@ def delete_transport(id):
 def manage_guides_admin():
     try:
         guides = query(
-            """SELECT g.*, t.name AS traveler_name, p.category
+            """SELECT g.*, b.booking_id AS assigned_booking_id,
+                      t.name AS traveler_name, p.category, b.travel_date
                FROM guide g
                LEFT JOIN booking b ON g.assigned_booking_id=b.booking_id
                LEFT JOIN traveler t ON b.adharno=t.adharno
