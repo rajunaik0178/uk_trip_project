@@ -365,13 +365,11 @@ body::before{
 
 <div class="wrap">
 
-  <!-- HEADER -->
   <div class="head">
     <div class="logo">✈ UK Trip</div>
     <div class="sub-title">Premium Travel Management Portal</div>
   </div>
 
-  <!-- BODY -->
   <div class="body">
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -380,7 +378,6 @@ body::before{
       {% endfor %}
     {% endwith %}
 
-    <!-- ROLE SWITCHER -->
     <div class="role-tabs">
       <button type="button" class="role-tab active" id="tabUser" onclick="setRole('user')">
         👤 &nbsp;Traveler
@@ -391,7 +388,6 @@ body::before{
       </button>
     </div>
 
-    <!-- FORM -->
     <form action="/login" method="POST">
 
       <input type="hidden" name="role" id="roleField" value="user">
@@ -419,12 +415,16 @@ body::before{
         <span class="eye" id="eyeIcon" onclick="togglePw()">👁</span>
       </div>
 
-      <!-- CAPTCHA ADDED -->
       <label class="fl">Captcha</label>
 
       <div class="captcha-box">
         <div class="captcha-text">{{ session.get('captcha', '') }}</div>
-        <button type="button" class="refresh-btn" onclick="window.location.href='/generate_captcha'">
+
+        <button
+          type="button"
+          class="refresh-btn"
+          onclick="window.location.href='/generate_captcha'"
+        >
           ↻
         </button>
       </div>

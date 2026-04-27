@@ -340,10 +340,16 @@ def notify(adharno, message):
 def home():
     if "user_id" in session:
         return redirect("/dashboard")
+
     if "admin" in session:
         return redirect("/admin_dashboard")
-    return render_template("login.html")
 
+    # Auto generate captcha when login page opens
+    if "captcha" not in session or not session["captcha"]:
+        captcha = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        session["captcha"] = captcha
+
+    return render_template("login.html")
 @app.route("/generate_captcha")
 def generate_captcha():
     captcha = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
