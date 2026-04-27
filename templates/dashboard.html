@@ -121,15 +121,30 @@
             <span style="color:var(--text3);font-size:11px;">Not assigned</span>
           {% endif %}
         </td>
-        <td>
-          <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
-            {% if b.status=='Approved' %}background:var(--green-dim);color:var(--green);
-            {% elif b.status=='Booked' %}background:var(--orange-dim);color:var(--orange);
-            {% elif b.status=='Rejected' %}background:var(--red-dim);color:var(--red);
-            {% else %}background:rgba(92,122,150,.15);color:var(--text3);{% endif %}">
-            {{ b.status }}
-          </span>
-        </td>
+       <td>
+
+  {% if b.status == 'Approved' %}
+  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--green-dim);color:var(--green);">
+    {{ b.status }}
+  </span>
+
+  {% elif b.status == 'Booked' %}
+  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--orange-dim);color:var(--orange);">
+    {{ b.status }}
+  </span>
+
+  {% elif b.status == 'Rejected' %}
+  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--red-dim);color:var(--red);">
+    {{ b.status }}
+  </span>
+
+  {% else %}
+  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:rgba(92,122,150,.15);color:var(--text3);">
+    {{ b.status }}
+  </span>
+  {% endif %}
+
+</td>
         <td>
           {% if b.status in ['Approved','Booked','Cancelled','Rejected'] %}
           <a href="/receipt/{{ b.booking_id }}" class="btn btn-outline btn-sm">Receipt</a>

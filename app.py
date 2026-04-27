@@ -548,12 +548,37 @@ def dashboard():
         pending_bookings  = int(r3["c"]) if r3 else 0
         total_spent       = int(r4["s"]) if r4 else 0
 
-        recent_bookings = query(
-            """SELECT b.*, p.category, p.duration
-               FROM booking b LEFT JOIN package p ON b.package_id=p.package_id
-               WHERE b.adharno=%s ORDER BY b.booking_id DESC LIMIT 5""",
-            (uid,)
-        ) or []
+        recent_bookings = query("""
+    SELECT
+        b.*,
+        p.category,
+        p.duration,
+
+        t.vehicle_type,
+        t.vehicle_number,
+        t.driver_name,
+        t.driver_mobile,
+
+        g.name AS guide_name,
+        g.mobile AS guide_mobile,
+        g.specialization AS guide_specialization
+
+    FROM booking b
+
+    JOIN package p
+        ON b.package_id = p.package_id
+
+    LEFT JOIN transport t
+        ON t.assigned_booking_id = b.booking_id
+
+    LEFT JOIN tour_guides g
+        ON g.assigned_booking_id = b.booking_id
+
+    WHERE b.adharno = %s
+
+    ORDER BY b.booking_id DESC
+    LIMIT 5
+""", (session["user_id"],)) or []
 
         wl = query("SELECT COUNT(*) AS c FROM wishlist WHERE adharno=%s", (uid,), one=True)
         wishlist_count = int(wl["c"]) if wl else 0
@@ -672,19 +697,43 @@ def wishlist():
                GROUP BY p.package_id, pi.image""",
             (session["user_id"],)
         ) or []
+
         pkg_dict = {}
+
         for row in items:
             pid = row["package_id"]
+
             if pid not in pkg_dict:
                 pkg_dict[pid] = dict(row)
                 pkg_dict[pid]["images"] = []
+
             if row.get("image"):
                 pkg_dict[pid]["images"].append(row["image"])
-        return render_template("wishlist.html", packages=list(pkg_dict.values()))
+
+        available_vehicles = query(
+            "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
+        ) or []
+
+        available_guides = query(
+            "SELECT * FROM tour_guides WHERE status='Available' ORDER BY name"
+        ) or []
+
+        return render_template(
+            "wishlist.html",
+            packages=list(pkg_dict.values()),
+            available_vehicles=available_vehicles,
+            available_guides=available_guides
+        )
+
     except Exception as e:
         flash(f"Could not load wishlist: {e}", "danger")
-        return render_template("wishlist.html", packages=[])
 
+        return render_template(
+            "wishlist.html",
+            packages=[],
+            available_vehicles=[],
+            available_guides=[]
+        )
 
 @app.route("/wishlist/add/<int:pid>")
 @login_required
@@ -769,36 +818,57 @@ def packages():
             if row.get("image"):
                 packages_dict[pid]["images"].append(row["image"])
 
-        vid_rows = query("SELECT package_id, video FROM package_videos ORDER BY package_id") or []
+        vid_rows = query(
+            "SELECT package_id, video FROM package_videos ORDER BY package_id"
+        ) or []
+
         for vr in vid_rows:
             pid = vr["package_id"]
             if pid in packages_dict:
                 packages_dict[pid]["videos"].append(vr["video"])
 
         wl_rows = query(
-            "SELECT package_id FROM wishlist WHERE adharno=%s", (session["user_id"],)
+            "SELECT package_id FROM wishlist WHERE adharno=%s",
+            (session["user_id"],)
         ) or []
+
         wishlist_ids = {r["package_id"] for r in wl_rows}
 
         ratings = query(
             """SELECT b.package_id, AVG(r.rating) AS avg_rating, COUNT(r.review_id) AS review_count
-               FROM review r JOIN booking b ON r.booking_id=b.booking_id
+               FROM review r
+               JOIN booking b ON r.booking_id=b.booking_id
                GROUP BY b.package_id"""
         ) or []
+
         rating_map = {r["package_id"]: r for r in ratings}
 
         pkg_list = list(packages_dict.values())
+
         for p in pkg_list:
-            p["in_wishlist"]  = p["package_id"] in wishlist_ids
+            p["in_wishlist"] = p["package_id"] in wishlist_ids
             rd = rating_map.get(p["package_id"])
-            p["avg_rating"]   = round(float(rd["avg_rating"]), 1) if rd else None
+            p["avg_rating"] = round(float(rd["avg_rating"]), 1) if rd else None
             p["review_count"] = rd["review_count"] if rd else 0
 
-        return render_template("packages.html", packages=pkg_list)
+        available_vehicles = query(
+            "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
+        ) or []
+
+        available_guides = query(
+            "SELECT * FROM tour_guides WHERE status='Available' ORDER BY name"
+        ) or []
+
+        return render_template(
+            "packages.html",
+            packages=pkg_list,
+            available_vehicles=available_vehicles,
+            available_guides=available_guides
+        )
+
     except Exception as e:
         flash(f"Could not load packages: {e}", "danger")
         return redirect("/dashboard")
-
 
 @app.route("/view_images/<int:id>")
 @login_required
@@ -834,6 +904,8 @@ def book(id):
             return redirect("/packages")
 
         travel_date = request.args.get("travel_date", "").strip()
+        vehicle_id = request.args.get("vehicle_id", "").strip()
+        guide_id = request.args.get("guide_id", "").strip()
 
         if travel_date:
             try:
@@ -868,13 +940,48 @@ def book(id):
 @login_required
 def my_bookings():
     try:
-        bookings = query(
-            """SELECT b.*, p.category, p.duration
-               FROM booking b
-               LEFT JOIN package p ON b.package_id=p.package_id
-               WHERE b.adharno=%s ORDER BY b.booking_id DESC""",
-            (session["user_id"],)
-        ) or []
+        bookings = query("""
+    SELECT
+        b.*,
+        p.category,
+        p.duration,
+        p.description,
+        u.name AS traveler_name,
+        u.mobile,
+
+        t.vehicle_type,
+        t.vehicle_number,
+        t.driver_name,
+        t.driver_mobile,
+        t.capacity AS vehicle_capacity,
+        t.notes AS vehicle_notes,
+
+        g.name AS guide_name,
+        g.mobile AS guide_mobile,
+        g.specialization AS guide_specialization,
+        g.languages AS guide_languages,
+        g.experience_years AS guide_experience,
+        g.notes AS guide_notes
+
+    FROM booking b
+
+    JOIN package p
+        ON b.package_id = p.package_id
+
+    JOIN traveler u
+        ON b.adharno = u.adharno
+
+    LEFT JOIN transport t
+        ON t.assigned_booking_id = b.booking_id
+
+    LEFT JOIN tour_guides g
+        ON g.assigned_booking_id = b.booking_id
+
+    WHERE b.adharno = %s
+
+    ORDER BY b.booking_id DESC
+""", (session["user_id"],)) or []
+        
         return render_template("my_bookings.html", bookings=bookings)
     except Exception as e:
         flash(f"Could not load bookings: {e}", "danger")
