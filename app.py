@@ -7,6 +7,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import smtplib
 from email.mime.text import MIMEText
+import random
+import string
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "uktrip_secret_2024")
@@ -342,41 +344,63 @@ def home():
         return redirect("/admin_dashboard")
     return render_template("login.html")
 
-
+@app.route("/generate_captcha")
+def generate_captcha():
+    captcha = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    session["captcha"] = captcha
+    return redirect("/")
 @app.route("/login", methods=["POST"])
 def login():
-    role     = request.form.get("role", "user").strip()
+    role = request.form.get("role", "user").strip()
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
+    user_captcha = request.form.get("captcha", "").strip().upper()
 
-    if not username or not password:
-        flash("Username and password are required.", "danger")
+    saved_captcha = session.get("captcha", "").strip().upper()
+
+    if not username or not password or not user_captcha:
+        flash("Username, password and captcha are required.", "danger")
+        return redirect("/")
+
+    if user_captcha != saved_captcha:
+        flash("Invalid captcha.", "danger")
         return redirect("/")
 
     try:
         if role == "admin":
-            admin = query("SELECT * FROM admin WHERE name=%s", (username,), one=True)
+            admin = query(
+                "SELECT * FROM admin WHERE name=%s",
+                (username,),
+                one=True
+            )
+
             if admin and str(admin["password"]).strip() == password.strip():
                 session.clear()
                 session["admin"] = admin["name"]
                 flash("Admin login successful!", "success")
                 return redirect("/admin_dashboard")
+
             flash("Invalid admin credentials.", "danger")
             return redirect("/")
 
         user = query(
-    "SELECT * FROM traveler WHERE name=%s OR email=%s",
-    (username, username), one=True
-)
+            "SELECT * FROM traveler WHERE name=%s OR email=%s",
+            (username, username),
+            one=True
+        )
+
         if user and verify_password(user["password"], password):
             if not is_hashed(user["password"]):
                 query(
                     "UPDATE traveler SET password=%s WHERE adharno=%s",
-                    (generate_password_hash(password), user["adharno"]), commit=True
+                    (generate_password_hash(password), user["adharno"]),
+                    commit=True
                 )
+
             session.clear()
-            session["user"]    = user["name"]
+            session["user"] = user["name"]
             session["user_id"] = user["adharno"]
+
             flash("Login successful!", "success")
             return redirect("/dashboard")
 
