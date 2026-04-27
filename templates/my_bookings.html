@@ -2,70 +2,300 @@
 {% block title %}My Bookings{% endblock %}
 {% block content %}
 
+<style>
+.tab-nav{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;}
+.tab-nav button{padding:8px 18px;border:1.5px solid var(--border2);background:var(--bg3);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:.15s;}
+.tab-nav button.active{background:var(--accent);color:#0d1117;border-color:var(--accent);}
+.tab-nav button:hover:not(.active){border-color:var(--accent);color:var(--accent);}
+.tab-section{display:none;}
+.tab-section.active{display:block;}
+
+.info-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;}
+.info-badge.vehicle{background:rgba(59,125,216,.15);color:var(--blue);}
+.info-badge.guide{background:rgba(245,158,11,.15);color:var(--orange);}
+.info-badge.none{background:rgba(92,122,150,.1);color:var(--text3);}
+
+.assign-card{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+.assign-card .head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.assign-card .title{font-size:14px;font-weight:700;color:var(--text);}
+.assign-card .sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.assign-card .detail-row{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--text2);margin-bottom:4px;}
+.assign-card .label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:2px;}
+</style>
+
 <div class="topbar">
   <h1>📄 My Bookings</h1>
   <a href="/packages" class="btn btn-primary">+ New Booking</a>
 </div>
 
-<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
-  <button class="btn btn-primary" id="tab-all" onclick="ft('all')">All</button>
-  <button class="btn btn-outline" id="tab-Booked"    onclick="ft('Booked')">⏳ Pending</button>
-  <button class="btn btn-outline" id="tab-Approved"  onclick="ft('Approved')">✅ Approved</button>
-  <button class="btn btn-outline" id="tab-Rejected"  onclick="ft('Rejected')">❌ Rejected</button>
-  <button class="btn btn-outline" id="tab-Cancelled" onclick="ft('Cancelled')">🚫 Cancelled</button>
+<!-- TAB NAVIGATION -->
+<div class="tab-nav">
+  <button id="tab-bookings" class="active" onclick="switchTab('bookings')">📋 All Bookings</button>
+  <button id="tab-transport" onclick="switchTab('transport')">🚖 My Transport</button>
+  <button id="tab-guide" onclick="switchTab('guide')">👨‍💼 My Tour Guide</button>
 </div>
 
-{% if bookings %}
-<div class="card">
-  <table>
-    <thead>
-      <tr><th>#ID</th><th>Package</th><th>Duration</th><th>Travel Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
-    </thead>
-    <tbody id="brows">
-      {% for b in bookings %}
-      <tr data-status="{{ b.status }}">
-        <td><strong>#{{ b.booking_id }}</strong></td>
-        <td>{{ b.category or 'Package #'+b.package_id|string }}</td>
-        <td>{{ b.duration or '—' }}</td>
-        <td>{{ b.travel_date }}</td>
-        <td><strong>₹{{ b.total_amount }}</strong></td>
-        <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
-        <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-          <!-- Receipt always available -->
-          <a href="/receipt/{{ b.booking_id }}">
-            <button class="btn btn-outline btn-sm">🧾 Receipt</button>
-          </a>
-          {% if b.status == 'Booked' %}
-          <a href="/cancel/{{ b.booking_id }}"
-             onclick="return confirm('Cancel this booking?')">
-            <button class="btn btn-danger btn-sm">Cancel</button>
-          </a>
-          {% elif b.status == 'Approved' %}
-          <a href="/add_review">
-            <button class="btn btn-warning btn-sm">⭐ Review</button>
-          </a>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<!-- ══════════════════════════════════ -->
+<!-- TAB 1: ALL BOOKINGS               -->
+<!-- ══════════════════════════════════ -->
+<div class="tab-section active" id="section-bookings">
+
+  <!-- FILTER BAR -->
+  <div class="search-bar" style="margin-bottom:18px;">
+    <input type="text" id="bs" placeholder="🔍 Search bookings…" oninput="filterB()" style="flex:1;">
+    <select id="bst" onchange="filterB()">
+      <option value="">All Status</option>
+      <option value="Booked">Pending</option>
+      <option value="Approved">Approved</option>
+      <option value="Rejected">Rejected</option>
+      <option value="Cancelled">Cancelled</option>
+    </select>
+  </div>
+
+  <div class="card" style="overflow-x:auto;">
+    <table style="min-width:900px;">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Package</th>
+          <th>Travel Date</th>
+          <th>Amount</th>
+          <th>Vehicle</th>
+          <th>Guide</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="brows">
+        {% for b in bookings %}
+        <tr data-status="{{ b.status }}">
+          <td><strong>#{{ b.booking_id }}</strong></td>
+          <td>
+            <div style="font-weight:600;color:var(--text);">{{ b.category or 'Package #'+b.package_id|string }}</div>
+            {% if b.duration %}<div style="font-size:11px;color:var(--text3);">⏱ {{ b.duration }}</div>{% endif %}
+          </td>
+          <td style="font-size:13px;color:var(--text2);">{{ b.travel_date }}</td>
+          <td><strong style="color:var(--accent);">₹{{ b.total_amount }}</strong></td>
+
+          <!-- VEHICLE -->
+          <td>
+            {% if b.vehicle_type %}
+              <span class="info-badge vehicle">🚖 {{ b.vehicle_type }}</span>
+              {% if b.vehicle_number %}
+              <div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:2px;">{{ b.vehicle_number }}</div>
+              {% endif %}
+              {% if b.driver_name %}
+              <div style="font-size:11px;color:var(--text2);">👤 {{ b.driver_name }}</div>
+              {% endif %}
+            {% else %}
+              <span class="info-badge none">Not assigned</span>
+            {% endif %}
+          </td>
+
+          <!-- GUIDE -->
+          <td>
+            {% if b.guide_name %}
+              <span class="info-badge guide">👨‍💼 {{ b.guide_name }}</span>
+              {% if b.guide_mobile %}
+              <div style="font-size:11px;color:var(--text2);">📱 {{ b.guide_mobile }}</div>
+              {% endif %}
+              {% if b.guide_specialization %}
+              <div style="font-size:10px;color:var(--blue);">🧭 {{ b.guide_specialization }}</div>
+              {% endif %}
+            {% else %}
+              <span class="info-badge none">Not assigned</span>
+            {% endif %}
+          </td>
+
+          <!-- STATUS -->
+          <td>
+            <span class="status {{ b.status }}">{{ b.status }}</span>
+            {% if b.admin_note %}
+            <div style="font-size:10px;color:var(--text3);margin-top:3px;" title="{{ b.admin_note }}">
+              📝 {{ b.admin_note[:30] }}{% if b.admin_note|length > 30 %}…{% endif %}
+            </div>
+            {% endif %}
+          </td>
+
+          <!-- ACTIONS -->
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+              <a href="/receipt/{{ b.booking_id }}">
+                <button class="btn btn-outline btn-sm">🧾 Receipt</button>
+              </a>
+              {% if b.status == 'Booked' %}
+              <a href="/cancel_booking/{{ b.booking_id }}"
+                 onclick="return confirm('Cancel this booking?')">
+                <button class="btn btn-danger btn-sm">✕ Cancel</button>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center;color:var(--text3);padding:40px;">
+            No bookings yet. <a href="/packages" style="color:var(--accent);">Browse packages →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
-{% else %}
-<div class="card" style="text-align:center;padding:50px;">
-  <div style="font-size:40px;margin-bottom:14px;">✈️</div>
-  <h3 style="color:#888;margin-bottom:10px;">No bookings yet</h3>
-  <a href="/packages"><button class="btn btn-primary" style="padding:11px 24px;">Browse Packages</button></a>
+
+<!-- ══════════════════════════════════ -->
+<!-- TAB 2: MY TRANSPORT               -->
+<!-- ══════════════════════════════════ -->
+<div class="tab-section" id="section-transport">
+
+  <div style="background:rgba(59,125,216,.07);border:1px solid rgba(59,125,216,.2);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:var(--blue);">
+    ℹ️ Vehicles are assigned by the admin to your <strong>Approved</strong> bookings. You'll receive a notification when your vehicle is assigned.
+  </div>
+
+  {% set has_any_vehicle = false %}
+  {% for b in bookings %}
+    {% if b.vehicle_type %}
+      {% set has_any_vehicle = true %}
+      <div class="assign-card" style="border-left:4px solid var(--blue);">
+        <div class="head">
+          <div>
+            <div class="title">🚖 {{ b.vehicle_type }}
+              {% if b.vehicle_number %}
+              <span style="font-size:12px;font-family:monospace;background:var(--bg2);padding:2px 7px;border-radius:4px;color:var(--blue);margin-left:6px;">{{ b.vehicle_number }}</span>
+              {% endif %}
+            </div>
+            <div class="sub">Booking #{{ b.booking_id }} · {{ b.category }} · {{ b.travel_date }}</div>
+          </div>
+          <span class="status {{ b.status }}">{{ b.status }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;">
+          <div>
+            <div class="label">Driver Name</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);">{{ b.driver_name or '—' }}</div>
+          </div>
+          <div>
+            <div class="label">Driver Mobile</div>
+            <div style="font-size:13px;color:var(--text2);">{{ b.driver_mobile or '—' }}</div>
+          </div>
+          <div>
+            <div class="label">Seating Capacity</div>
+            <div style="font-size:13px;color:var(--text2);">{{ b.vehicle_capacity or '—' }} seats</div>
+          </div>
+        </div>
+        {% if b.vehicle_notes %}
+        <div style="margin-top:10px;font-size:12px;color:var(--text3);font-style:italic;">📝 {{ b.vehicle_notes }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  {% if not has_any_vehicle %}
+  <div class="card" style="text-align:center;padding:50px;">
+    <div style="font-size:40px;margin-bottom:14px;">🚖</div>
+    <h3 style="color:var(--text2);margin-bottom:8px;">No vehicle assigned yet</h3>
+    <p style="color:var(--text3);font-size:13px;">
+      Once your booking is <strong>approved</strong>, an admin will assign a vehicle to your trip.<br>
+      You can also request a specific vehicle type during booking.
+    </p>
+    <a href="/packages" style="margin-top:16px;display:inline-block;">
+      <button class="btn btn-primary" style="padding:10px 22px;">Book a Trip</button>
+    </a>
+  </div>
+  {% endif %}
+
 </div>
-{% endif %}
+
+<!-- ══════════════════════════════════ -->
+<!-- TAB 3: MY TOUR GUIDE              -->
+<!-- ══════════════════════════════════ -->
+<div class="tab-section" id="section-guide">
+
+  <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:var(--orange);">
+    ℹ️ Tour guides are assigned by the admin to your <strong>Approved</strong> bookings. You'll receive a notification when your guide is assigned.
+  </div>
+
+  {% set has_any_guide = false %}
+  {% for b in bookings %}
+    {% if b.guide_name %}
+      {% set has_any_guide = true %}
+      <div class="assign-card" style="border-left:4px solid var(--orange);">
+        <div class="head">
+          <div>
+            <div class="title">👨‍💼 {{ b.guide_name }}</div>
+            <div class="sub">Booking #{{ b.booking_id }} · {{ b.category }} · {{ b.travel_date }}</div>
+          </div>
+          <span class="status {{ b.status }}">{{ b.status }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;">
+          <div>
+            <div class="label">Mobile</div>
+            <div style="font-size:13px;color:var(--text2);">{{ b.guide_mobile or '—' }}</div>
+          </div>
+          <div>
+            <div class="label">Specialization</div>
+            <div style="font-size:13px;color:var(--blue);">{{ b.guide_specialization or '—' }}</div>
+          </div>
+          <div>
+            <div class="label">Languages</div>
+            <div style="font-size:13px;color:var(--text2);">{{ b.guide_languages or '—' }}</div>
+          </div>
+        </div>
+        {% if b.guide_experience %}
+        <div style="margin-top:6px;font-size:12px;color:var(--text3);">⭐ {{ b.guide_experience }} year{{ 's' if b.guide_experience != 1 }} experience</div>
+        {% endif %}
+        {% if b.guide_notes %}
+        <div style="margin-top:6px;font-size:12px;color:var(--text3);font-style:italic;">📝 {{ b.guide_notes }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  {% if not has_any_guide %}
+  <div class="card" style="text-align:center;padding:50px;">
+    <div style="font-size:40px;margin-bottom:14px;">👨‍💼</div>
+    <h3 style="color:var(--text2);margin-bottom:8px;">No guide assigned yet</h3>
+    <p style="color:var(--text3);font-size:13px;">
+      Once your booking is <strong>approved</strong>, an admin will assign a certified tour guide to your trip.
+    </p>
+    <a href="/packages" style="margin-top:16px;display:inline-block;">
+      <button class="btn btn-primary" style="padding:10px 22px;">Book a Trip</button>
+    </a>
+  </div>
+  {% endif %}
+
+</div>
 
 <script>
-function ft(s){
-  document.querySelectorAll('[id^="tab-"]').forEach(b=>b.className='btn btn-outline');
-  document.getElementById('tab-'+s).className='btn btn-primary';
-  document.querySelectorAll('#brows tr').forEach(r=>{
-    r.style.display=(s==='all'||r.dataset.status===s)?'':'none';
+/* ── TAB SWITCHING ─────────────────────────────── */
+function switchTab(tab) {
+  ['bookings','transport','guide'].forEach(function(t) {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('section-' + t).classList.toggle('active', t === tab);
   });
 }
+
+/* ── FILTER ─────────────────────────────────────── */
+function filterB() {
+  var q  = document.getElementById('bs').value.toLowerCase();
+  var st = document.getElementById('bst').value;
+  document.querySelectorAll('#brows tr[data-status]').forEach(function(r) {
+    r.style.display = (r.textContent.toLowerCase().includes(q) && (!st || r.dataset.status === st)) ? '' : 'none';
+  });
+}
+
+/* ── AUTO-OPEN TAB FROM URL ─────────────────────── */
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var tab = params.get('tab');
+  if (tab === 'transport' || tab === 'guide') {
+    switchTab(tab);
+  }
+})();
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {}
+});
 </script>
+
 {% endblock %}

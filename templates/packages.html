@@ -65,8 +65,6 @@
   padding: 2px 8px;
   border-radius: 10px;
 }
-
-/* Toast notification */
 #wl-toast {
   position: fixed;
   bottom: 28px;
@@ -88,6 +86,23 @@
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
+
+/* Booking modal step indicator */
+.step-pills{display:flex;gap:8px;margin-bottom:18px;}
+.step-pill{flex:1;text-align:center;padding:6px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid #e5e7eb;color:#aaa;background:#f9fafb;}
+.step-pill.active{background:#1e3c72;color:#fff;border-color:#1e3c72;}
+.step-pill.done{background:#d1fae5;color:#065f46;border-color:#bbf7d0;}
+
+/* Option cards for vehicle/guide selection */
+.option-grid{display:grid;grid-template-columns:1fr;gap:8px;max-height:240px;overflow-y:auto;padding-right:4px;}
+.option-card{border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:13px;}
+.option-card:hover{border-color:#2a5298;background:#f0f4ff;}
+.option-card.selected{border-color:#1e3c72;background:#e8f0fe;}
+.option-card .opt-title{font-weight:600;color:#1e3c72;margin-bottom:2px;}
+.option-card .opt-sub{font-size:11px;color:#888;}
+.option-card-none{border:1.5px dashed #e5e7eb;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:13px;color:#888;text-align:center;}
+.option-card-none:hover{border-color:#dc2626;background:#fff5f5;color:#dc2626;}
+.option-card-none.selected{border-color:#dc2626;background:#fff5f5;color:#dc2626;}
 </style>
 
 <div class="topbar">
@@ -144,11 +159,6 @@
     <div class="no-img-box">No image available</div>
     {% endif %}
 
-    <!--
-      WISHLIST HEART — AJAX toggle (no page redirect).
-      Uses a <button> with data-pid and data-in-wishlist attributes.
-      JS reads these and calls /wishlist/toggle/<pid> via fetch().
-    -->
     <button
       class="heart-btn {% if p.in_wishlist %}wishlisted{% endif %}"
       data-pid="{{ p.package_id }}"
@@ -163,8 +173,7 @@
   {% if p.images and p.images|length > 1 %}
   <div class="thumb-strip" data-main="mi{{ p.package_id }}">
     {% for img in p.images %}
-    <img src="/static/uploads/{{ img }}"
-      onclick="switchImg(this)">
+    <img src="/static/uploads/{{ img }}" onclick="switchImg(this)">
     {% endfor %}
   </div>
   {% endif %}
@@ -174,8 +183,6 @@
     <h3 style="font-size:15px;font-weight:600;color:#1e3c72;margin-bottom:5px;">
       {{ p.category }}
     </h3>
-
-    <!-- STAR RATING -->
     {% if p.avg_rating %}
     <div style="font-size:12px;color:#888;margin-bottom:5px;">
       {% for i in range(p.avg_rating|int) %}⭐{% endfor %}
@@ -208,7 +215,6 @@
   </div>
 
 </div>
-
 {% else %}
 <p style="grid-column:1/-1;text-align:center;color:#888;padding:40px 0;">
   No packages available yet.
@@ -222,25 +228,129 @@
   No packages match your filters.
 </p>
 
-<!-- BOOKING MODAL -->
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- ENHANCED BOOKING MODAL (3 steps)                         -->
+<!-- ════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="bookModal">
-  <div class="modal">
+  <div class="modal" style="width:540px;max-height:90vh;overflow-y:auto;">
     <button class="modal-close" onclick="closeBook()">✕</button>
-    <h3>📅 Confirm Booking</h3>
-    <p id="mName" style="font-size:14px;font-weight:500;color:#1e3c72;margin-bottom:4px;"></p>
-    <p style="font-size:13px;color:#888;margin-bottom:16px;">
-      Select your preferred travel date below.
-    </p>
-    <div class="form-group">
-      <label>Travel Date</label>
-      <input type="date" id="tDate">
+    <h3>📅 Book Your Trip</h3>
+
+    <!-- STEP PILLS -->
+    <div class="step-pills">
+      <div class="step-pill active" id="spill1">1 · Dates</div>
+      <div class="step-pill" id="spill2">2 · Vehicle</div>
+      <div class="step-pill" id="spill3">3 · Guide</div>
     </div>
-    <div style="background:#f0f4ff;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
-      <div style="font-size:12px;color:#555;">Total Amount</div>
-      <div id="mAmt" style="font-size:22px;font-weight:700;color:#2a5298;"></div>
+
+    <!-- ── STEP 1: DATES & PACKAGE ── -->
+    <div id="bookStep1">
+      <p id="mName" style="font-size:14px;font-weight:600;color:#1e3c72;margin-bottom:14px;"></p>
+
+      <div class="form-group">
+        <label>Travel Date</label>
+        <input type="date" id="tDate">
+      </div>
+
+      <div style="background:#f0f4ff;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+        <div style="font-size:12px;color:#555;">Package Amount</div>
+        <div id="mAmt" style="font-size:22px;font-weight:700;color:#2a5298;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="closeBook()">Cancel</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="goStep(2)">Next: Vehicle →</button>
+      </div>
     </div>
-    <button class="btn btn-primary" style="width:100%;padding:11px;"
-      onclick="confirmBook()">✅ Confirm Booking</button>
+
+    <!-- ── STEP 2: VEHICLE SELECTION ── -->
+    <div id="bookStep2" style="display:none;">
+      <p style="font-size:13px;color:#555;margin-bottom:14px;">
+        🚖 <strong>Select a vehicle</strong> for your trip. You can skip this and request later.
+      </p>
+
+      <div class="option-grid" id="vehicleGrid">
+        <!-- Filled by JS from server data -->
+        <div class="option-card-none selected" data-vid="" onclick="selectVehicle(this)">
+          🚫 Skip — No vehicle needed / will arrange later
+        </div>
+        {% for v in available_vehicles %}
+        <div class="option-card" data-vid="{{ v.id }}"
+             data-label="{{ v.vehicle_type }} ({{ v.vehicle_number or 'No Reg' }}) · Driver: {{ v.driver_name or '—' }}"
+             onclick="selectVehicle(this)">
+          <div class="opt-title">🚖 {{ v.vehicle_type }}
+            {% if v.vehicle_number %}
+            <span style="font-size:11px;font-family:monospace;background:#e8f0fe;padding:1px 6px;border-radius:3px;color:#2a5298;">{{ v.vehicle_number }}</span>
+            {% endif %}
+          </div>
+          <div class="opt-sub">
+            👤 {{ v.driver_name or 'Driver TBA' }}
+            {% if v.driver_mobile %} · 📱 {{ v.driver_mobile }}{% endif %}
+            · 💺 {{ v.capacity }} seats
+          </div>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:20px;color:#888;font-size:13px;border:1.5px dashed #e5e7eb;border-radius:8px;">
+          No vehicles available right now. Admin will assign one after booking is approved.
+        </div>
+        {% endfor %}
+      </div>
+
+      <div id="vehicleChosen" style="display:none;background:#e8f0fe;border-radius:7px;padding:8px 12px;margin-top:10px;font-size:12px;color:#1e3c72;"></div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="goStep(3)">Next: Guide →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: GUIDE SELECTION + CONFIRM ── -->
+    <div id="bookStep3" style="display:none;">
+      <p style="font-size:13px;color:#555;margin-bottom:14px;">
+        👨‍💼 <strong>Request a tour guide</strong>. You can skip this and the admin will assign one after approval.
+      </p>
+
+      <div class="option-grid" id="guideGrid">
+        <div class="option-card-none selected" data-gid="" onclick="selectGuide(this)">
+          🚫 Skip — Admin will assign a guide after approval
+        </div>
+        {% for g in available_guides %}
+        <div class="option-card" data-gid="{{ g.guide_id }}"
+             data-label="{{ g.name }} — {{ g.specialization or 'General Guide' }}"
+             onclick="selectGuide(this)">
+          <div class="opt-title">👨‍💼 {{ g.name }}</div>
+          <div class="opt-sub">
+            🧭 {{ g.specialization or 'General' }}
+            · 🌍 {{ g.languages or 'English' }}
+            · ⭐ {{ g.experience_years or 0 }} yr exp.
+            {% if g.rating %} · ★ {{ g.rating }}/5{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:20px;color:#888;font-size:13px;border:1.5px dashed #e5e7eb;border-radius:8px;">
+          No guides available right now. Admin will assign one after approval.
+        </div>
+        {% endfor %}
+      </div>
+
+      <div id="guideChosen" style="display:none;background:#fff3cd;border-radius:7px;padding:8px 12px;margin-top:10px;font-size:12px;color:#856404;"></div>
+
+      <!-- SUMMARY -->
+      <div id="bookSummary" style="background:#f0f4ff;border-radius:8px;padding:14px 16px;margin-top:14px;font-size:13px;">
+        <div style="font-weight:600;color:#1e3c72;margin-bottom:8px;">📋 Booking Summary</div>
+        <div id="sumPackage" style="margin-bottom:3px;"></div>
+        <div id="sumDate" style="margin-bottom:3px;"></div>
+        <div id="sumVehicle" style="margin-bottom:3px;"></div>
+        <div id="sumGuide" style="margin-bottom:3px;"></div>
+        <div id="sumAmount" style="margin-top:8px;font-size:16px;font-weight:700;color:#2a5298;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="confirmBook()">✅ Confirm Booking</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -248,78 +358,148 @@
 <div id="wl-toast"></div>
 
 <script>
-// ── WISHLIST TOGGLE (AJAX, no redirect) ─────────────────────
+// ── WISHLIST TOGGLE ─────────────────────────────
 function toggleWishlist(btn) {
   var pid  = btn.dataset.pid;
   var inWL = btn.dataset.inWishlist === '1';
   var url  = inWL ? '/wishlist/remove/' + pid : '/wishlist/add/' + pid;
-
-  // Optimistic UI update
   btn.dataset.inWishlist = inWL ? '0' : '1';
   btn.textContent        = inWL ? '🤍' : '❤️';
   btn.title              = inWL ? 'Add to wishlist' : 'Remove from wishlist';
   btn.classList.toggle('wishlisted', !inWL);
-
-  // Update sidebar counter optimistically
   var badge = document.querySelector('.sidebar .sb-badge');
   var cur   = badge ? parseInt(badge.textContent) || 0 : 0;
-  var delta = inWL ? -1 : 1;
-  var next  = cur + delta;
-  if (badge) {
-    badge.textContent = next;
-    badge.style.display = next > 0 ? '' : 'none';
-  }
-
-  // Show toast
+  var next  = cur + (inWL ? -1 : 1);
+  if (badge) { badge.textContent = next; badge.style.display = next > 0 ? '' : 'none'; }
   showToast(inWL ? '💔 Removed from wishlist' : '❤️ Added to wishlist!');
-
-  // Fire the request in the background
   fetch(url, { credentials: 'same-origin' })
-    .then(function(r) {
-      if (!r.ok) throw new Error('Network error');
-    })
     .catch(function() {
-      // Revert on failure
       btn.dataset.inWishlist = inWL ? '1' : '0';
-      btn.textContent        = inWL ? '❤️' : '🤍';
-      btn.title              = inWL ? 'Remove from wishlist' : 'Add to wishlist';
+      btn.textContent = inWL ? '❤️' : '🤍';
       btn.classList.toggle('wishlisted', inWL);
       if (badge) badge.textContent = cur;
-      showToast('⚠️ Could not update wishlist. Try again.');
+      showToast('⚠️ Could not update wishlist.');
     });
 }
 
 function showToast(msg) {
   var t = document.getElementById('wl-toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   clearTimeout(t._tid);
   t._tid = setTimeout(function() { t.classList.remove('show'); }, 2200);
 }
 
-// ── MODAL STATE ──────────────────────────────────────────────
-var _bid = null;
+// ── BOOKING STATE ───────────────────────────────
+var _bid = null, _price = 0, _title = '';
+var _selectedVid = '', _selectedVLabel = '';
+var _selectedGid = '', _selectedGLabel = '';
+
 document.getElementById('tDate').min = new Date().toISOString().split('T')[0];
 
 function openBookFromCard(card) {
   _bid = card.dataset.pid;
-  document.getElementById('mName').textContent = card.dataset.title;
-  document.getElementById('mAmt').textContent  = '₹' + card.dataset.price;
+  _price = card.dataset.price;
+  _title = card.dataset.title;
+  _selectedVid = ''; _selectedVLabel = '';
+  _selectedGid = ''; _selectedGLabel = '';
+
+  document.getElementById('mName').textContent = '📦 ' + _title;
+  document.getElementById('mAmt').textContent  = '₹' + _price;
+  document.getElementById('tDate').value = '';
+
+  // Reset selections
+  resetSelections('vehicleGrid');
+  resetSelections('guideGrid');
+  document.getElementById('vehicleChosen').style.display = 'none';
+  document.getElementById('guideChosen').style.display   = 'none';
+
+  goStep(1);
   document.getElementById('bookModal').classList.add('open');
+}
+
+function resetSelections(gridId) {
+  var grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.querySelectorAll('.option-card, .option-card-none').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+  var noneCard = grid.querySelector('.option-card-none');
+  if (noneCard) noneCard.classList.add('selected');
 }
 
 function closeBook() {
   document.getElementById('bookModal').classList.remove('open');
-  document.getElementById('tDate').value = '';
 }
 
+// ── STEP NAVIGATION ─────────────────────────────
+function goStep(n) {
+  [1,2,3].forEach(function(i) {
+    document.getElementById('bookStep' + i).style.display = (i === n) ? 'block' : 'none';
+    var pill = document.getElementById('spill' + i);
+    pill.classList.toggle('active', i === n);
+    pill.classList.toggle('done',   i < n);
+  });
+
+  if (n === 3) updateSummary();
+}
+
+// ── VEHICLE SELECTION ───────────────────────────
+function selectVehicle(card) {
+  document.getElementById('vehicleGrid').querySelectorAll('.option-card, .option-card-none').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+  card.classList.add('selected');
+  _selectedVid    = card.dataset.vid || '';
+  _selectedVLabel = card.dataset.label || '';
+
+  var box = document.getElementById('vehicleChosen');
+  if (_selectedVid) {
+    box.style.display = 'block';
+    box.innerHTML = '✅ Selected: <strong>' + _selectedVLabel + '</strong>';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// ── GUIDE SELECTION ─────────────────────────────
+function selectGuide(card) {
+  document.getElementById('guideGrid').querySelectorAll('.option-card, .option-card-none').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+  card.classList.add('selected');
+  _selectedGid    = card.dataset.gid || '';
+  _selectedGLabel = card.dataset.label || '';
+
+  var box = document.getElementById('guideChosen');
+  if (_selectedGid) {
+    box.style.display = 'block';
+    box.innerHTML = '✅ Requested: <strong>' + _selectedGLabel + '</strong>';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// ── SUMMARY UPDATE ──────────────────────────────
+function updateSummary() {
+  document.getElementById('sumPackage').innerHTML = '📦 <strong>' + _title + '</strong>';
+  document.getElementById('sumDate').innerHTML    = '📅 Travel: <strong>' + (document.getElementById('tDate').value || '—') + '</strong>';
+  document.getElementById('sumVehicle').innerHTML = '🚖 Vehicle: <strong>' + (_selectedVid ? _selectedVLabel : 'None / Admin will assign') + '</strong>';
+  document.getElementById('sumGuide').innerHTML   = '👨‍💼 Guide: <strong>' + (_selectedGid ? _selectedGLabel : 'None / Admin will assign') + '</strong>';
+  document.getElementById('sumAmount').innerHTML  = 'Total: ₹' + _price;
+}
+
+// ── CONFIRM BOOKING ─────────────────────────────
 function confirmBook() {
   var d = document.getElementById('tDate').value;
-  if (!d) { alert('Please select a travel date.'); return; }
-  window.location.href = '/book/' + _bid + '?travel_date=' + d;
+  if (!d) { alert('Please go back and select a travel date.'); goStep(1); return; }
+
+  var url = '/book/' + _bid + '?travel_date=' + d;
+  if (_selectedVid) url += '&vehicle_id=' + _selectedVid;
+  if (_selectedGid) url += '&guide_id='   + _selectedGid;
+  window.location.href = url;
 }
 
-// ── THUMBNAIL SWITCHER ───────────────────────────────────────
+// ── THUMBNAIL SWITCHER ──────────────────────────
 function switchImg(thumb) {
   var strip  = thumb.closest('.thumb-strip');
   var mainId = strip.dataset.main;
@@ -328,7 +508,7 @@ function switchImg(thumb) {
   thumb.classList.add('active');
 }
 
-// ── FILTER / SEARCH / SORT ───────────────────────────────────
+// ── FILTER / SEARCH / SORT ──────────────────────
 function filterPkg() {
   var q    = document.getElementById('q').value.toLowerCase().trim();
   var sort = document.getElementById('sort').value;
@@ -340,12 +520,10 @@ function filterPkg() {
     var name  = c.dataset.name;
     var price = parseFloat(c.dataset.price);
     var dd    = parseInt(c.dataset.dur) || 0;
-
-    var ok = name.includes(q) && price <= maxp;
+    var ok    = name.includes(q) && price <= maxp;
     if (dur === 'short'  && dd > 5)              ok = false;
     if (dur === 'medium' && (dd < 6 || dd > 10)) ok = false;
     if (dur === 'long'   && dd < 11)             ok = false;
-
     c.style.display = ok ? '' : 'none';
     if (ok) vis++;
   });
@@ -354,8 +532,7 @@ function filterPkg() {
 
   if (sort) {
     var grid  = document.getElementById('pgrid');
-    var cards = Array.from(grid.querySelectorAll('.pkg-card'))
-                     .filter(function(c) { return c.style.display !== 'none'; });
+    var cards = Array.from(grid.querySelectorAll('.pkg-card')).filter(function(c) { return c.style.display !== 'none'; });
     cards.sort(function(a, b) {
       if (sort === 'pasc')   return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
       if (sort === 'pdesc')  return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
@@ -368,14 +545,11 @@ function filterPkg() {
 }
 
 function clearF() {
-  document.getElementById('q').value    = '';
-  document.getElementById('maxp').value = '';
-  document.getElementById('sort').value = '';
-  document.getElementById('dur').value  = '';
+  ['q','maxp'].forEach(function(id) { document.getElementById(id).value = ''; });
+  ['sort','dur'].forEach(function(id) { document.getElementById(id).value = ''; });
   filterPkg();
 }
 
-// Close modal on Escape
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeBook();
 });

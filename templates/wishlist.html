@@ -2,6 +2,22 @@
 {% block title %}Wishlist{% endblock %}
 {% block content %}
 
+<style>
+.option-grid{display:grid;grid-template-columns:1fr;gap:8px;max-height:200px;overflow-y:auto;padding-right:4px;}
+.option-card{border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:13px;}
+.option-card:hover{border-color:#2a5298;background:#f0f4ff;}
+.option-card.selected{border-color:#1e3c72;background:#e8f0fe;}
+.option-card .opt-title{font-weight:600;color:#1e3c72;margin-bottom:2px;}
+.option-card .opt-sub{font-size:11px;color:#888;}
+.option-card-none{border:1.5px dashed #e5e7eb;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:13px;color:#888;text-align:center;}
+.option-card-none:hover{border-color:#dc2626;background:#fff5f5;color:#dc2626;}
+.option-card-none.selected{border-color:#aaa;background:#f9fafb;color:#aaa;}
+.step-pills{display:flex;gap:8px;margin-bottom:16px;}
+.step-pill{flex:1;text-align:center;padding:6px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid #e5e7eb;color:#aaa;background:#f9fafb;}
+.step-pill.active{background:#1e3c72;color:#fff;border-color:#1e3c72;}
+.step-pill.done{background:#d1fae5;color:#065f46;border-color:#bbf7d0;}
+</style>
+
 <div class="topbar">
   <h1>❤️ My Wishlist</h1>
   <a href="/packages" class="btn btn-primary">+ Add More</a>
@@ -30,10 +46,6 @@
         ₹{{ p.amt_rate }}
       </p>
       <div style="display:flex;gap:8px;">
-        {#
-          FIX: data-* attributes used instead of Jinja inside onclick string.
-          This prevents JS parse errors when category names contain apostrophes.
-        #}
         <button class="btn btn-primary" style="flex:1;padding:9px;"
           data-pid="{{ p.package_id }}"
           data-title="{{ p.category | e }}"
@@ -67,56 +79,198 @@
 </div>
 {% endif %}
 
-<!-- BOOKING MODAL -->
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- ENHANCED BOOKING MODAL (3 steps)                         -->
+<!-- ════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="bookModal">
-  <div class="modal">
+  <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto;">
     <button class="modal-close" onclick="closeBookModal()">✕</button>
-    <h3>📅 Confirm Booking</h3>
-    <p id="modalPkgName"
-      style="font-size:14px;font-weight:500;color:#1e3c72;margin-bottom:16px;"></p>
+    <h3>📅 Book Your Trip</h3>
 
-    <div class="form-group">
-      <label>Travel Date</label>
-      <input type="date" id="travelDate">
+    <!-- STEP PILLS -->
+    <div class="step-pills">
+      <div class="step-pill active" id="spill1">1 · Dates</div>
+      <div class="step-pill" id="spill2">2 · Vehicle</div>
+      <div class="step-pill" id="spill3">3 · Guide</div>
     </div>
 
-    <div style="background:#f0f4ff;border-radius:8px;
-      padding:12px 14px;margin-bottom:16px;">
-      <div style="font-size:12px;color:#555;">Total Amount</div>
-      <div id="modalAmt"
-        style="font-size:22px;font-weight:700;color:#2a5298;"></div>
+    <!-- ── STEP 1 ── -->
+    <div id="bookStep1">
+      <p id="modalPkgName" style="font-size:14px;font-weight:600;color:#1e3c72;margin-bottom:14px;"></p>
+
+      <div class="form-group">
+        <label>Travel Date</label>
+        <input type="date" id="travelDate">
+      </div>
+
+      <div style="background:#f0f4ff;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+        <div style="font-size:12px;color:#555;">Total Amount</div>
+        <div id="modalAmt" style="font-size:22px;font-weight:700;color:#2a5298;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="closeBookModal()">Cancel</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="goStep(2)">Next: Vehicle →</button>
+      </div>
     </div>
 
-    <button class="btn btn-primary" style="width:100%;padding:11px;"
-      onclick="confirmBook()">
-      ✅ Confirm Booking
-    </button>
+    <!-- ── STEP 2 ── -->
+    <div id="bookStep2" style="display:none;">
+      <p style="font-size:13px;color:#555;margin-bottom:14px;">
+        🚖 <strong>Select a vehicle</strong> — or skip and admin will assign after approval.
+      </p>
+      <div class="option-grid" id="vehicleGrid">
+        <div class="option-card-none selected" data-vid="" onclick="selectVehicle(this)">
+          🚫 Skip — No vehicle / Admin will assign
+        </div>
+        {% for v in available_vehicles %}
+        <div class="option-card" data-vid="{{ v.id }}"
+             data-label="{{ v.vehicle_type }} ({{ v.vehicle_number or 'No Reg' }}) · {{ v.driver_name or 'Driver TBA' }}"
+             onclick="selectVehicle(this)">
+          <div class="opt-title">🚖 {{ v.vehicle_type }}
+            {% if v.vehicle_number %}
+            <span style="font-size:11px;font-family:monospace;background:#e8f0fe;padding:1px 5px;border-radius:3px;color:#2a5298;">{{ v.vehicle_number }}</span>
+            {% endif %}
+          </div>
+          <div class="opt-sub">👤 {{ v.driver_name or 'TBA' }} · 💺 {{ v.capacity }} seats</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div id="vehicleChosen" style="display:none;background:#e8f0fe;border-radius:7px;padding:8px 12px;margin-top:8px;font-size:12px;color:#1e3c72;"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="goStep(3)">Next: Guide →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3 ── -->
+    <div id="bookStep3" style="display:none;">
+      <p style="font-size:13px;color:#555;margin-bottom:14px;">
+        👨‍💼 <strong>Request a tour guide</strong> — or skip for admin assignment.
+      </p>
+      <div class="option-grid" id="guideGrid">
+        <div class="option-card-none selected" data-gid="" onclick="selectGuide(this)">
+          🚫 Skip — Admin will assign a guide
+        </div>
+        {% for g in available_guides %}
+        <div class="option-card" data-gid="{{ g.guide_id }}"
+             data-label="{{ g.name }} — {{ g.specialization or 'General' }}"
+             onclick="selectGuide(this)">
+          <div class="opt-title">👨‍💼 {{ g.name }}</div>
+          <div class="opt-sub">🧭 {{ g.specialization or 'General' }} · {{ g.experience_years or 0 }} yr exp.{% if g.rating %} · ★ {{ g.rating }}/5{% endif %}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div id="guideChosen" style="display:none;background:#fff3cd;border-radius:7px;padding:8px 12px;margin-top:8px;font-size:12px;color:#856404;"></div>
+
+      <!-- SUMMARY -->
+      <div id="bookSummary" style="background:#f0f4ff;border-radius:8px;padding:14px 16px;margin-top:14px;font-size:13px;">
+        <div style="font-weight:600;color:#1e3c72;margin-bottom:8px;">📋 Summary</div>
+        <div id="sumPackage"></div>
+        <div id="sumDate"></div>
+        <div id="sumVehicle"></div>
+        <div id="sumGuide"></div>
+        <div id="sumAmount" style="margin-top:8px;font-size:16px;font-weight:700;color:#2a5298;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-outline" style="flex:1;padding:11px;" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="confirmBook()">✅ Confirm Booking</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
-var _bookId = null;
+var _bookId = null, _bookPrice = '', _bookTitle = '';
+var _selectedVid = '', _selectedVLabel = '';
+var _selectedGid = '', _selectedGLabel = '';
+
 document.getElementById('travelDate').min = new Date().toISOString().split('T')[0];
 
-/* FIX: reads data-pid, data-title, data-price from the button element
-   instead of embedding Jinja values inside onclick="..." strings */
 function openBookFromCard(btn) {
-  _bookId = btn.getAttribute('data-pid');
-  document.getElementById('modalPkgName').textContent = btn.getAttribute('data-title');
-  document.getElementById('modalAmt').textContent = '\u20B9' + btn.getAttribute('data-price');
+  _bookId    = btn.getAttribute('data-pid');
+  _bookTitle = btn.getAttribute('data-title');
+  _bookPrice = btn.getAttribute('data-price');
+  _selectedVid = ''; _selectedVLabel = '';
+  _selectedGid = ''; _selectedGLabel = '';
+
+  document.getElementById('modalPkgName').textContent = '📦 ' + _bookTitle;
+  document.getElementById('modalAmt').textContent     = '₹' + _bookPrice;
+  document.getElementById('travelDate').value = '';
+
+  resetAll('vehicleGrid');
+  resetAll('guideGrid');
+  document.getElementById('vehicleChosen').style.display = 'none';
+  document.getElementById('guideChosen').style.display   = 'none';
+
+  goStep(1);
   document.getElementById('bookModal').classList.add('open');
+}
+
+function resetAll(gridId) {
+  var g = document.getElementById(gridId);
+  if (!g) return;
+  g.querySelectorAll('.option-card, .option-card-none').forEach(function(c) { c.classList.remove('selected'); });
+  var none = g.querySelector('.option-card-none');
+  if (none) none.classList.add('selected');
 }
 
 function closeBookModal() {
   document.getElementById('bookModal').classList.remove('open');
-  document.getElementById('travelDate').value = '';
+}
+
+function goStep(n) {
+  [1,2,3].forEach(function(i) {
+    document.getElementById('bookStep' + i).style.display = (i === n) ? 'block' : 'none';
+    var p = document.getElementById('spill' + i);
+    p.classList.toggle('active', i === n);
+    p.classList.toggle('done',   i < n);
+  });
+  if (n === 3) updateSummary();
+}
+
+function selectVehicle(card) {
+  document.getElementById('vehicleGrid').querySelectorAll('.option-card,.option-card-none').forEach(function(c) { c.classList.remove('selected'); });
+  card.classList.add('selected');
+  _selectedVid    = card.dataset.vid || '';
+  _selectedVLabel = card.dataset.label || '';
+  var box = document.getElementById('vehicleChosen');
+  if (_selectedVid) { box.style.display = 'block'; box.innerHTML = '✅ Selected: <strong>' + _selectedVLabel + '</strong>'; }
+  else { box.style.display = 'none'; }
+}
+
+function selectGuide(card) {
+  document.getElementById('guideGrid').querySelectorAll('.option-card,.option-card-none').forEach(function(c) { c.classList.remove('selected'); });
+  card.classList.add('selected');
+  _selectedGid    = card.dataset.gid || '';
+  _selectedGLabel = card.dataset.label || '';
+  var box = document.getElementById('guideChosen');
+  if (_selectedGid) { box.style.display = 'block'; box.innerHTML = '✅ Requested: <strong>' + _selectedGLabel + '</strong>'; }
+  else { box.style.display = 'none'; }
+}
+
+function updateSummary() {
+  document.getElementById('sumPackage').innerHTML = '📦 <strong>' + _bookTitle + '</strong>';
+  document.getElementById('sumDate').innerHTML    = '📅 <strong>' + (document.getElementById('travelDate').value || '—') + '</strong>';
+  document.getElementById('sumVehicle').innerHTML = '🚖 ' + (_selectedVid ? _selectedVLabel : 'Admin will assign');
+  document.getElementById('sumGuide').innerHTML   = '👨‍💼 ' + (_selectedGid ? _selectedGLabel : 'Admin will assign');
+  document.getElementById('sumAmount').innerHTML  = 'Total: ₹' + _bookPrice;
 }
 
 function confirmBook() {
   var d = document.getElementById('travelDate').value;
-  if (!d) { alert('Please select a travel date.'); return; }
-  window.location.href = '/book/' + _bookId + '?travel_date=' + d;
+  if (!d) { alert('Please go back and select a travel date.'); goStep(1); return; }
+  var url = '/book/' + _bookId + '?travel_date=' + d;
+  if (_selectedVid) url += '&vehicle_id=' + _selectedVid;
+  if (_selectedGid) url += '&guide_id='   + _selectedGid;
+  window.location.href = url;
 }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeBookModal();
+});
 </script>
 
 {% endblock %}
