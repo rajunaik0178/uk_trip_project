@@ -360,16 +360,9 @@ def login():
     role = request.form.get("role", "user").strip()
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
-    user_captcha = request.form.get("captcha", "").strip().upper()
 
-    saved_captcha = session.get("captcha", "").strip().upper()
-
-    if not username or not password or not user_captcha:
-        flash("Username, password and captcha are required.", "danger")
-        return redirect("/")
-
-    if user_captcha != saved_captcha:
-        flash("Invalid captcha.", "danger")
+    if not username or not password:
+        flash("Username and password are required.", "danger")
         return redirect("/")
 
     try:
@@ -416,8 +409,6 @@ def login():
     except Exception as e:
         flash(f"Login error: {e}", "danger")
         return redirect("/")
-
-
 @app.route("/register")
 def register():
     return render_template("register.html")

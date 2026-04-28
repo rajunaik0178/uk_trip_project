@@ -233,6 +233,7 @@ body::before{
   letter-spacing:3px;
   text-align:center;
   font-size:18px;
+  user-select:none;
 }
 
 .refresh-btn{
@@ -388,7 +389,7 @@ body::before{
       </button>
     </div>
 
-    <form action="/login" method="POST">
+    <form action="/login" method="POST" onsubmit="return validateCaptcha()">
 
       <input type="hidden" name="role" id="roleField" value="user">
 
@@ -418,12 +419,12 @@ body::before{
       <label class="fl">Captcha</label>
 
       <div class="captcha-box">
-        <div class="captcha-text">{{ session.get('captcha', '') }}</div>
-
+        <div class="captcha-text" id="captchaDisplay"></div>
         <button
           type="button"
           class="refresh-btn"
-          onclick="window.location.href='/generate_captcha'"
+          onclick="newCaptcha()"
+          title="Refresh Captcha"
         >
           ↻
         </button>
@@ -432,9 +433,11 @@ body::before{
       <input
         class="fi"
         type="text"
+        id="captchaInput"
         name="captcha"
         placeholder="Enter captcha shown above"
         required
+        autocomplete="off"
       >
 
       <div class="forgot-link">
@@ -456,7 +459,40 @@ body::before{
 </div>
 
 <script>
-function setRole(role){
+/* ── CAPTCHA ─────────────────────────────────────────────────── */
+var _captchaCode = '';
+
+function makeCaptcha() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var result = '';
+  for (var i = 0; i < 6; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result;
+}
+
+function newCaptcha() {
+  _captchaCode = makeCaptcha();
+  document.getElementById('captchaDisplay').textContent = _captchaCode;
+  document.getElementById('captchaInput').value = '';
+  document.getElementById('captchaInput').focus();
+}
+
+function validateCaptcha() {
+  var entered = document.getElementById('captchaInput').value.trim().toUpperCase();
+  if (entered !== _captchaCode) {
+    alert('Incorrect captcha. Please try again.');
+    newCaptcha();
+    return false;
+  }
+  return true;
+}
+
+/* Generate captcha immediately when page loads */
+newCaptcha();
+
+/* ── ROLE TABS ───────────────────────────────────────────────── */
+function setRole(role) {
   document.getElementById('roleField').value = role;
   document.getElementById('tabUser').classList.remove('active');
   document.getElementById('tabAdmin').classList.remove('active');
@@ -465,10 +501,10 @@ function setRole(role){
   ).classList.add('active');
 }
 
-function togglePw(){
+/* ── PASSWORD TOGGLE ─────────────────────────────────────────── */
+function togglePw() {
   var inp = document.getElementById('pwInput');
   var eye = document.getElementById('eyeIcon');
-
   inp.type = inp.type === 'password' ? 'text' : 'password';
   eye.textContent = inp.type === 'password' ? '👁' : '🙈';
 }

@@ -50,16 +50,26 @@ body{
 /* ═════════════════ SIDEBAR ═════════════════ */
 .sidebar{
   width:var(--sidebar-w);
-  min-height:100vh;
+  height:100vh;           /* fixed height so scroll activates */
   background:var(--bg2);
   border-right:1px solid var(--border);
   display:flex;flex-direction:column;
   position:fixed;top:0;left:0;
-  overflow-y:auto;z-index:200;
+  overflow-y:auto;        /* scroll when content overflows */
+  overflow-x:hidden;
+  z-index:200;
 }
+
+/* thin scrollbar inside sidebar */
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-track{background:var(--bg2);}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.sidebar::-webkit-scrollbar-thumb:hover{background:var(--text3);}
+
 .sb-hd{
   padding:20px 18px 15px;
   border-bottom:1px solid var(--border);
+  flex-shrink:0;          /* never compress the header */
 }
 .sb-hd h2{
   font-family:'Space Grotesk',sans-serif;
@@ -71,12 +81,14 @@ body{
   padding:14px 18px 5px;
   font-size:9px;text-transform:uppercase;
   letter-spacing:1.5px;color:var(--text3);
+  flex-shrink:0;
 }
 .sidebar a{
   display:flex;align-items:center;gap:9px;
   color:var(--text2);padding:9px 18px;
   text-decoration:none;font-size:12.5px;font-weight:500;
   transition:all .15s;border-left:2px solid transparent;
+  flex-shrink:0;
 }
 .sidebar a:hover{color:var(--text);background:rgba(255,255,255,0.03);}
 .sidebar a.active{color:var(--accent);background:var(--accent-dim2);border-left-color:var(--accent);}
@@ -85,8 +97,15 @@ body{
   font-size:9px;padding:2px 6px;border-radius:10px;font-weight:700;
 }
 .sb-ft{
-  margin-top:auto;padding:14px 18px;
+  padding:14px 18px;
   border-top:1px solid var(--border);
+  flex-shrink:0;          /* never compress the footer */
+  margin-top:auto;        /* push to bottom when there's space */
+  /* sticky logout — always visible at bottom when scrolled to end */
+  position:sticky;
+  bottom:0;
+  background:var(--bg2);
+  z-index:1;
 }
 
 /* ═════════════════ CONTENT ═════════════════ */
@@ -322,6 +341,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
   background:var(--accent);display:inline-block;margin-right:5px;
 }
 
+/* Global scrollbar */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
