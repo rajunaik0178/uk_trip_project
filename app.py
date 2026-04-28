@@ -357,58 +357,51 @@ def generate_captcha():
     return redirect("/")
 @app.route("/login", methods=["POST"])
 def login():
-    role = request.form.get("role", "user").strip()
     username = request.form.get("username", "").strip()
-    password = request.form.get("password", "")
+    password = request.form.get("password", "").strip()
+    user_captcha = request.form.get("captcha", "").strip().upper()
 
-    if not username or not password:
-        flash("Username and password are required.", "danger")
+    if not username or not password or not user_captcha:
+        flash("Username, password and captcha are required.", "danger")
         return redirect("/")
 
-    try:
-        if role == "admin":
-            admin = query(
-                "SELECT * FROM admin WHERE name=%s",
-                (username,),
-                one=True
-            )
+    # ================= USER LOGIN =================
+    user = query(
+        "SELECT * FROM traveler WHERE name=%s",
+        (username,),
+        one=True
+    )
 
-            if admin and str(admin["password"]).strip() == password.strip():
-                session.clear()
-                session["admin"] = admin["name"]
-                flash("Admin login successful!", "success")
-                return redirect("/admin_dashboard")
+    if user:
+        db_password = str(user["password"]).strip()
 
-            flash("Invalid admin credentials.", "danger")
-            return redirect("/")
-
-        user = query(
-            "SELECT * FROM traveler WHERE name=%s OR email=%s",
-            (username, username),
-            one=True
-        )
-
-        if user and verify_password(user["password"], password):
-            if not is_hashed(user["password"]):
-                query(
-                    "UPDATE traveler SET password=%s WHERE adharno=%s",
-                    (generate_password_hash(password), user["adharno"]),
-                    commit=True
-                )
-
+        if check_password_hash(db_password, password.strip()):
             session.clear()
-            session["user"] = user["name"]
             session["user_id"] = user["adharno"]
+            session["user"] = user["name"]
 
             flash("Login successful!", "success")
             return redirect("/dashboard")
 
-        flash("Invalid username or password.", "danger")
-        return redirect("/")
+    # ================= ADMIN LOGIN =================
+    admin = query(
+        "SELECT * FROM admin WHERE name=%s",
+        (username,),
+        one=True
+    )
 
-    except Exception as e:
-        flash(f"Login error: {e}", "danger")
-        return redirect("/")
+    if admin:
+        db_password = str(admin["password"]).strip()
+
+        if db_password == password.strip():
+            session.clear()
+            session["admin"] = admin["name"]
+
+            flash("Admin login successful!", "success")
+            return redirect("/admin_dashboard")
+
+    flash("Invalid username or password.", "danger")
+    return redirect("/")
 @app.route("/register")
 def register():
     return render_template("register.html")
@@ -416,12 +409,12 @@ def register():
 
 @app.route("/register_user", methods=["POST"])
 def register_user():
-    adhar    = request.form.get("adhar", "").strip()
-    name     = request.form.get("name", "").strip()
-    address  = request.form.get("address", "").strip()
-    email    = request.form.get("email", "").strip()
-    mobile   = request.form.get("mobile", "").strip()
-    password = request.form.get("password", "")
+    adhar = request.form.get("adhar", "").strip()
+    name = request.form.get("name", "").strip().lower()
+    address = request.form.get("address", "").strip()
+    email = request.form.get("email", "").strip()
+    mobile = request.form.get("mobile", "").strip()
+    password = request.form.get("password", "").strip()
 
     if not all([adhar, name, address, email, mobile, password]):
         flash("All fields are required.", "danger")
@@ -464,7 +457,6 @@ def register_user():
     except Exception as e:
         flash(f"Registration failed: {e}", "danger")
         return redirect("/register")
-
 
 # ── FIX: added methods=["GET","POST"] ──
 @app.route("/forgot_password", methods=["GET", "POST"])

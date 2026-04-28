@@ -379,20 +379,11 @@ body::before{
       {% endfor %}
     {% endwith %}
 
-    <div class="role-tabs">
-      <button type="button" class="role-tab active" id="tabUser" onclick="setRole('user')">
-        👤 &nbsp;Traveler
-      </button>
-
-      <button type="button" class="role-tab" id="tabAdmin" onclick="setRole('admin')">
-        🛡 &nbsp;Admin
-      </button>
-    </div>
+   
 
     <form action="/login" method="POST" onsubmit="return validateCaptcha()">
 
-      <input type="hidden" name="role" id="roleField" value="user">
-
+      
       <label class="fl">Username</label>
       <input
         class="fi"
@@ -491,15 +482,7 @@ function validateCaptcha() {
 /* Generate captcha immediately when page loads */
 newCaptcha();
 
-/* ── ROLE TABS ───────────────────────────────────────────────── */
-function setRole(role) {
-  document.getElementById('roleField').value = role;
-  document.getElementById('tabUser').classList.remove('active');
-  document.getElementById('tabAdmin').classList.remove('active');
-  document.getElementById(
-    role === 'user' ? 'tabUser' : 'tabAdmin'
-  ).classList.add('active');
-}
+
 
 /* ── PASSWORD TOGGLE ─────────────────────────────────────────── */
 function togglePw() {
