@@ -53,13 +53,14 @@
   </div>
 
   <div class="card" style="overflow-x:auto;">
-    <table style="min-width:900px;">
+    <table style="min-width:980px;">
       <thead>
         <tr>
           <th>#</th>
           <th>Package</th>
           <th>Travel Date</th>
           <th>Amount</th>
+          <th>Payment</th>
           <th>Vehicle</th>
           <th>Guide</th>
           <th>Status</th>
@@ -76,6 +77,20 @@
           </td>
           <td style="font-size:13px;color:var(--text2);">{{ b.travel_date }}</td>
           <td><strong style="color:var(--accent);">₹{{ b.total_amount }}</strong></td>
+
+          <td>
+            {% set paid = b.amount_paid or 0 %}
+            {% if paid >= b.total_amount %}
+              <span class="info-badge vehicle">Paid</span>
+            {% else %}
+              <span class="info-badge none">Unpaid</span>
+              <div style="margin-top:5px;">
+                <a href="/pay_booking/{{ b.booking_id }}">
+                  <button class="btn btn-success btn-sm">Pay Now</button>
+                </a>
+              </div>
+            {% endif %}
+          </td>
 
           <!-- VEHICLE -->
           <td>
@@ -134,7 +149,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="8" style="text-align:center;color:var(--text3);padding:40px;">
+          <td colspan="9" style="text-align:center;color:var(--text3);padding:40px;">
             No bookings yet. <a href="/packages" style="color:var(--accent);">Browse packages →</a>
           </td>
         </tr>

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+
+<div class="topbar">
+  <h1>Complete Payment</h1>
+  <a href="/my_bookings" class="btn btn-outline">Back to My Bookings</a>
+</div>
+
+<div class="card" style="max-width:560px;margin:0 auto;">
+  <div style="border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:18px;">
+    <h3 style="margin-bottom:8px;">Booking #{{ booking.booking_id }}</h3>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      Package: <strong style="color:var(--text);">{{ booking.category }}</strong><br>
+      Travel Date: <strong style="color:var(--text);">{{ booking.travel_date }}</strong><br>
+      Members: <strong style="color:var(--text);">{{ booking.num_members or 1 }}</strong>
+    </div>
+  </div>
+
+  <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:18px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+      <span style="color:var(--text2);">Total Amount</span>
+      <strong>Rs {{ booking.total_amount }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+      <span style="color:var(--text2);">Already Paid</span>
+      <strong>Rs {{ booking.amount_paid or 0 }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;">
+      <span style="color:var(--text);font-weight:700;">Pay Now</span>
+      <strong style="color:var(--accent);font-size:22px;">Rs {{ "%.2f"|format(balance_due) }}</strong>
+    </div>
+  </div>
+
+  <form method="POST">
+    <div class="form-group">
+      <label>Fake Payment Mode</label>
+      <select name="payment_mode" required>
+        <option value="UPI">UPI</option>
+        <option value="Card">Card</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+        <option value="Other">Wallet / Other</option>
+      </select>
+    </div>
+
+    <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px;margin-bottom:16px;color:var(--green);font-size:12px;">
+      This is a demo gateway. Clicking Pay records a successful fake payment.
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">
+      Pay Rs {{ "%.2f"|format(balance_due) }}
+    </button>
+  </form>
+</div>
+
+{% endblock %}

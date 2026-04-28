@@ -397,7 +397,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
     ◈ &nbsp;Travelers
   </a>
   <a href="/view_bookings" {% if request.path=='/view_bookings' %}class="active"{% endif %}>
-    ≡ &nbsp;Bookings
+    ≡ &nbsp;Bookings / Assign
     {% if pending_admin %}<span class="sb-badge">{{ pending_admin }}</span>{% endif %}
   </a>
   <a href="/view_reviews" {% if request.path=='/view_reviews' %}class="active"{% endif %}>

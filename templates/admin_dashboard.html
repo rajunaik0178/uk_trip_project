@@ -230,7 +230,10 @@
         <tr>
           <th>Traveler</th>
           <th>Package</th>
+          <th>Members</th>
+          <th>Assigned</th>
           <th>Amount</th>
+          <th>Payment</th>
           <th>Status</th>
           <th>Action</th>
         </tr>
@@ -240,7 +243,23 @@
         <tr>
           <td>{{ b.traveler_name or b.adharno }}</td>
           <td>{{ b.category or 'Pkg #'+b.package_id|string }}</td>
+          <td>{{ b.num_members or 1 }}</td>
+          <td style="font-size:12px;color:#666;">
+            {% if b.vehicle_type %}Vehicle: {{ b.vehicle_type }}{% if b.vehicle_number %} ({{ b.vehicle_number }}){% endif %}<br>{% endif %}
+            {% if b.guide_name %}Guide: {{ b.guide_name }}{% endif %}
+            {% if not b.vehicle_type and not b.guide_name %}<span style="color:#aaa;">Not assigned</span>{% endif %}
+          </td>
           <td>₹{{ b.total_amount }}</td>
+          <td style="font-size:12px;">
+            {% set paid = b.amount_paid or 0 %}
+            {% if paid >= b.total_amount %}
+              <span style="color:#16a34a;font-weight:700;">Paid</span>
+            {% elif paid > 0 %}
+              <span style="color:#d97706;font-weight:700;">Partial</span>
+            {% else %}
+              <span style="color:#dc2626;font-weight:700;">Unpaid</span>
+            {% endif %}
+          </td>
           <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
           <td>
             {% if b.status == 'Booked' %}
