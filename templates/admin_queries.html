@@ -4,14 +4,20 @@
 <div class="topbar">
   <h1>💬 User Queries / Messages</h1>
   <span style="font-size:13px;color:#888;">
-    {{ queries|length }} message{{ 's' if queries|length != 1 }}
+    {{ queries|length }} message{{ 's' if queries|length != 1 else '' }}
   </span>
 </div>
 
 <!-- FILTER BAR -->
 <div class="search-bar">
-  <input type="text" id="qs" placeholder="🔍 Search by name, subject or message…"
-    oninput="filterQ()" style="flex:1;">
+  <input
+    type="text"
+    id="qs"
+    placeholder="🔍 Search by name, subject or message..."
+    oninput="filterQ()"
+    style="flex:1;"
+  >
+
   <select id="qsub" onchange="filterQ()">
     <option value="">All Subjects</option>
     <option value="Booking Query">Booking Query</option>
@@ -20,6 +26,7 @@
     <option value="Refund Request">Refund Request</option>
     <option value="Other">Other</option>
   </select>
+
   <select id="qread" onchange="filterQ()">
     <option value="">All Status</option>
     <option value="0">Unread</option>
@@ -27,66 +34,158 @@
   </select>
 </div>
 
-<!-- STATS STRIP -->
-<div class="stats-container"
-  style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:20px;">
-  <div class="stat-card" style="background:linear-gradient(135deg,#1e3c72,#2a5298);">
+<!-- STATS -->
+<div
+  class="stats-container"
+  style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:20px;"
+>
+  <div class="stat-card">
     <h3>Total</h3>
     <h1>{{ queries|length }}</h1>
     <div class="sub">Messages</div>
   </div>
-  <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#f87171);">
+
+  <div class="stat-card">
     <h3>Unread</h3>
-    <h1>{{ queries|selectattr('is_read','equalto',0)|list|length }}</h1>
+    <h1>{{ queries|selectattr('is_read', 'equalto', 0) | list | length }}</h1>
     <div class="sub">Pending review</div>
   </div>
-  <div class="stat-card" style="background:linear-gradient(135deg,#16a34a,#4ade80);color:#052e16;">
+
+  <div class="stat-card">
     <h3>Read</h3>
-    <h1>{{ queries|selectattr('is_read','equalto',1)|list|length }}</h1>
+    <h1>{{ queries|selectattr('is_read', 'equalto', 1) | list | length }}</h1>
     <div class="sub">Reviewed</div>
   </div>
 </div>
 
-<!-- QUERIES TABLE -->
+<!-- TABLE -->
 <div class="card" style="overflow-x:auto;">
-  <table id="qTable" style="min-width:750px;">
+  <table id="qTable" style="min-width:1000px;">
     <thead>
       <tr>
         <th>#</th>
         <th>From</th>
         <th>Subject</th>
         <th>Message</th>
+        <th>Admin Reply</th>
         <th>Received</th>
         <th>Status</th>
         <th>Actions</th>
       </tr>
     </thead>
+
     <tbody id="qRows">
       {% for q in queries %}
-      <tr data-subject="{{ q.subject }}" data-read="{{ q.is_read }}"
-        style="{% if not q.is_read %}background:#fefce8;{% endif %}">
-        <td><strong>#{{ q.id }}</strong></td>
+      <tr
+        data-subject="{{ q.subject }}"
+        data-read="{{ q.is_read }}"
+      >
+        <!-- ID -->
+        <td>
+          <strong>#{{ q.id }}</strong>
+        </td>
+
+        <!-- USER -->
         <td>
           <strong>{{ q.name }}</strong>
+
           {% if q.adharno %}
-          <br><span style="font-size:11px;color:#888;">{{ q.adharno }}</span>
+          <br>
+          <span style="font-size:11px;color:#888;">
+            {{ q.adharno }}
+          </span>
           {% endif %}
         </td>
+
+        <!-- SUBJECT -->
         <td>
-          <span style="background:#dbeafe;color:#1e40af;
-            padding:2px 9px;border-radius:12px;font-size:12px;white-space:nowrap;">
+          <span
+            style="
+              background:#dbeafe;
+              color:#1e40af;
+              padding:4px 10px;
+              border-radius:12px;
+              font-size:12px;
+              white-space:nowrap;
+            "
+          >
             {{ q.subject }}
           </span>
         </td>
-        <td style="max-width:320px;color:#444;font-size:13px;">
-          {{ q.message[:120] }}{% if q.message|length > 120 %}
-          <a href="#" style="color:#2a5298;font-size:12px;"
-            onclick="showFull(this, {{ q.message|tojson }});return false;">… more</a>
+
+        <!-- MESSAGE -->
+        <td style="max-width:280px;">
+          {{ q.message[:120] }}
+
+          {% if q.message|length > 120 %}
+          <a
+            href="#"
+            onclick="showFull({{ q.message|tojson }}); return false;"
+            style="font-size:12px;"
+          >
+            ... more
+          </a>
           {% endif %}
         </td>
-        <td style="font-size:12px;color:#888;white-space:nowrap;">
-          {{ q.created_at.strftime('%d %b %Y, %I:%M %p') if q.created_at else '—' }}
+
+        <!-- ADMIN REPLY -->
+        <td style="min-width:300px;">
+          {% if q.admin_reply %}
+            <div
+              style="
+                background:#ecfdf5;
+                border:1px solid #bbf7d0;
+                padding:10px;
+                border-radius:8px;
+                font-size:13px;
+              "
+            >
+              <strong>Reply:</strong><br>
+              {{ q.admin_reply }}
+
+              {% if q.replied_at %}
+              <div style="margin-top:6px;font-size:11px;color:#666;">
+                {{ q.replied_at.strftime('%d %b %Y, %I:%M %p') }}
+              </div>
+              {% endif %}
+            </div>
+          {% else %}
+            <form method="POST" action="/reply_query/{{ q.id }}">
+              <textarea
+                name="admin_reply"
+                rows="3"
+                required
+                placeholder="Write reply to user..."
+                style="
+                  width:100%;
+                  padding:8px;
+                  border-radius:8px;
+                  border:1px solid #ccc;
+                  font-size:13px;
+                "
+              ></textarea>
+
+              <button
+                type="submit"
+                class="btn btn-primary btn-sm"
+                style="margin-top:6px;"
+              >
+                Send Reply
+              </button>
+            </form>
+          {% endif %}
         </td>
+
+        <!-- RECEIVED -->
+        <td style="white-space:nowrap;font-size:12px;">
+          {% if q.created_at %}
+            {{ q.created_at.strftime('%d %b %Y, %I:%M %p') }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+
+        <!-- STATUS -->
         <td>
           {% if q.is_read %}
             <span class="status Approved">✓ Read</span>
@@ -94,23 +193,31 @@
             <span class="status Booked">● Unread</span>
           {% endif %}
         </td>
+
+        <!-- ACTIONS -->
         <td>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            {% if not q.is_read %}
-            <a href="/admin_query_read/{{ q.id }}">
-              <button class="btn btn-success btn-sm">✓ Mark Read</button>
-            </a>
-            {% endif %}
-            <a href="/admin_query_delete/{{ q.id }}"
-               onclick="return confirm('Delete this message?')">
-              <button class="btn btn-danger btn-sm">🗑</button>
-            </a>
-          </div>
+          {% if not q.is_read %}
+          <a href="/admin_query_read/{{ q.id }}">
+            <button class="btn btn-success btn-sm">
+              ✓ Mark Read
+            </button>
+          </a>
+          {% endif %}
+
+          <a
+            href="/admin_query_delete/{{ q.id }}"
+            onclick="return confirm('Delete this message?')"
+          >
+            <button class="btn btn-danger btn-sm">
+              🗑 Delete
+            </button>
+          </a>
         </td>
       </tr>
+
       {% else %}
       <tr>
-        <td colspan="7" style="text-align:center;color:#888;padding:40px;">
+        <td colspan="8" style="text-align:center;padding:40px;">
           No messages yet.
         </td>
       </tr>
@@ -122,36 +229,54 @@
 <!-- FULL MESSAGE MODAL -->
 <div class="modal-overlay" id="msgModal">
   <div class="modal" style="width:520px;">
-    <button class="modal-close"
-      onclick="document.getElementById('msgModal').classList.remove('open')">✕</button>
+    <button
+      class="modal-close"
+      onclick="document.getElementById('msgModal').classList.remove('open')"
+    >
+      ✕
+    </button>
+
     <h3>💬 Full Message</h3>
-    <p id="msgBody"
-      style="font-size:14px;color:#444;line-height:1.75;white-space:pre-wrap;
-        margin-top:6px;"></p>
+
+    <p
+      id="msgBody"
+      style="
+        font-size:14px;
+        line-height:1.7;
+        white-space:pre-wrap;
+        margin-top:10px;
+      "
+    ></p>
   </div>
 </div>
 
 <script>
 function filterQ() {
-  var q    = document.getElementById('qs').value.toLowerCase();
-  var sub  = document.getElementById('qsub').value;
-  var read = document.getElementById('qread').value;
-  document.querySelectorAll('#qRows tr[data-subject]').forEach(function(r) {
-    var textOk = r.textContent.toLowerCase().includes(q);
-    var subOk  = !sub  || r.dataset.subject === sub;
-    var readOk = read === '' || r.dataset.read === read;
-    r.style.display = (textOk && subOk && readOk) ? '' : 'none';
+  let text = document.getElementById("qs").value.toLowerCase();
+  let subject = document.getElementById("qsub").value;
+  let read = document.getElementById("qread").value;
+
+  document.querySelectorAll("#qRows tr[data-subject]").forEach(function(row) {
+    let matchesText = row.textContent.toLowerCase().includes(text);
+    let matchesSubject = !subject || row.dataset.subject === subject;
+    let matchesRead = read === "" || row.dataset.read === read;
+
+    row.style.display =
+      (matchesText && matchesSubject && matchesRead)
+        ? ""
+        : "none";
   });
 }
 
-function showFull(link, fullText) {
-  document.getElementById('msgBody').textContent = fullText;
-  document.getElementById('msgModal').classList.add('open');
+function showFull(fullText) {
+  document.getElementById("msgBody").textContent = fullText;
+  document.getElementById("msgModal").classList.add("open");
 }
 
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape')
-    document.getElementById('msgModal').classList.remove('open');
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    document.getElementById("msgModal").classList.remove("open");
+  }
 });
 </script>
 

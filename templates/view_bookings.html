@@ -162,7 +162,13 @@
         <td><strong>#{{ b.booking_id }}</strong></td>
         <td>{{ b.traveler_name or '-' }}</td>
         <td style="font-size:11px;color:var(--text3);">{{ b.adharno }}</td>
-        <td>{{ b.category or 'Pkg #'+b.package_id|string }}</td>
+        <td>
+  {% if b.category %}
+    {{ b.category }}
+  {% else %}
+    Pkg #{{ b.package_id }}
+  {% endif %}
+</td>
 
         <td style="text-align:center;">
           <span class="member-pill">{{ b.num_members or 1 }}</span>

@@ -9,6 +9,7 @@ import smtplib
 from email.mime.text import MIMEText
 import random
 import string
+import re
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "uktrip_secret_2024")
@@ -359,7 +360,7 @@ def generate_captcha():
     return redirect("/")
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.form.get("username", "").strip()
+    username = request.form.get("username", "").strip().lower()
     password = request.form.get("password", "").strip()
     user_captcha = request.form.get("captcha", "").strip().upper()
 
@@ -369,15 +370,15 @@ def login():
 
     # ================= USER LOGIN =================
     user = query(
-        "SELECT * FROM traveler WHERE name=%s",
-        (username.lower(),),
+        "SELECT * FROM traveler WHERE LOWER(name)=%s",
+        (username,),
         one=True
     )
 
     if user:
         db_password = str(user["password"]).strip()
 
-        if verify_password(db_password, password):
+        if check_password_hash(db_password, password):
             session.clear()
             session["user_id"] = user["adharno"]
             session["user"] = user["name"]
@@ -395,7 +396,7 @@ def login():
     if admin:
         db_password = str(admin["password"]).strip()
 
-        if db_password == password.strip():
+        if db_password == password:
             session.clear()
             session["admin"] = admin["name"]
 
@@ -422,16 +423,29 @@ def register_user():
         flash("All fields are required.", "danger")
         return redirect("/register")
 
+    # Aadhaar validation
     if not adhar.isdigit() or len(adhar) != 12:
         flash("Aadhaar must be exactly 12 digits.", "danger")
         return redirect("/register")
 
-    if not mobile.isdigit() or len(mobile) != 10:
-        flash("Mobile must be exactly 10 digits.", "danger")
+    # Mobile validation (must start with 6-9 and be exactly 10 digits)
+    mobile_pattern = r"^[6-9]\d{9}$"
+
+    if not re.match(mobile_pattern, mobile):
+        flash(
+            "Mobile number must be exactly 10 digits and start with 6, 7, 8, or 9.",
+            "danger"
+        )
         return redirect("/register")
 
-    if len(password) < 6:
-        flash("Password must be at least 6 characters.", "danger")
+    # Password validation
+    password_pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+
+    if not re.match(password_pattern, password):
+        flash(
+            "Password must contain at least 8 characters including uppercase, lowercase, number, and special character.",
+            "danger"
+        )
         return redirect("/register")
 
     try:
@@ -448,7 +462,11 @@ def register_user():
         hashed = generate_password_hash(password)
 
         query(
-            "INSERT INTO traveler (adharno, name, address, email, mobile, password) VALUES (%s, %s, %s, %s, %s, %s)",
+            """
+            INSERT INTO traveler
+            (adharno, name, address, email, mobile, password)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
             (adhar, name, address, email, mobile, hashed),
             commit=True
         )
@@ -1213,8 +1231,22 @@ def my_reviews():
 @app.route("/contact")
 @login_required
 def contact():
-    return render_template("contact.html")
+    user_id = session.get("user_id")
 
+    my_queries = query(
+        """
+        SELECT *
+        FROM contact_query
+        WHERE adharno = %s
+        ORDER BY created_at DESC
+        """,
+        (user_id,)
+    ) or []
+
+    return render_template(
+        "contact.html",
+        my_queries=my_queries
+    )
 
 @app.route("/contact_submit", methods=["POST"])
 @login_required
@@ -1631,6 +1663,24 @@ def view_bookings():
     except Exception as e:
         flash(f"Could not load bookings: {e}", "danger")
         return render_template("view_bookings.html", bookings=[], vehicles=[], guides=[])
+@app.route("/manage_contact_queries")
+def manage_contact_queries():
+    if "admin" not in session:
+        flash("Please login as admin.", "danger")
+        return redirect("/")
+
+    queries = query(
+        """
+        SELECT *
+        FROM contact_query
+        ORDER BY created_at DESC, id DESC
+        """
+    )
+
+    return render_template(
+        "manage_contact_queries.html",
+        queries=queries
+    )
 
 
 @app.route("/update_booking/<int:id>/<status>")
@@ -2507,48 +2557,6 @@ def delete_transport(id):
 #  ADMIN — TOUR GUIDES (manage_guides_admin)
 # ══════════════════════════════════════════════════════
 
-@app.route("/manage_guides_admin")
-@admin_required
-def manage_guides_admin():
-    try:
-        guides = query(
-            """SELECT g.*, b.booking_id AS assigned_booking_id,
-                      t.name AS traveler_name, p.category, b.travel_date
-               FROM guide g
-               LEFT JOIN booking b ON g.assigned_booking_id=b.booking_id
-               LEFT JOIN traveler t ON b.adharno=t.adharno
-               LEFT JOIN package p ON b.package_id=p.package_id
-               ORDER BY g.guide_id DESC"""
-        ) or []
-
-        bookings = query(
-            """SELECT b.booking_id, t.name AS traveler_name, p.category, b.travel_date
-               FROM booking b
-               LEFT JOIN traveler t ON b.adharno=t.adharno
-               LEFT JOIN package p ON b.package_id=p.package_id
-               WHERE b.status='Approved'
-               ORDER BY b.travel_date ASC"""
-        ) or []
-
-        stats = {
-            'total':     int((query("SELECT COUNT(*) AS c FROM guide", one=True) or {}).get("c", 0)),
-            'available': int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Available'", one=True) or {}).get("c", 0)),
-            'assigned':  int((query("SELECT COUNT(*) AS c FROM guide WHERE status='Assigned'", one=True) or {}).get("c", 0)),
-            'on_leave':  int((query("SELECT COUNT(*) AS c FROM guide WHERE status='On Leave'", one=True) or {}).get("c", 0)),
-        }
-
-        fee_row = query(
-            "SELECT COALESCE(SUM(guide_fee),0) AS s FROM guide WHERE fee_paid=0 AND guide_fee IS NOT NULL",
-            one=True)
-        total_guide_fees_due = float(fee_row["s"]) if fee_row else 0
-
-        return render_template("manage_guides_admin.html",
-            guides=guides, bookings=bookings,
-            stats=stats, total_guide_fees_due=total_guide_fees_due)
-    except Exception as e:
-        flash(f"Could not load guides: {e}", "danger")
-        return render_template("manage_guides_admin.html",
-            guides=[], bookings=[], stats={}, total_guide_fees_due=0)
 
 
 @app.route("/add_guide_admin", methods=["POST"])
@@ -2701,7 +2709,29 @@ def admin_queries():
         flash(f"Could not load queries: {e}", "danger")
         return render_template("admin_queries.html", queries=[])
 
+@app.route("/reply_query/<int:id>", methods=["POST"])
+@admin_required
+def reply_query(id):
+    reply = request.form.get("admin_reply", "").strip()
 
+    if not reply:
+        flash("Reply cannot be empty", "warning")
+        return redirect("/admin_queries")
+
+    query(
+        """
+        UPDATE contact_query
+        SET admin_reply=%s,
+            replied_at=NOW(),
+            is_read=1
+        WHERE id=%s
+        """,
+        (reply, id),
+        commit=True
+    )
+
+    flash("Reply sent successfully", "success")
+    return redirect("/admin_queries")
 @app.route("/admin_query_read/<int:id>")
 @admin_required
 def admin_query_read(id):

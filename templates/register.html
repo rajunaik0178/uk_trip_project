@@ -155,34 +155,97 @@ body::before{
 </div>
 
 <script>
-function chkAdhar(){
-  const v=document.getElementById('adhar').value;
-  const ok=/^\d{12}$/.test(v);
-  document.getElementById('adhar').className='fi '+(v.length===0?'':ok?'ok':'err');
-  const h=document.getElementById('adharHint');
-  h.textContent=v.length===0?'':ok?'✓ Valid':'✗ Must be exactly 12 digits';
-  h.className='hint '+(v.length===0?'empty':ok?'ok':'err');
+function chkAdhar() {
+  const v = document.getElementById('adhar').value;
+  const ok = /^\d{12}$/.test(v);
+
+  document.getElementById('adhar').className =
+    'fi ' + (v.length === 0 ? '' : ok ? 'ok' : 'err');
+
+  const h = document.getElementById('adharHint');
+  h.textContent =
+    v.length === 0
+      ? ''
+      : ok
+      ? '✓ Valid'
+      : '✗ Must be exactly 12 digits';
+
+  h.className =
+    'hint ' + (v.length === 0 ? 'empty' : ok ? 'ok' : 'err');
 }
-function chkMobile(){
-  const v=document.getElementById('mobile').value;
-  const ok=/^\d{10}$/.test(v);
-  document.getElementById('mobile').className='fi '+(v.length===0?'':ok?'ok':'err');
-  const h=document.getElementById('mobileHint');
-  h.textContent=v.length===0?'':ok?'✓ Valid':'✗ Must be exactly 10 digits';
-  h.className='hint '+(v.length===0?'empty':ok?'ok':'err');
+
+function chkMobile() {
+  const v = document.getElementById('mobile').value;
+
+  /* Must be exactly 10 digits and first digit only 6-9 */
+  const ok = /^[6-9]\d{9}$/.test(v);
+
+  document.getElementById('mobile').className =
+    'fi ' + (v.length === 0 ? '' : ok ? 'ok' : 'err');
+
+  const h = document.getElementById('mobileHint');
+  h.textContent =
+    v.length === 0
+      ? ''
+      : ok
+      ? '✓ Valid'
+      : '✗ Must start with 6-9 and be exactly 10 digits';
+
+  h.className =
+    'hint ' + (v.length === 0 ? 'empty' : ok ? 'ok' : 'err');
 }
-function chkPw(){
-  const v=document.getElementById('pw').value;
-  const ok=v.length>=6;
-  document.getElementById('pw').className='fi '+(v.length===0?'':ok?'ok':'err');
-  const h=document.getElementById('pwHint');
-  h.textContent=v.length===0?'':ok?'✓ Strong enough':'✗ Min 6 characters';
-  h.className='hint '+(v.length===0?'empty':ok?'ok':'err');
+
+function chkPw() {
+  const v = document.getElementById('pw').value;
+
+  /*
+    Password must contain:
+    - uppercase
+    - lowercase
+    - number
+    - special character
+    - minimum 8 characters
+  */
+  const ok =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#()_\-+=])[A-Za-z\d@$!%*?&^#()_\-+=]{8,}$/.test(v);
+
+  document.getElementById('pw').className =
+    'fi ' + (v.length === 0 ? '' : ok ? 'ok' : 'err');
+
+  const h = document.getElementById('pwHint');
+  h.textContent =
+    v.length === 0
+      ? ''
+      : ok
+      ? '✓ Strong Password'
+      : '✗ Need Uppercase + Lowercase + Number + Special Character (Min 8)';
+
+  h.className =
+    'hint ' + (v.length === 0 ? 'empty' : ok ? 'ok' : 'err');
 }
-function validate(){
-  if(!/^\d{12}$/.test(document.getElementById('adhar').value)){ alert('Aadhaar must be exactly 12 digits.'); return false; }
-  if(!/^\d{10}$/.test(document.getElementById('mobile').value)){ alert('Mobile must be exactly 10 digits.'); return false; }
-  if(document.getElementById('pw').value.length<6){ alert('Password must be at least 6 characters.'); return false; }
+
+function validate() {
+  if (!/^\d{12}$/.test(document.getElementById('adhar').value)) {
+    alert('Aadhaar must be exactly 12 digits.');
+    return false;
+  }
+
+  if (!/^[6-9]\d{9}$/.test(document.getElementById('mobile').value)) {
+    alert('Mobile number must start with 6-9 and be exactly 10 digits.');
+    return false;
+  }
+
+  if (
+    !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#()_\-+=])[A-Za-z\d@$!%*?&^#()_\-+=]{8,}$/.test(
+      document.getElementById('pw').value
+    )
+  ) {
+    alert(
+      'Password must contain uppercase, lowercase, number, special character and minimum 8 characters.'
+    );
+    return false;
+  }
+
   return true;
 }
 </script>

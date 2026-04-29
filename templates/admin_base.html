@@ -385,9 +385,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
   <a href="/manage_payments" {% if request.path=='/manage_payments' %}class="active"{% endif %}>
     ◈ &nbsp;Capital Flow
   </a>
-  <a href="/manage_guides_admin" {% if request.path=='/manage_guides_admin' %}class="active"{% endif %}>
-    ◉ &nbsp;Tour Guides
-  </a>
+ 
   <a href="/manage_invoices" {% if request.path=='/manage_invoices' %}class="active"{% endif %}>
     ≡ &nbsp;Invoices
   </a>
@@ -403,6 +401,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
   <a href="/view_reviews" {% if request.path=='/view_reviews' %}class="active"{% endif %}>
     ★ &nbsp;Reviews
   </a>
+  
   <a href="/admin_queries" {% if request.path=='/admin_queries' %}class="active"{% endif %}>
     ◁ &nbsp;User Queries
     {% if unread_queries_count is defined and unread_queries_count %}

@@ -72,7 +72,13 @@
         <tr data-status="{{ b.status }}">
           <td><strong>#{{ b.booking_id }}</strong></td>
           <td>
-            <div style="font-weight:600;color:var(--text);">{{ b.category or 'Package #'+b.package_id|string }}</div>
+            <div style="font-weight:600;color:var(--text);">
+  {% if b.category %}
+    {{ b.category }}
+  {% else %}
+    Package #{{ b.package_id }}
+  {% endif %}
+</div>
             {% if b.duration %}<div style="font-size:11px;color:var(--text3);">⏱ {{ b.duration }}</div>{% endif %}
           </td>
           <td style="font-size:13px;color:var(--text2);">{{ b.travel_date }}</td>

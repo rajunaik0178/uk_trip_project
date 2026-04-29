@@ -1,0 +1,52 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="topbar">
+    <h1>Contact Queries</h1>
+</div>
+
+<div class="card" style="overflow-x:auto;">
+    <table style="width:100%; min-width:900px;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Aadhaar</th>
+                <th>Name</th>
+                <th>Subject</th>
+                <th>Message</th>
+                <th>Read</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for q in queries %}
+            <tr>
+                <td>#{{ q.id }}</td>
+                <td>{{ q.adharno }}</td>
+                <td>{{ q.name }}</td>
+                <td>{{ q.subject }}</td>
+                <td style="max-width:300px; white-space:normal;">
+                    {{ q.message }}
+                </td>
+                <td>
+                    {% if q.is_read == 1 %}
+                        <span style="color:green; font-weight:600;">Read</span>
+                    {% else %}
+                        <span style="color:red; font-weight:600;">Unread</span>
+                    {% endif %}
+                </td>
+                <td>{{ q.created_at }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align:center; padding:30px;">
+                    No contact queries found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
