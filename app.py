@@ -917,215 +917,364 @@ def view_images(id):
 #  USER — BOOKING
 # ══════════════════════════════════════════════════════
 
-@app.route("/book/<int:id>")
-@login_required
-def book(id):
+# ═══════════════════════════════════════════════════════════════════════════
+# ROUTES PATCH — paste these routes into your app.py, replacing the existing
+# versions. They fix: booking record saving, payment processing, my_bookings
+# display, and admin view_bookings (vehicle/guide edit for all statuses).
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────
+# 1. /book/<package_id>  — CREATE booking FIRST, then redirect to payment
+# ─────────────────────────────────────────────────────────────────────────
+@app.route('/book/<int:package_id>')
+def book_package(package_id):
+    if 'user' not in session:
+        return redirect('/')
+
+    adharno      = session['user']
+    travel_date  = request.args.get('travel_date', '')
+    num_members  = int(request.args.get('num_members', 1))
+    vehicle_id   = request.args.get('vehicle_id', None)
+    guide_id     = request.args.get('guide_id', None)
+
+    if not travel_date:
+        flash('Please select a travel date.', 'danger')
+        return redirect('/packages')
+
+    conn = get_db()
+    cur  = conn.cursor()
+
+    # Fetch package price
+    cur.execute("SELECT * FROM package WHERE package_id = %s", (package_id,))
+    pkg = cur.fetchone()
+    if not pkg:
+        flash('Package not found.', 'danger')
+        return redirect('/packages')
+
+    price = float(pkg[2])
+    total_amount = price * num_members
+
+    # INSERT booking record — status='Booked', amount_paid=0
+    cur.execute("""
+    INSERT INTO booking
+    (adharno, package_id, travel_date, num_members, total_amount,
+     status, amount_paid, vehicle_id, guide_id)
+    VALUES (%s, %s, %s, %s, %s, 'Booked', 0, %s, %s)
+""", (adharno, package_id, travel_date, num_members, total_amount,
+      vehicle_id if vehicle_id else None,
+      guide_id if guide_id else None))
+    conn.commit()
+
+    booking_id = cur.lastrowid
+    conn.close()
+
+    # Redirect to payment gateway
+    return redirect(f'/pay_booking/{booking_id}')
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# 2. /pay_booking/<booking_id>  — Show payment gateway for a booking
+# ─────────────────────────────────────────────────────────────────────────
+@app.route('/pay_booking/<int:booking_id>')
+def pay_booking(booking_id):
+    if 'user' not in session:
+        return redirect('/')
+
+    adharno = session['user']
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            b.*,
+            p.category,
+            p.duration,
+            t.vehicle_type,
+            t.vehicle_number,
+            t.driver_name,
+            g.name AS guide_name,
+            tr.name AS traveler_name
+        FROM booking b
+        LEFT JOIN package p ON b.package_id = p.package_id
+        LEFT JOIN transport t ON b.vehicle_id = t.id
+        LEFT JOIN guide g ON b.guide_id = g.guide_id
+        LEFT JOIN traveler tr ON b.adharno = tr.adharno
+        WHERE b.booking_id = %s
+        AND b.adharno = %s
+    """, (booking_id, adharno))
+
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        flash('Booking not found.', 'danger')
+        return redirect('/my_bookings')
+
+    columns = [col[0] for col in cur.description]
+    booking = dict(zip(columns, row))
+
+    return render_template(
+        'payment_gateway.html',
+        booking=booking
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# 3. /process_payment  (POST) — Record payment, update booking amount_paid
+# ─────────────────────────────────────────────────────────────────────────
+@app.route('/process_payment', methods=['POST'])
+def process_payment():
+    if 'user' not in session:
+        return redirect('/')
+
+    adharno        = session['user']
+    booking_id     = int(request.form.get('booking_id', 0))
+    amount         = float(request.form.get('amount', 0))
+    payment_mode   = request.form.get('payment_mode', 'Card')
+    payment_status = request.form.get('payment_status', 'Paid')
+    transaction_id = request.form.get('transaction_id', '')
+    notes          = request.form.get('notes', '')
+
+    conn = get_db()
+    cur  = conn.cursor()
+
+    # Verify booking belongs to user
+    cur.execute("SELECT * FROM booking WHERE booking_id = %s AND adharno = %s",
+            (booking_id, adharno))
+    booking = cur.fetchone()
+
+    if not booking:
+        conn.close()
+        flash('Booking not found or access denied.', 'danger')
+        return redirect('/my_bookings')
+
+    # Generate transaction ID if not provided
+    import random, string
+    if not transaction_id:
+        transaction_id = 'TXN' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+
+    # Insert payment record
+    cur.execute("""
+        INSERT INTO payment
+            (booking_id, amount, payment_mode, payment_status,
+             transaction_id, notes, payment_date, adharno)
+        VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s)
+    """, (booking_id, amount, payment_mode, payment_status,
+          transaction_id, notes, adharno))
+
+    # Update booking's amount_paid and transaction_id
+    cur.execute("""
+    UPDATE booking
+    SET amount_paid = COALESCE(amount_paid, 0) + %s,
+        payment_mode = %s,
+        transaction_id = %s,
+        payment_status = %s
+    WHERE booking_id = %s
+""", (
+    amount if payment_status == 'Paid' else 0,
+    payment_mode,
+    transaction_id,
+    payment_status,
+    booking_id
+))
+    conn.commit()
+
+    # Notification
     try:
-        dup = query(
-            "SELECT booking_id FROM booking WHERE adharno=%s AND package_id=%s AND status='Booked'",
-            (session["user_id"], id), one=True
-        )
-        if dup:
-            flash("You already have a pending booking for this package.", "warning")
-            return redirect("/packages")
+        total = booking['total_amount'] if 'total_amount' in booking.keys() else 0
+        msg   = f'Payment of ₹{amount:,.0f} {"received" if payment_status=="Paid" else "pending"} for Booking #{booking_id}. TXN: {transaction_id}'
+        cur.execute("""
+            INSERT INTO notifications (adharno, message, is_read, created_at)
+            VALUES (?, ?, 0, datetime('now'))
+        """, (adharno, msg))
+        conn.commit()
+    except Exception:
+        pass
 
-        pkg = query("SELECT * FROM package WHERE package_id=%s", (id,), one=True)
-        if not pkg:
-            flash("Package not found.", "danger")
-            return redirect("/packages")
+    conn.close()
 
-        travel_date = request.args.get("travel_date", "").strip()
-        vehicle_id = request.args.get("vehicle_id", "").strip()
-        guide_id = request.args.get("guide_id", "").strip()
+    if payment_status == 'Paid':
+        flash(f'✅ Payment of ₹{amount:,.0f} successful! TXN ID: {transaction_id}', 'success')
+    else:
+        flash(f'⏳ Booking #{booking_id} confirmed. Payment pending (₹{amount:,.0f}).', 'info')
 
-        # NEW: member count
-        try:
-            num_members = max(1, int(request.args.get("num_members", 1)))
-        except (TypeError, ValueError):
-            num_members = 1
+    return redirect('/my_bookings')
 
-        total_amount = pkg["amt_rate"] * num_members
 
-        if travel_date:
-            try:
-                td = datetime.date.fromisoformat(travel_date)
-                if td < datetime.date.today():
-                    flash("Travel date cannot be in the past.", "danger")
-                    return redirect("/packages")
-            except ValueError:
-                flash("Invalid travel date.", "danger")
-                return redirect("/packages")
-
-            booking_id = query(
-                "INSERT INTO booking(adharno,package_id,travel_date,total_amount,num_members,status) VALUES(%s,%s,%s,%s,%s,'Booked')",
-                (session["user_id"], id, travel_date, total_amount, num_members),
-                commit=True
-            )
-        else:
-            booking_id = query(
-                "INSERT INTO booking(adharno,package_id,travel_date,total_amount,num_members,status) VALUES(%s,%s,CURDATE(),%s,%s,'Booked')",
-                (session["user_id"], id, total_amount, num_members),
-                commit=True
-            )
-
-        if not booking_id:
-            flash("Booking could not be saved. Please try again.", "danger")
-            return redirect("/packages")
-
-        notify(
-            session["user_id"],
-            f"Your booking for '{pkg['category']}' (₹{total_amount}) is pending approval."
-        )
-
-        flash(
-            f"Booking placed for '{pkg['category']}'. Please complete payment.",
-            "success"
-        )
-        return redirect(f"/pay_booking/{booking_id}")
-
-    except Exception as e:
-        flash(f"Booking failed: {e}", "danger")
-        return redirect("/packages")
-
-@app.route("/my_bookings")
-@login_required
+# ─────────────────────────────────────────────────────────────────────────
+# 4. /my_bookings  — User sees all bookings with payment, vehicle, guide
+# ─────────────────────────────────────────────────────────────────────────
+@app.route('/my_bookings')
 def my_bookings():
-    try:
-        bookings = query("""
-    SELECT
-        b.*,
-        p.category,
-        p.duration,
-        p.description,
-        u.name AS traveler_name,
-        u.mobile,
-        COALESCE(pay_total.paid, 0) AS amount_paid,
+    if 'user' not in session:
+        return redirect('/')
 
-        t.vehicle_type,
-        t.vehicle_number,
-        t.driver_name,
-        t.driver_mobile,
-        t.capacity AS vehicle_capacity,
-        t.notes AS vehicle_notes,
+    adharno = session['user']
+    conn = get_db()
+    cur = conn.cursor()
 
-        g.name AS guide_name,
-        g.mobile AS guide_mobile,
-        g.specialization AS guide_specialization,
-        g.languages AS guide_languages,
-        g.experience_years AS guide_experience,
-        g.notes AS guide_notes
+    cur.execute("""
+        SELECT
+            b.*,
+            p.category,
+            p.duration,
+            t.vehicle_type,
+            t.vehicle_number,
+            t.driver_name,
+            t.driver_mobile,
+            t.capacity AS vehicle_capacity,
+            g.name AS guide_name,
+            g.mobile AS guide_mobile,
+            g.specialization AS guide_specialization
+        FROM booking b
+        LEFT JOIN package p ON b.package_id = p.package_id
+        LEFT JOIN transport t ON b.vehicle_id = t.id
+        LEFT JOIN guide g ON b.guide_id = g.guide_id
+        WHERE b.adharno = %s
+        ORDER BY b.booking_id DESC
+    """, (adharno,))
 
-    FROM booking b
+    columns = [col[0] for col in cur.description]
+    rows = cur.fetchall()
 
-    JOIN package p
-        ON b.package_id = p.package_id
+    bookings = []
+    for row in rows:
+        bookings.append(dict(zip(columns, row)))
 
-    JOIN traveler u
-        ON b.adharno = u.adharno
+    conn.close()
 
-    LEFT JOIN (
-        SELECT booking_id, SUM(amount) AS paid
-        FROM payment
-        WHERE payment_status='Paid'
-        GROUP BY booking_id
-    ) pay_total
-        ON b.booking_id = pay_total.booking_id
+    return render_template(
+        'my_bookings.html',
+        bookings=bookings
+    )
+# ─────────────────────────────────────────────────────────────────────────
+# 5. /view_bookings  — Admin sees ALL bookings with full details
+# ─────────────────────────────────────────────────────────────────────────
+@app.route('/view_bookings')
+def view_bookings():
+    if session.get('role') != 'admin':
+        return redirect('/')
 
-    LEFT JOIN transport t
-        ON t.assigned_booking_id = b.booking_id
+    conn = get_db()
+    cur  = conn.cursor()
 
-    LEFT JOIN guide g
-        ON g.assigned_booking_id = b.booking_id
+    # All bookings with joins
+    cur.execute("""
+        SELECT
+            b.*,
+            p.category,
+            p.duration,
+            t.vehicle_type,
+            t.vehicle_number,
+            t.driver_name,
+            t.driver_mobile,
+            t.capacity      AS vehicle_capacity,
+            g.name          AS guide_name,
+            g.mobile        AS guide_mobile,
+            g.specialization AS guide_specialization,
+            tr.name         AS traveler_name
+        FROM bookings b
+        LEFT JOIN packages   p  ON b.package_id = p.package_id
+        LEFT JOIN transport  t  ON b.vehicle_id  = t.id
+        LEFT JOIN guides     g  ON b.guide_id    = g.guide_id
+        LEFT JOIN travelers  tr ON b.adharno     = tr.adharno
+        ORDER BY b.booking_id DESC
+    """)
+    bookings = [dict(row) for row in cur.fetchall()]
 
-    WHERE b.adharno = %s
+    # All vehicles
+    cur.execute("SELECT * FROM transport ORDER BY vehicle_type")
+    vehicles = [dict(row) for row in cur.fetchall()]
 
-    ORDER BY b.booking_id DESC
-""", (session["user_id"],)) or []
-        
-        return render_template("my_bookings.html", bookings=bookings)
-    except Exception as e:
-        flash(f"Could not load bookings: {e}", "danger")
-        return render_template("my_bookings.html", bookings=[])
-@app.route("/cancel/<int:id>")
-@login_required
-def cancel(id):
-    try:
-        query(
-            "UPDATE booking SET status='Cancelled' WHERE booking_id=%s AND adharno=%s AND status='Booked'",
-            (id, session["user_id"]), commit=True
-        )
-        flash("Booking cancelled.", "info")
-    except Exception as e:
-        flash(f"Could not cancel: {e}", "danger")
-    return redirect("/my_bookings")
+    # All guides
+    cur.execute("SELECT * FROM guides ORDER BY name")
+    guides = [dict(row) for row in cur.fetchall()]
+
+    conn.close()
+
+    return render_template('view_bookings.html',
+                           bookings=bookings,
+                           vehicles=vehicles,
+                           guides=guides)
 
 
-@app.route("/cancel_booking/<int:id>")
-@login_required
-def cancel_booking(id):
-    return cancel(id)
+# ─────────────────────────────────────────────────────────────────────────
+# 6. /assign_booking_vehicle/<booking_id>  (POST)
+#    Admin assigns / changes vehicle — works for ANY non-cancelled booking
+# ─────────────────────────────────────────────────────────────────────────
+@app.route('/assign_booking_vehicle/<int:booking_id>', methods=['POST'])
+def assign_booking_vehicle(booking_id):
+    if session.get('role') != 'admin':
+        return redirect('/')
+
+    vehicle_id = request.form.get('vehicle_id') or None
+
+    conn = get_db()
+    cur  = conn.cursor()
+    cur.execute("UPDATE bookings SET vehicle_id = ? WHERE booking_id = ?",
+                (vehicle_id, booking_id))
+    conn.commit()
+    conn.close()
+
+    flash('Vehicle assignment updated.', 'success')
+    return redirect('/view_bookings')
 
 
-@app.route("/pay_booking/<int:id>", methods=["GET", "POST"])
-@login_required
-def pay_booking(id):
-    try:
-        booking = query(
-            """SELECT b.*, p.category, p.duration,
-                      COALESCE(pay_total.paid, 0) AS amount_paid,
-                      (b.total_amount - COALESCE(pay_total.paid, 0)) AS balance_due
-               FROM booking b
-               LEFT JOIN package p ON b.package_id=p.package_id
-               LEFT JOIN (
-                   SELECT booking_id, SUM(amount) AS paid
-                   FROM payment
-                   WHERE payment_status='Paid'
-                   GROUP BY booking_id
-               ) pay_total ON b.booking_id=pay_total.booking_id
-               WHERE b.booking_id=%s AND b.adharno=%s""",
-            (id, session["user_id"]), one=True
-        )
-        if not booking:
-            flash("Booking not found.", "danger")
-            return redirect("/my_bookings")
-        if booking["status"] in ("Cancelled", "Rejected"):
-            flash("Payment is not allowed for this booking.", "warning")
-            return redirect("/my_bookings")
+# ─────────────────────────────────────────────────────────────────────────
+# 7. /assign_booking_guide/<booking_id>  (POST)
+#    Admin assigns / changes guide — works for ANY non-cancelled booking
+# ─────────────────────────────────────────────────────────────────────────
+@app.route('/assign_booking_guide/<int:booking_id>', methods=['POST'])
+def assign_booking_guide(booking_id):
+    if session.get('role') != 'admin':
+        return redirect('/')
 
-        balance_due = float(booking.get("balance_due") or 0)
-        if balance_due <= 0:
-            flash("Payment already completed for this booking.", "info")
-            return redirect("/my_bookings")
+    guide_id = request.form.get('guide_id') or None
 
-        if request.method == "POST":
-            payment_mode = request.form.get("payment_mode", "UPI").strip()
-            transaction_id = "FAKE-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            query(
-                """INSERT INTO payment
-                   (booking_id, adharno, amount, payment_mode, payment_status, transaction_id, notes)
-                   VALUES (%s,%s,%s,%s,'Paid',%s,%s)""",
-                (
-                    id,
-                    session["user_id"],
-                    balance_due,
-                    payment_mode,
-                    transaction_id,
-                    "Traveler fake payment gateway"
-                ),
-                commit=True
-            )
-            notify(
-                session["user_id"],
-                f"Payment of ₹{balance_due:.2f} completed for booking #{id}."
-            )
-            flash("Payment successful. Your booking is now paid and awaiting admin approval.", "success")
-            return redirect("/my_bookings")
+    conn = get_db()
+    cur  = conn.cursor()
+    cur.execute("UPDATE bookings SET guide_id = ? WHERE booking_id = ?",
+                (guide_id, booking_id))
+    conn.commit()
+    conn.close()
 
-        return render_template("payment_gateway.html", booking=booking, balance_due=balance_due)
-    except Exception as e:
-        flash(f"Payment failed: {e}", "danger")
-        return redirect("/my_bookings")
+    flash('Guide assignment updated.', 'success')
+    return redirect('/view_bookings')
 
+
+# ─────────────────────────────────────────────────────────────────────────
+# 8. SQL: Make sure your bookings table has these columns.
+#    Run this ONCE if any column is missing:
+# ─────────────────────────────────────────────────────────────────────────
+"""
+ALTER TABLE bookings ADD COLUMN amount_paid REAL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN payment_mode TEXT DEFAULT NULL;
+ALTER TABLE bookings ADD COLUMN payment_status TEXT DEFAULT 'Unpaid';
+ALTER TABLE bookings ADD COLUMN transaction_id TEXT DEFAULT NULL;
+ALTER TABLE bookings ADD COLUMN num_members INTEGER DEFAULT 1;
+ALTER TABLE bookings ADD COLUMN vehicle_id INTEGER DEFAULT NULL;
+ALTER TABLE bookings ADD COLUMN guide_id INTEGER DEFAULT NULL;
+ALTER TABLE bookings ADD COLUMN travel_date TEXT DEFAULT NULL;
+ALTER TABLE bookings ADD COLUMN booking_date TEXT DEFAULT NULL;
+ALTER TABLE bookings ADD COLUMN admin_note TEXT DEFAULT NULL;
+"""
+
+# ─────────────────────────────────────────────────────────────────────────
+# 9. SQL: Make sure your payments table exists:
+# ─────────────────────────────────────────────────────────────────────────
+"""
+CREATE TABLE IF NOT EXISTS payments (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id      INTEGER NOT NULL,
+    adharno         TEXT,
+    amount          REAL NOT NULL,
+    payment_mode    TEXT DEFAULT 'Card',
+    payment_status  TEXT DEFAULT 'Paid',
+    transaction_id  TEXT,
+    notes           TEXT,
+    payment_date    TEXT
+);
+"""
 
 @app.route("/receipt/<int:id>")
 @login_required
@@ -1615,54 +1764,7 @@ def manage_gallery():
 #  ADMIN — BOOKINGS
 # ══════════════════════════════════════════════════════
 
-@app.route("/view_bookings")
-@admin_required
-def view_bookings():
-    try:
-        bookings = query(
-            """SELECT b.*, t.name AS traveler_name, p.category,
-                      COALESCE(pay_total.paid,0) AS amount_paid,
-                      v.id AS vehicle_id, v.vehicle_type, v.vehicle_number,
-                      v.driver_name, v.driver_mobile, v.capacity AS vehicle_capacity,
-                      g.guide_id, g.name AS guide_name, g.mobile AS guide_mobile,
-                      g.specialization AS guide_specialization
-               FROM booking b
-               LEFT JOIN traveler t ON b.adharno=t.adharno
-               LEFT JOIN package p ON b.package_id=p.package_id
-               LEFT JOIN (
-                   SELECT booking_id, SUM(amount) AS paid
-                   FROM payment
-                   WHERE payment_status='Paid'
-                   GROUP BY booking_id
-               ) pay_total ON b.booking_id=pay_total.booking_id
-               LEFT JOIN transport v ON v.assigned_booking_id=b.booking_id
-               LEFT JOIN guide g ON g.assigned_booking_id=b.booking_id
-               ORDER BY b.booking_id DESC"""
-        ) or []
 
-        vehicles = query(
-            """SELECT id, vehicle_type, vehicle_number, driver_name, capacity,
-                      assigned_booking_id, status
-               FROM transport
-               ORDER BY vehicle_type, vehicle_number"""
-        ) or []
-
-        guides = query(
-            """SELECT guide_id, name, mobile, specialization,
-                      assigned_booking_id, status
-               FROM guide
-               ORDER BY name"""
-        ) or []
-
-        return render_template(
-            "view_bookings.html",
-            bookings=bookings,
-            vehicles=vehicles,
-            guides=guides
-        )
-    except Exception as e:
-        flash(f"Could not load bookings: {e}", "danger")
-        return render_template("view_bookings.html", bookings=[], vehicles=[], guides=[])
 @app.route("/manage_contact_queries")
 def manage_contact_queries():
     if "admin" not in session:
@@ -1723,110 +1825,9 @@ def add_booking_note(id):
     return redirect("/view_bookings")
 
 
-@app.route("/assign_booking_vehicle/<int:id>", methods=["POST"])
-@admin_required
-def assign_booking_vehicle(id):
-    vehicle_id = request.form.get("vehicle_id", "").strip()
-    try:
-        bk = query("SELECT adharno, status, num_members FROM booking WHERE booking_id=%s", (id,), one=True)
-        if not bk:
-            flash("Booking not found.", "danger")
-            return redirect("/view_bookings")
-        if bk["status"] != "Approved":
-            flash("Approve the booking before assigning a vehicle.", "warning")
-            return redirect("/view_bookings")
-
-        if not vehicle_id:
-            query(
-                "UPDATE transport SET status='Available', assigned_booking_id=NULL WHERE assigned_booking_id=%s",
-                (id,), commit=True
-            )
-            flash(f"Vehicle unassigned from booking #{id}.", "info")
-            return redirect("/view_bookings")
-
-        vehicle = query(
-            "SELECT id, vehicle_type, vehicle_number, status, capacity, assigned_booking_id FROM transport WHERE id=%s",
-            (vehicle_id,), one=True
-        )
-        if not vehicle:
-            flash("Vehicle not found.", "danger")
-            return redirect("/view_bookings")
-        if vehicle.get("status") == "Maintenance":
-            flash("This vehicle is under maintenance and cannot be assigned.", "warning")
-            return redirect("/view_bookings")
-        if int(vehicle.get("capacity") or 0) < int(bk.get("num_members") or 1):
-            flash("Selected vehicle does not have enough seats for this booking.", "warning")
-            return redirect("/view_bookings")
-        if vehicle.get("assigned_booking_id") and int(vehicle["assigned_booking_id"]) != id:
-            flash("This vehicle is already assigned to another booking.", "warning")
-            return redirect("/view_bookings")
-
-        query(
-            "UPDATE transport SET status='Available', assigned_booking_id=NULL WHERE assigned_booking_id=%s",
-            (id,), commit=True
-        )
-        query(
-            "UPDATE transport SET status='On Trip', assigned_booking_id=%s WHERE id=%s",
-            (id, vehicle_id), commit=True
-        )
-        label = vehicle["vehicle_type"]
-        if vehicle.get("vehicle_number"):
-            label = f"{label} ({vehicle['vehicle_number']})"
-        notify(bk["adharno"], f"Vehicle '{label}' has been assigned to your booking #{id}.")
-        flash(f"Vehicle assigned to booking #{id}.", "success")
-    except Exception as e:
-        flash(f"Could not assign vehicle: {e}", "danger")
-    return redirect("/view_bookings")
 
 
-@app.route("/assign_booking_guide/<int:id>", methods=["POST"])
-@admin_required
-def assign_booking_guide(id):
-    guide_id = request.form.get("guide_id", "").strip()
-    try:
-        bk = query("SELECT adharno, status FROM booking WHERE booking_id=%s", (id,), one=True)
-        if not bk:
-            flash("Booking not found.", "danger")
-            return redirect("/view_bookings")
-        if bk["status"] != "Approved":
-            flash("Approve the booking before assigning a guide.", "warning")
-            return redirect("/view_bookings")
 
-        if not guide_id:
-            query(
-                "UPDATE guide SET status='Available', assigned_booking_id=NULL WHERE assigned_booking_id=%s",
-                (id,), commit=True
-            )
-            flash(f"Guide unassigned from booking #{id}.", "info")
-            return redirect("/view_bookings")
-
-        guide = query(
-            "SELECT guide_id, name, status, assigned_booking_id FROM guide WHERE guide_id=%s",
-            (guide_id,), one=True
-        )
-        if not guide:
-            flash("Guide not found.", "danger")
-            return redirect("/view_bookings")
-        if guide.get("status") == "On Leave":
-            flash("This guide is on leave. Change availability before assigning.", "warning")
-            return redirect("/view_bookings")
-        if guide.get("assigned_booking_id") and int(guide["assigned_booking_id"]) != id:
-            flash("This guide is already assigned to another booking.", "warning")
-            return redirect("/view_bookings")
-
-        query(
-            "UPDATE guide SET status='Available', assigned_booking_id=NULL WHERE assigned_booking_id=%s",
-            (id,), commit=True
-        )
-        query(
-            "UPDATE guide SET status='Assigned', assigned_booking_id=%s WHERE guide_id=%s",
-            (id, guide_id), commit=True
-        )
-        notify(bk["adharno"], f"Your tour guide '{guide['name']}' has been assigned to booking #{id}.")
-        flash(f"Guide assigned to booking #{id}.", "success")
-    except Exception as e:
-        flash(f"Could not assign guide: {e}", "danger")
-    return redirect("/view_bookings")
 
 
 @app.route("/quick_add_vehicle", methods=["POST"])
@@ -2760,4 +2761,4 @@ def admin_query_delete(id):
 
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
-    app.run(debug=debug_mode, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)

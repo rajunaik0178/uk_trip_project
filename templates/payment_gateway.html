@@ -1,56 +1,573 @@
-{% extends "base.html" %}
-{% block title %}Payment{% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>UK Trip — Secure Payment</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--bg2:#131920;--bg3:#1a2332;
+  --card:#161d27;--border:#1f2d3d;--border2:#243447;
+  --accent:#00e5a0;--accent2:#00c98a;--accent-dim:rgba(0,229,160,0.12);
+  --text:#e8edf2;--text2:#8fa3b8;--text3:#5c7a96;
+  --blue:#3b7dd8;--red:#ef4444;--orange:#f59e0b;--green:#10b981;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  min-height:100vh;background:var(--bg);
+  font-family:'Inter',sans-serif;color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,229,160,.03) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,229,160,.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;
+}
+.glow-1{position:fixed;top:-120px;left:-120px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,160,.07) 0%,transparent 70%);pointer-events:none;}
+.glow-2{position:fixed;bottom:-100px;right:-100px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(59,125,216,.06) 0%,transparent 70%);pointer-events:none;}
 
-<div class="topbar">
-  <h1>Complete Payment</h1>
-  <a href="/my_bookings" class="btn btn-outline">Back to My Bookings</a>
+/* ── SCROLL BUTTON ─────────────────────────────── */
+.scroll-btn{
+  position:fixed;right:22px;bottom:28px;
+  width:46px;height:46px;border-radius:50%;
+  background:var(--accent);color:#0d1117;
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;z-index:998;
+  box-shadow:0 4px 20px rgba(0,229,160,.4);
+  transition:transform .2s,opacity .25s,background .2s;
+  opacity:0;pointer-events:none;
+}
+.scroll-btn.visible{opacity:1;pointer-events:auto;}
+.scroll-btn:hover{background:var(--accent2);transform:translateY(-2px);}
+
+.pay-wrap{
+  width:100%;max-width:520px;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);
+  position:relative;z-index:1;
+}
+
+.pay-head{
+  padding:22px 28px 18px;
+  background:linear-gradient(135deg,rgba(0,229,160,.06),rgba(59,125,216,.06));
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;
+}
+.pay-head-logo{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--accent);}
+.pay-head-secure{
+  margin-left:auto;display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text3);
+}
+.lock-icon{font-size:14px;}
+
+/* ORDER SUMMARY */
+.order-summary{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:16px 28px;
+}
+.order-summary-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px;}
+.order-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px;}
+.order-row .label{color:var(--text2);}
+.order-row .val{color:var(--text);font-weight:500;}
+.order-total{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:10px;margin-top:6px;border-top:1px solid var(--border);
+}
+.order-total .label{font-size:14px;font-weight:600;color:var(--text);}
+.order-total .amount{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--accent);}
+
+/* PAYMENT FORM */
+.pay-body{padding:22px 28px 28px;}
+
+.pay-method-tabs{
+  display:flex;gap:6px;margin-bottom:20px;
+  background:var(--bg2);border-radius:10px;padding:4px;
+}
+.pay-method-tab{
+  flex:1;padding:9px;border:none;background:none;
+  border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;
+  color:var(--text3);transition:.15s;font-family:'Inter',sans-serif;
+}
+.pay-method-tab.active{background:var(--accent);color:#0d1117;}
+.pay-method-tab:hover:not(.active){color:var(--text2);}
+
+.pay-panel{display:none;}
+.pay-panel.active{display:block;}
+
+.fl{font-size:10.5px;color:var(--text3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;display:block;}
+.fi{
+  width:100%;padding:11px 14px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;font-size:13.5px;outline:none;
+  transition:.15s;color:var(--text);font-family:'Inter',sans-serif;
+  margin-bottom:14px;
+}
+.fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,160,.1);}
+.fi::placeholder{color:var(--text3);}
+
+.card-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.card-row-3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;}
+
+/* CARD visual preview */
+.card-preview{
+  background:linear-gradient(135deg,#1e3c72,#2a5298);
+  border-radius:12px;padding:18px 20px;margin-bottom:18px;
+  position:relative;overflow:hidden;
+}
+.card-preview::before{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(255,255,255,.06);
+}
+.card-preview::after{
+  content:'';position:absolute;bottom:-40px;left:20px;
+  width:130px;height:130px;border-radius:50%;
+  background:rgba(255,255,255,.04);
+}
+.card-chip{font-size:22px;margin-bottom:14px;}
+.card-num-display{
+  font-family:monospace;font-size:17px;letter-spacing:3px;
+  color:rgba(255,255,255,.9);margin-bottom:14px;
+}
+.card-meta{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.6);}
+.card-meta span{display:flex;flex-direction:column;gap:2px;}
+.card-meta strong{font-size:13px;color:#fff;letter-spacing:.5px;}
+
+/* UPI */
+.upi-orb{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--accent-dim);border:2px solid rgba(0,229,160,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;margin:0 auto 14px;
+}
+.upi-hint{font-size:12px;color:var(--text3);text-align:center;margin-bottom:18px;}
+
+.upi-saved-apps{display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;}
+.upi-app-btn{
+  border:1.5px solid var(--border2);border-radius:10px;
+  padding:7px 14px;font-size:12px;color:var(--text2);
+  background:var(--bg3);cursor:pointer;transition:.15s;
+}
+.upi-app-btn:hover{border-color:var(--accent);color:var(--accent);}
+.upi-app-btn.selected{border-color:var(--accent);background:var(--accent-dim);color:var(--accent);}
+
+/* Cash / Offline */
+.offline-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;padding:16px 18px;margin-bottom:18px;
+  font-size:13px;color:var(--text2);line-height:1.8;
+}
+
+/* Pay button */
+.pay-btn{
+  width:100%;padding:14px;
+  background:var(--accent);color:#0d1117;
+  border:none;border-radius:10px;
+  cursor:pointer;font-size:15px;font-weight:700;
+  font-family:'Space Grotesk',sans-serif;letter-spacing:.3px;
+  transition:.2s;position:relative;overflow:hidden;
+}
+.pay-btn:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px);}
+.pay-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+/* Processing overlay */
+.processing-overlay{
+  position:fixed;inset:0;background:rgba(13,17,23,.95);
+  z-index:999;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;
+}
+.processing-overlay.active{display:flex;}
+.spinner{
+  width:56px;height:56px;border-radius:50%;
+  border:3px solid var(--border2);
+  border-top-color:var(--accent);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.proc-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--text);}
+.proc-sub{font-size:13px;color:var(--text3);}
+
+/* Success */
+.success-overlay{
+  position:fixed;inset:0;background:rgba(13,17,23,.97);
+  z-index:999;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+  padding:20px;text-align:center;
+}
+.success-overlay.active{display:flex;}
+.success-checkmark{
+  width:80px;height:80px;border-radius:50%;
+  background:rgba(16,185,129,.15);border:3px solid var(--green);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes popIn{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+.success-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--green);}
+.success-sub{font-size:13px;color:var(--text2);max-width:360px;line-height:1.7;}
+.txn-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;padding:14px 24px;font-family:monospace;
+  font-size:13px;color:var(--accent);letter-spacing:1px;
+}
+.success-redirect{font-size:12px;color:var(--text3);}
+
+/* Fake security badges */
+.badges{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:0 0 14px;}
+.badge-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:10px;color:var(--text3);
+}
+
+.demo-notice{
+  background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+  border-radius:8px;padding:10px 14px;
+  font-size:11.5px;color:var(--orange);margin-bottom:18px;
+  display:flex;gap:8px;align-items:flex-start;
+}
+</style>
+</head>
+<body>
+<div class="glow-1"></div>
+<div class="glow-2"></div>
+
+<!-- ── SCROLL BUTTON ─────────────────────────── -->
+<button class="scroll-btn" id="scrollBtn" title="Scroll to Pay button">
+  <span id="scrollArrow">↓</span>
+</button>
+
+<!-- Processing overlay -->
+<div class="processing-overlay" id="procOverlay">
+  <div class="spinner"></div>
+  <div class="proc-title">Processing Payment…</div>
+  <div class="proc-sub">Please wait, do not close this window</div>
 </div>
 
-<div class="card" style="max-width:560px;margin:0 auto;">
-  <div style="border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:18px;">
-    <h3 style="margin-bottom:8px;">Booking #{{ booking.booking_id }}</h3>
-    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
-      Package: <strong style="color:var(--text);">{{ booking.category }}</strong><br>
-      Travel Date: <strong style="color:var(--text);">{{ booking.travel_date }}</strong><br>
-      Members: <strong style="color:var(--text);">{{ booking.num_members or 1 }}</strong>
+<!-- Success overlay -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-checkmark">✓</div>
+  <div class="success-title">Payment Successful!</div>
+  <div class="success-sub">
+    Your booking has been confirmed and payment recorded.<br>
+    Admin will review and approve your trip.
+  </div>
+  <div class="txn-box" id="txnDisplay">TXN-XXXXXXXXXX</div>
+  <div class="success-redirect">Redirecting to your bookings…</div>
+</div>
+
+<div class="pay-wrap" id="payWrap">
+
+  <!-- Header -->
+  <div class="pay-head">
+    <span style="font-size:20px;">✈</span>
+    <div>
+      <div class="pay-head-logo">UK Trip Payments</div>
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Secure Checkout</div>
+    </div>
+    <div class="pay-head-secure">
+      <span class="lock-icon">🔒</span>
+      <span>256-bit SSL</span>
     </div>
   </div>
 
-  <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:18px;">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-      <span style="color:var(--text2);">Total Amount</span>
-      <strong>Rs {{ booking.total_amount }}</strong>
+  <!-- Order summary -->
+  <div class="order-summary">
+    <div class="order-summary-title">Booking Summary</div>
+    <div class="order-row">
+      <span class="label">📦 Package</span>
+      <span class="val">{{ booking.category or 'Tour Package' }}</span>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-      <span style="color:var(--text2);">Already Paid</span>
-      <strong>Rs {{ booking.amount_paid or 0 }}</strong>
+    <div class="order-row">
+      <span class="label">📅 Travel Date</span>
+      <span class="val">{{ booking.travel_date or '—' }}</span>
     </div>
-    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;">
-      <span style="color:var(--text);font-weight:700;">Pay Now</span>
-      <strong style="color:var(--accent);font-size:22px;">Rs {{ "%.2f"|format(balance_due) }}</strong>
+    <div class="order-row">
+      <span class="label">👥 Travellers</span>
+      <span class="val">{{ booking.num_members or 1 }} person(s)</span>
+    </div>
+    {% if booking.vehicle_type %}
+    <div class="order-row">
+      <span class="label">🚖 Vehicle</span>
+      <span class="val">{{ booking.vehicle_type }}</span>
+    </div>
+    {% endif %}
+    {% if booking.guide_name %}
+    <div class="order-row">
+      <span class="label">👨‍💼 Guide</span>
+      <span class="val">{{ booking.guide_name }}</span>
+    </div>
+    {% endif %}
+    <div class="order-row">
+      <span class="label">📋 Booking ID</span>
+      <span class="val" style="font-family:monospace;">#{{ booking.booking_id }}</span>
+    </div>
+    <div class="order-total">
+      <span class="label">Total Amount</span>
+      <span class="amount">₹{{ "{:,.0f}".format(booking.total_amount or 0) }}</span>
     </div>
   </div>
 
-  <form method="POST">
-    <div class="form-group">
-      <label>Fake Payment Mode</label>
-      <select name="payment_mode" required>
-        <option value="UPI">UPI</option>
-        <option value="Card">Card</option>
-        <option value="Bank Transfer">Bank Transfer</option>
-        <option value="Other">Wallet / Other</option>
+  <!-- Payment form body -->
+  <div class="pay-body">
+
+    <div class="demo-notice">
+      ℹ️ <strong>Demo Mode:</strong> This is a simulated payment gateway. No real money is charged. Choose any method and click Pay to complete your booking.
+    </div>
+
+    <!-- Method tabs -->
+    <div class="pay-method-tabs">
+      <button class="pay-method-tab active" onclick="switchMethod('card',this)">💳 Card</button>
+      <button class="pay-method-tab" onclick="switchMethod('upi',this)">📱 UPI</button>
+      <button class="pay-method-tab" onclick="switchMethod('netbanking',this)">🏦 Net Banking</button>
+      <button class="pay-method-tab" onclick="switchMethod('cash',this)">💵 Cash</button>
+    </div>
+
+    <!-- CARD PANEL -->
+    <div class="pay-panel active" id="panel-card">
+      <div class="card-preview">
+        <div class="card-chip">💳</div>
+        <div class="card-num-display" id="cardNumDisplay">•••• •••• •••• ••••</div>
+        <div class="card-meta">
+          <span><span>Card Holder</span><strong id="cardNameDisplay">YOUR NAME</strong></span>
+          <span><span>Expires</span><strong id="cardExpDisplay">MM/YY</strong></span>
+        </div>
+      </div>
+
+      <label class="fl">Card Number</label>
+      <input class="fi" id="cardNum" type="text" maxlength="19" placeholder="1234 5678 9012 3456"
+        oninput="formatCard(this)" autocomplete="off">
+
+      <label class="fl">Cardholder Name</label>
+      <input class="fi" id="cardName" type="text" placeholder="As printed on card"
+        oninput="document.getElementById('cardNameDisplay').textContent=this.value.toUpperCase()||'YOUR NAME'">
+
+      <div class="card-row">
+        <div>
+          <label class="fl">Expiry Date</label>
+          <input class="fi" id="cardExp" type="text" maxlength="5" placeholder="MM/YY"
+            oninput="formatExp(this)">
+        </div>
+        <div>
+          <label class="fl">CVV</label>
+          <input class="fi" id="cardCvv" type="password" maxlength="3" placeholder="•••">
+        </div>
+      </div>
+    </div>
+
+    <!-- UPI PANEL -->
+    <div class="pay-panel" id="panel-upi">
+      <div class="upi-orb">📱</div>
+      <div class="upi-hint">Pay using any UPI app</div>
+      <div class="upi-saved-apps">
+        <button class="upi-app-btn" onclick="selectUpiApp(this,'GPay')">🇬 GPay</button>
+        <button class="upi-app-btn" onclick="selectUpiApp(this,'PhonePe')">💜 PhonePe</button>
+        <button class="upi-app-btn" onclick="selectUpiApp(this,'Paytm')">🔵 Paytm</button>
+        <button class="upi-app-btn" onclick="selectUpiApp(this,'BHIM')">🇮🇳 BHIM</button>
+      </div>
+      <label class="fl">UPI ID</label>
+      <input class="fi" id="upiId" type="text" placeholder="yourname@upi">
+      <div id="upiAppSelected" style="display:none;background:var(--accent-dim);border:1px solid rgba(0,229,160,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent);margin-bottom:14px;"></div>
+    </div>
+
+    <!-- NET BANKING PANEL -->
+    <div class="pay-panel" id="panel-netbanking">
+      <label class="fl">Select Your Bank</label>
+      <select class="fi" id="bankSelect" style="cursor:pointer;">
+        <option value="">— Choose your bank —</option>
+        <option value="SBI">State Bank of India</option>
+        <option value="HDFC">HDFC Bank</option>
+        <option value="ICICI">ICICI Bank</option>
+        <option value="Axis">Axis Bank</option>
+        <option value="Kotak">Kotak Mahindra Bank</option>
+        <option value="PNB">Punjab National Bank</option>
+        <option value="BoB">Bank of Baroda</option>
+        <option value="Canara">Canara Bank</option>
+        <option value="Union">Union Bank of India</option>
+        <option value="Other">Other Bank</option>
       </select>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);margin-bottom:14px;">
+        🔒 You'll be redirected to your bank's secure portal to complete the payment. (Demo mode: no redirect will happen)
+      </div>
     </div>
 
-    <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px;margin-bottom:16px;color:var(--green);font-size:12px;">
-      This is a demo gateway. Clicking Pay records a successful fake payment.
+    <!-- CASH PANEL -->
+    <div class="pay-panel" id="panel-cash">
+      <div class="offline-box">
+        💵 <strong>Cash / Offline Payment</strong><br><br>
+        Your booking will be marked as <strong>Pending Payment</strong>. Please pay the amount of <strong>₹{{ "{:,.0f}".format(booking.total_amount or 0) }}</strong> at our office or to the assigned guide.<br><br>
+        📍 Payment must be completed before your travel date.
+      </div>
     </div>
 
-    <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">
-      Pay Rs {{ "%.2f"|format(balance_due) }}
+    <!-- Pay button -->
+    <button class="pay-btn" id="payBtn" onclick="doPayment()">
+      🔒 Pay ₹{{ "{:,.0f}".format(booking.total_amount or 0) }} Securely
     </button>
-  </form>
+
+    <!-- Security badges -->
+    <div class="badges" style="margin-top:14px;">
+      <div class="badge-item">🔒 SSL Secured</div>
+      <div class="badge-item">🛡️ 3D Secure</div>
+      <div class="badge-item">✓ PCI DSS Compliant</div>
+    </div>
+
+    <div style="text-align:center;margin-top:4px;">
+      <a href="/my_bookings" style="font-size:12px;color:var(--text3);text-decoration:none;">← Back to My Bookings</a>
+    </div>
+
+  </div>
 </div>
 
-{% endblock %}
+<!-- Hidden form to POST payment data -->
+<form id="payForm" method="POST" action="/process_payment" style="display:none;">
+  <input type="hidden" name="booking_id" value="{{ booking.booking_id }}">
+  <input type="hidden" name="amount" value="{{ booking.total_amount or 0 }}">
+  <input type="hidden" name="payment_mode" id="fPayMode" value="Card">
+  <input type="hidden" name="payment_status" id="fPayStatus" value="Paid">
+  <input type="hidden" name="transaction_id" id="fTxnId" value="">
+  <input type="hidden" name="notes" id="fNotes" value="Payment via demo gateway">
+</form>
+
+<script>
+var _method = 'card';
+var _upiApp = '';
+
+/* ── SCROLL BUTTON LOGIC ───────────────────────── */
+var scrollBtn  = document.getElementById('scrollBtn');
+var scrollArrow = document.getElementById('scrollArrow');
+var payBtn     = document.getElementById('payBtn');
+
+function updateScrollBtn() {
+  var pageH  = document.documentElement.scrollHeight;
+  var viewH  = window.innerHeight;
+  var scrollY = window.scrollY || window.pageYOffset;
+  var btnRect = payBtn.getBoundingClientRect();
+
+  /* Only show when page is scrollable */
+  if (pageH <= viewH + 40) {
+    scrollBtn.classList.remove('visible');
+    return;
+  }
+  scrollBtn.classList.add('visible');
+
+  /* Arrow direction: down = pay button below fold, up = at bottom */
+  if (btnRect.bottom <= viewH + 10) {
+    scrollArrow.textContent = '↑';
+    scrollBtn.title = 'Back to top';
+  } else {
+    scrollArrow.textContent = '↓';
+    scrollBtn.title = 'Scroll to Pay button';
+  }
+}
+
+scrollBtn.addEventListener('click', function () {
+  var btnRect = payBtn.getBoundingClientRect();
+  var viewH   = window.innerHeight;
+  if (btnRect.bottom <= viewH + 10) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    payBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+window.addEventListener('scroll', updateScrollBtn, { passive: true });
+window.addEventListener('resize', updateScrollBtn, { passive: true });
+setTimeout(updateScrollBtn, 300);
+
+/* ── METHOD SWITCH ─────────────────────────────── */
+function switchMethod(method, btn) {
+  _method = method;
+  document.querySelectorAll('.pay-method-tab').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.pay-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('panel-' + method).classList.add('active');
+  setTimeout(updateScrollBtn, 100);
+}
+
+/* ── CARD FORMATTING ───────────────────────────── */
+function formatCard(inp) {
+  var v = inp.value.replace(/\D/g,'').substring(0,16);
+  var f = v.match(/.{1,4}/g);
+  inp.value = f ? f.join(' ') : v;
+  var disp = v.padEnd(16,'•');
+  var fDisp = disp.match(/.{1,4}/g);
+  document.getElementById('cardNumDisplay').textContent = fDisp ? fDisp.join(' ') : '•••• •••• •••• ••••';
+}
+
+function formatExp(inp) {
+  var v = inp.value.replace(/\D/g,'');
+  if (v.length >= 2) v = v.substring(0,2) + '/' + v.substring(2,4);
+  inp.value = v;
+  document.getElementById('cardExpDisplay').textContent = inp.value || 'MM/YY';
+}
+
+/* ── UPI APP SELECT ────────────────────────────── */
+function selectUpiApp(btn, app) {
+  document.querySelectorAll('.upi-app-btn').forEach(function(b){ b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  _upiApp = app;
+  var box = document.getElementById('upiAppSelected');
+  box.style.display = '';
+  box.textContent = '✅ Paying via ' + app;
+}
+
+/* ── GENERATE TXN ID ──────────────────────────── */
+function genTxn() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+  var txn = 'TXN';
+  for (var i = 0; i < 10; i++) txn += chars.charAt(Math.floor(Math.random()*chars.length));
+  return txn;
+}
+
+/* ── PAYMENT FLOW ─────────────────────────────── */
+function doPayment() {
+  var btn = document.getElementById('payBtn');
+
+  // Validation
+  if (_method === 'card') {
+    var num  = (document.getElementById('cardNum').value || '').replace(/\s/g,'');
+    var name = document.getElementById('cardName').value.trim();
+    var exp  = document.getElementById('cardExp').value;
+    var cvv  = document.getElementById('cardCvv').value;
+    if (num.length  < 16) { alert('Please enter a valid 16-digit card number.'); return; }
+    if (!name)             { alert('Please enter the cardholder name.'); return; }
+    if (exp.length  <  5) { alert('Please enter a valid expiry date (MM/YY).'); return; }
+    if (cvv.length  <  3) { alert('Please enter the 3-digit CVV.'); return; }
+  } else if (_method === 'upi') {
+    var upiId = document.getElementById('upiId').value.trim();
+    if (!upiId && !_upiApp) { alert('Please enter your UPI ID or select a UPI app.'); return; }
+  } else if (_method === 'netbanking') {
+    if (!document.getElementById('bankSelect').value) { alert('Please select your bank.'); return; }
+  }
+
+  btn.disabled = true;
+  document.getElementById('procOverlay').classList.add('active');
+
+  setTimeout(function () {
+    var txnId     = genTxn();
+    var modeMap   = { card:'Card', upi:'UPI', netbanking:'Bank Transfer', cash:'Cash' };
+    var statusMap = { card:'Paid', upi:'Paid', netbanking:'Paid', cash:'Pending' };
+
+    document.getElementById('fPayMode').value   = modeMap[_method]   || 'Card';
+    document.getElementById('fPayStatus').value = statusMap[_method] || 'Paid';
+    document.getElementById('fTxnId').value     = txnId;
+    document.getElementById('fNotes').value     = 'Demo payment via ' + (modeMap[_method] || 'Card');
+
+    document.getElementById('txnDisplay').textContent = txnId;
+    document.getElementById('procOverlay').classList.remove('active');
+    document.getElementById('successOverlay').classList.add('active');
+
+    setTimeout(function () {
+      document.getElementById('payForm').submit();
+    }, 3000);
+  }, 2200);
+}
+</script>
+
+</body>
+</html>
