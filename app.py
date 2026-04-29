@@ -1825,7 +1825,18 @@ def add_booking_note(id):
     return redirect("/view_bookings")
 
 
-
+@app.route('/edit_booking/<int:booking_id>', methods=['POST'])
+def edit_booking(booking_id):
+    if 'admin' not in session:
+        return redirect('/')
+    travel_date = request.form.get('travel_date')
+    num_members = request.form.get('num_members')
+    note = request.form.get('note', '')
+    db.execute("UPDATE bookings SET travel_date=?, num_members=?, admin_note=? WHERE booking_id=?",
+               (travel_date, num_members, note, booking_id))
+    db.commit()
+    flash('Booking updated.', 'success')
+    return redirect('/view_bookings')
 
 
 

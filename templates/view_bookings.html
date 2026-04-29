@@ -28,15 +28,14 @@
 .quick-form input,.quick-form select,.quick-form textarea{width:100%;font-size:12px;padding:8px 9px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);}
 .quick-form .full{grid-column:1/-1;}
 @media(max-width:900px){.quick-grid{grid-template-columns:1fr;}.quick-form{grid-template-columns:1fr;}}
-
-/* Always-visible assign forms (not just Approved) */
-.assign-always{opacity:1;}
 .assign-hint{font-size:10px;color:var(--text3);margin-top:4px;font-style:italic;}
-
-/* Date + travelers cell */
 .dt-cell{text-align:center;}
 .dt-date{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;}
 .dt-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* Edit booking modal */
+.edit-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:600px){.edit-modal-grid{grid-template-columns:1fr;}}
 </style>
 
 <div class="topbar">
@@ -48,7 +47,7 @@
   </div>
 </div>
 
-<!-- Flash messages -->
+<!-- ── FLASH MESSAGES ── -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
     <div style="padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;border:1px solid;
@@ -60,7 +59,17 @@
   {% endfor %}
 {% endwith %}
 
-<!-- QUICK ADD FORMS -->
+<!-- ── PENDING COUNT ALERT ── -->
+{% set pending_list = bookings | selectattr('status', 'equalto', 'Booked') | list %}
+{% if pending_list %}
+<div style="padding:11px 15px;border-radius:8px;margin-bottom:18px;font-size:13px;
+  background:rgba(245,158,11,.1);color:var(--orange);border:1px solid rgba(245,158,11,.25);
+  display:flex;align-items:center;gap:10px;">
+  ⚠️ <strong>{{ pending_list|length }} booking(s)</strong> waiting for your approval.
+</div>
+{% endif %}
+
+<!-- ── QUICK ADD FORMS ── -->
 <div class="quick-grid">
   <div class="quick-card">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
@@ -112,7 +121,8 @@
   </div>
 </div>
 
-<!-- GUIDE AVAILABILITY STRIP -->
+<!-- ── GUIDE AVAILABILITY STRIP ── -->
+{% if guides %}
 <div class="guide-strip">
   {% for g in guides %}
   <div class="guide-availability-card">
@@ -137,33 +147,37 @@
       <button class="btn btn-outline btn-sm" type="submit">Save</button>
     </form>
   </div>
-  {% else %}
-  <div class="guide-availability-card" style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:13px;padding:20px;">
-    No guides added yet. Use the form above to add a guide.
-  </div>
   {% endfor %}
 </div>
+{% endif %}
 
-<!-- FILTER BAR -->
+<!-- ── FILTER BAR ── -->
 <div class="search-bar">
   <input type="text" id="bs" placeholder="🔍 Search traveler / package / date / vehicle / guide..." oninput="fb()" style="flex:1;">
   <select id="bst" onchange="fb()">
     <option value="">All Status</option>
-    <option value="Booked">Pending Approval</option>
-    <option value="Approved">Approved</option>
-    <option value="Rejected">Rejected</option>
-    <option value="Cancelled">Cancelled</option>
+    <option value="Booked">⏳ Pending Approval</option>
+    <option value="Approved">✅ Approved</option>
+    <option value="Rejected">❌ Rejected</option>
+    <option value="Cancelled">🚫 Cancelled</option>
   </select>
   <select id="bpay" onchange="fb()">
     <option value="">All Payment</option>
-    <option value="paid">Paid</option>
-    <option value="unpaid">Unpaid</option>
-    <option value="partial">Partial</option>
+    <option value="paid">✅ Paid</option>
+    <option value="unpaid">❌ Unpaid</option>
+    <option value="partial">⏳ Partial</option>
   </select>
+  <button class="btn btn-outline btn-sm" onclick="clearFilters()">✕ Clear</button>
 </div>
 
-<!-- BOOKINGS TABLE -->
+<!-- ── BOOKINGS TABLE ── -->
 <div class="card" style="overflow-x:auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <span style="font-size:12px;color:var(--text3);" id="countLabel">
+      Showing all {{ bookings|length }} booking(s)
+    </span>
+  </div>
+
   <table class="booking-table">
     <thead>
       <tr>
@@ -187,13 +201,19 @@
       {% set pay_class = 'paid' if paid_amt >= b.total_amount else ('partial' if paid_amt > 0 else 'unpaid') %}
       <tr data-status="{{ b.status }}" data-pay="{{ pay_class }}">
 
+        <!-- ID -->
         <td><strong>#{{ b.booking_id }}</strong></td>
 
+        <!-- TRAVELER -->
         <td>
           <div style="font-weight:600;color:var(--text);">{{ b.traveler_name or '—' }}</div>
           <div style="font-size:10px;color:var(--text3);font-family:monospace;">{{ b.adharno }}</div>
+          {% if b.mobile %}
+          <div style="font-size:10px;color:var(--text3);">📱 {{ b.mobile }}</div>
+          {% endif %}
         </td>
 
+        <!-- PACKAGE -->
         <td>
           <div>
             {% if b.category %}{{ b.category }}{% else %}Pkg #{{ b.package_id }}{% endif %}
@@ -221,7 +241,7 @@
           </div>
         </td>
 
-        <!-- VEHICLE ASSIGNMENT — available for ALL booking statuses -->
+        <!-- VEHICLE ASSIGNMENT -->
         <td style="min-width:250px;">
           <div class="mini-card">
             {% if b.vehicle_type %}
@@ -235,7 +255,6 @@
               <div class="mini-title" style="color:var(--text3);">No vehicle assigned</div>
             {% endif %}
           </div>
-          <!-- Always allow vehicle assignment/edit -->
           {% if b.status != 'Cancelled' and b.status != 'Rejected' %}
           <form method="POST" action="/assign_booking_vehicle/{{ b.booking_id }}" class="assign-form">
             <select name="vehicle_id">
@@ -260,7 +279,7 @@
           {% endif %}
         </td>
 
-        <!-- GUIDE ASSIGNMENT — available for ALL booking statuses -->
+        <!-- GUIDE ASSIGNMENT -->
         <td style="min-width:250px;">
           <div class="mini-card">
             {% if b.guide_name %}
@@ -273,7 +292,6 @@
               <div class="mini-title" style="color:var(--text3);">No guide assigned</div>
             {% endif %}
           </div>
-          <!-- Always allow guide assignment/edit -->
           {% if b.status != 'Cancelled' and b.status != 'Rejected' %}
           <form method="POST" action="/assign_booking_guide/{{ b.booking_id }}" class="assign-form">
             <select name="guide_id">
@@ -298,6 +316,7 @@
           {% endif %}
         </td>
 
+        <!-- AMOUNT -->
         <td><strong>₹{{ b.total_amount }}</strong></td>
 
         <!-- PAYMENT STATUS -->
@@ -326,28 +345,58 @@
           <span style="font-size:12px;color:var(--text2);" title="{{ b.admin_note }}">
             {{ b.admin_note[:28] }}{% if b.admin_note|length > 28 %}...{% endif %}
           </span>
+          <br>
+          <button class="btn btn-outline btn-sm" style="margin-top:4px;" data-bid="{{ b.booking_id }}" onclick="openNote(this.dataset.bid)">✏ Edit</button>
           {% else %}
           <button class="btn btn-outline btn-sm" data-bid="{{ b.booking_id }}" onclick="openNote(this.dataset.bid)">+ Note</button>
           {% endif %}
         </td>
 
         <!-- ACTIONS -->
-        <td style="min-width:140px;">
+        <td style="min-width:160px;">
           <div style="display:flex;gap:5px;flex-wrap:wrap;">
+
             {% if b.status == 'Booked' %}
+            <!-- APPROVE -->
             <a href="/update_booking/{{ b.booking_id }}/Approved">
               <button class="btn btn-success btn-sm">✓ Approve</button>
             </a>
-            <a href="/update_booking/{{ b.booking_id }}/Rejected" onclick="return confirm('Reject booking #{{ b.booking_id }}?')">
+            <!-- REJECT -->
+            <a href="/update_booking/{{ b.booking_id }}/Rejected"
+               onclick="return confirm('Reject booking #{{ b.booking_id }} for {{ b.traveler_name }}?')">
               <button class="btn btn-danger btn-sm">✕ Reject</button>
             </a>
+
             {% elif b.status == 'Approved' %}
-            <a href="/update_booking/{{ b.booking_id }}/Cancelled" onclick="return confirm('Cancel approved booking #{{ b.booking_id }}?')">
+            <!-- CANCEL APPROVED -->
+            <a href="/update_booking/{{ b.booking_id }}/Cancelled"
+               onclick="return confirm('Cancel the approved booking #{{ b.booking_id }}?')">
               <button class="btn btn-warning btn-sm">⚠ Cancel</button>
             </a>
+
             {% else %}
-            <span style="color:var(--text3);font-size:12px;">{{ b.status }}</span>
+            <!-- REACTIVATE REJECTED / CANCELLED -->
+            <a href="/update_booking/{{ b.booking_id }}/Approved"
+               onclick="return confirm('Re-approve booking #{{ b.booking_id }}?')">
+              <button class="btn btn-success btn-sm">↩ Re-approve</button>
+            </a>
             {% endif %}
+
+            <!-- EDIT BOOKING DETAILS -->
+            <button class="btn btn-outline btn-sm"
+              data-bid="{{ b.booking_id }}"
+              data-date="{{ b.travel_date or '' }}"
+              data-members="{{ b.num_members or 1 }}"
+              data-note="{{ b.admin_note or '' }}"
+              onclick="openEditModal(this)">
+              ✏ Edit
+            </button>
+
+            <!-- INVOICE -->
+            <a href="/invoice/{{ b.booking_id }}">
+              <button class="btn btn-outline btn-sm">🧾 Invoice</button>
+            </a>
+
           </div>
         </td>
       </tr>
@@ -362,21 +411,60 @@
   </table>
 </div>
 
-<!-- NOTE MODAL -->
+
+<!-- ══ NOTE MODAL ══ -->
 <div class="modal-overlay" id="noteModal">
   <div class="modal" style="width:400px;">
     <button class="modal-close" onclick="document.getElementById('noteModal').classList.remove('open')">✕</button>
-    <h3>📝 Add Admin Note</h3>
+    <h3>📝 Admin Note</h3>
     <form id="noteForm" method="POST">
       <div class="form-group">
         <label>Note / Remark</label>
-        <textarea name="note" rows="4" placeholder="Admin-only remark about this booking…" required
-          style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;resize:vertical;"></textarea>
+        <textarea name="note" id="noteText" rows="4"
+          placeholder="Admin-only remark about this booking…" required
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+            padding:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
+            outline:none;resize:vertical;"></textarea>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;padding:10px;margin-top:8px;">💾 Save Note</button>
     </form>
   </div>
 </div>
+
+
+<!-- ══ EDIT BOOKING MODAL ══ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="width:480px;">
+    <button class="modal-close" onclick="document.getElementById('editModal').classList.remove('open')">✕</button>
+    <h3>✏️ Edit Booking Details</h3>
+    <form id="editForm" method="POST">
+      <div class="edit-modal-grid">
+        <div class="form-group">
+          <label>Travel Date</label>
+          <input type="date" name="travel_date" id="editDate">
+        </div>
+        <div class="form-group">
+          <label>Number of Travellers</label>
+          <input type="number" name="num_members" id="editMembers" min="1" max="50">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Admin Note</label>
+        <textarea name="note" id="editNote" rows="3"
+          placeholder="Internal note about this booking…"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);
+            border-radius:8px;padding:10px;color:var(--text);font-family:'Inter',sans-serif;
+            font-size:13px;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button type="button" class="btn btn-outline" style="flex:1;padding:10px;"
+          onclick="document.getElementById('editModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="flex:1;padding:10px;">💾 Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 
 <script>
 /* ── FILTER ─────────────────────────────────────────── */
@@ -384,22 +472,57 @@ function fb() {
   var q   = document.getElementById('bs').value.toLowerCase();
   var st  = document.getElementById('bst').value;
   var pay = document.getElementById('bpay').value;
+  var shown = 0;
   document.querySelectorAll('#brows tr[data-status]').forEach(function(r) {
     var ok = r.textContent.toLowerCase().includes(q)
            && (!st  || r.dataset.status === st)
            && (!pay || r.dataset.pay    === pay);
     r.style.display = ok ? '' : 'none';
+    if (ok) shown++;
   });
+  var total = document.querySelectorAll('#brows tr[data-status]').length;
+  document.getElementById('countLabel').textContent =
+    shown === total
+      ? 'Showing all ' + total + ' booking(s)'
+      : 'Showing ' + shown + ' of ' + total + ' booking(s)';
+}
+
+function clearFilters() {
+  document.getElementById('bs').value  = '';
+  document.getElementById('bst').value = '';
+  document.getElementById('bpay').value = '';
+  fb();
 }
 
 /* ── NOTE MODAL ─────────────────────────────────────── */
 function openNote(id) {
   document.getElementById('noteForm').action = '/add_booking_note/' + id;
+  document.getElementById('noteText').value  = '';
   document.getElementById('noteModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('noteText').focus(); }, 100);
 }
 
+/* ── EDIT BOOKING MODAL ─────────────────────────────── */
+function openEditModal(btn) {
+  var bid     = btn.dataset.bid;
+  var date    = btn.dataset.date;
+  var members = btn.dataset.members;
+  var note    = btn.dataset.note;
+
+  // POST to /edit_booking/<id> — make sure this route exists in app.py
+  document.getElementById('editForm').action   = '/edit_booking/' + bid;
+  document.getElementById('editDate').value    = date;
+  document.getElementById('editMembers').value = members;
+  document.getElementById('editNote').value    = note;
+  document.getElementById('editModal').classList.add('open');
+}
+
+/* ── ESCAPE ─────────────────────────────────────────── */
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') document.getElementById('noteModal').classList.remove('open');
+  if (e.key === 'Escape') {
+    document.getElementById('noteModal').classList.remove('open');
+    document.getElementById('editModal').classList.remove('open');
+  }
 });
 </script>
 
