@@ -1,101 +1,132 @@
 {% extends "admin_base.html" %}
+{% block title %}Statistics — UK Trip Admin{% endblock %}
+{% block page_title %}Analytics & Statistics{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% block content %}
+<div class="topbar"><h1>Analytics</h1></div>
 
-<div class="topbar"><h1>📊 Statistics</h1></div>
-
-<div class="stats-container">
-  <div class="stat-card c-users"><h3>Travelers</h3><h1>{{ users }}</h1></div>
-  <div class="stat-card c-pkg"><h3>Packages</h3><h1>{{ total_packages }}</h1></div>
-  <div class="stat-card c-book"><h3>Total Bookings</h3><h1>{{ bookings }}</h1></div>
-  <div class="stat-card c-appr"><h3>Approved</h3><h1>{{ approved }}</h1></div>
-  <div class="stat-card c-rev"><h3>Revenue</h3><h1>₹{{ revenue }}</h1></div>
+<!-- KPI row -->
+<div class="stats-container" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:28px;">
+  <div class="stat-card c-users"><h3>Travelers</h3><div class="num">{{ users }}</div><div class="sub">Registered</div></div>
+  <div class="stat-card c-pkg"><h3>Packages</h3><div class="num">{{ total_packages }}</div><div class="sub">Active tours</div></div>
+  <div class="stat-card c-book"><h3>Bookings</h3><div class="num">{{ bookings }}</div><div class="sub">Total</div></div>
+  <div class="stat-card c-appr"><h3>Approved</h3><div class="num">{{ approved }}</div><div class="sub">Confirmed</div></div>
+  <div class="stat-card c-rev"><h3>Revenue</h3><div class="num" style="font-size:18px;">₹{{ revenue }}</div><div class="sub">Approved only</div></div>
 </div>
 
-<div class="two-col">
+<!-- Charts row 1 -->
+<div class="two-col" style="margin-bottom:22px;">
   <div class="card">
-    <h3>Booking Status Breakdown</h3>
-    <canvas id="pieChart" height="260"></canvas>
+    <h3>Booking Status Distribution</h3>
+    <canvas id="statusChart" height="220"></canvas>
   </div>
   <div class="card">
     <h3>System Overview</h3>
-    <canvas id="barChart" height="260"></canvas>
+    <canvas id="overviewChart" height="220"></canvas>
   </div>
 </div>
 
-{% if top_packages %}
-<div class="card">
-  <h3>🏆 Top Performing Packages (Approved Bookings)</h3>
-  <table>
-    <thead>
-      <tr><th>Rank</th><th>Package</th><th>Approved Bookings</th><th>Revenue</th></tr>
-    </thead>
-    <tbody>
-      {% for tp in top_packages %}
-      <tr>
-        <td><strong>#{{ loop.index }}</strong></td>
-        <td>{{ tp.category }}</td>
-        <td>
-          <span style="background:#e8f0fe;color:#2a5298;padding:3px 10px;border-radius:10px;font-size:12px;">
-            {{ tp.total }}
-          </span>
-        </td>
-        <td><strong>₹{{ tp.revenue|int }}</strong></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
-
-<div class="card">
-  <h3>Summary Table</h3>
-  <table>
-    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
-    <tbody>
-      <tr><td>Registered Travelers</td><td><strong>{{ users }}</strong></td></tr>
-      <tr><td>Active Packages</td><td><strong>{{ total_packages }}</strong></td></tr>
-      <tr><td>Total Bookings</td><td><strong>{{ bookings }}</strong></td></tr>
-      <tr><td>Approved Trips</td><td><strong>{{ approved }}</strong></td></tr>
-      <tr><td>Rejected Bookings</td><td><strong>{{ rejected }}</strong></td></tr>
-      <tr><td>Cancelled Bookings</td><td><strong>{{ cancelled }}</strong></td></tr>
-      <tr><td>Total Revenue (Approved)</td><td><strong>₹{{ revenue }}</strong></td></tr>
-      <tr><td>Avg Revenue per Approved Booking</td>
-        <td><strong>₹{{ (revenue / approved)|round(0)|int if approved > 0 else 0 }}</strong></td></tr>
-    </tbody>
-  </table>
+<!-- Charts row 2 -->
+<div class="two-col" style="margin-bottom:22px;">
+  {% if top_packages %}
+  <div class="card">
+    <h3>🏆 Top Packages by Bookings</h3>
+    <canvas id="topPkgChart" height="200"></canvas>
+  </div>
+  {% endif %}
+  {% if monthly_data is defined %}
+  <div class="card">
+    <h3>Monthly Revenue Trend</h3>
+    <canvas id="revenueChart" height="200"></canvas>
+  </div>
+  {% endif %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Tables -->
+<div class="two-col">
+  {% if top_packages %}
+  <div class="card">
+    <h3>Package Leaderboard</h3>
+    <table>
+      <thead><tr><th>Rank</th><th>Package</th><th>Bookings</th></tr></thead>
+      <tbody>
+        {% for p in top_packages %}
+        <tr>
+          <td><strong style="color:var(--secondary);">#{{ loop.index }}</strong></td>
+          <td>{{ p.category }}</td>
+          <td><span class="status Approved">{{ p.cnt }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h3>Quick Stats</h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-container-low);border-radius:var(--radius);">
+        <span style="font-size:13px;color:var(--on-surface-variant);">Approval Rate</span>
+        <strong style="color:var(--secondary);">
+          {% if bookings %}{{ ((approved / bookings) * 100)|round(1) }}%{% else %}0%{% endif %}
+        </strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-container-low);border-radius:var(--radius);">
+        <span style="font-size:13px;color:var(--on-surface-variant);">Avg. Revenue/Booking</span>
+        <strong style="color:var(--secondary);">
+          {% if approved %}₹{{ (revenue|float / approved)|round(0)|int }}{% else %}₹0{% endif %}
+        </strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-container-low);border-radius:var(--radius);">
+        <span style="font-size:13px;color:var(--on-surface-variant);">Reviews Submitted</span>
+        <strong style="color:var(--secondary);">{{ total_reviews or 0 }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-container-low);border-radius:var(--radius);">
+        <span style="font-size:13px;color:var(--on-surface-variant);">Avg. Star Rating</span>
+        <strong style="color:#f59e0b;">★ {{ avg_rating or 'N/A' }}</strong>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-new Chart(document.getElementById('pieChart'),{
+var defaults={plugins:{legend:{labels:{font:{family:'Inter',size:12},color:'#45464d'}}},scales:{x:{ticks:{font:{family:'Inter',size:11},color:'#76777d'},grid:{color:'#f1f5f9'}},y:{ticks:{font:{family:'Inter',size:11},color:'#76777d'},grid:{color:'#f1f5f9'}}}};
+
+new Chart(document.getElementById('statusChart'),{
   type:'doughnut',
   data:{
-    labels:['Approved','Cancelled','Rejected','Pending'],
-    datasets:[{
-      data:[{{ approved }},{{ cancelled }},{{ rejected }},{{ bookings-approved-cancelled-rejected }}],
-      backgroundColor:['#16a34a','#6b7280','#dc2626','#d97706'],
-      borderWidth:2,borderColor:'#fff'
-    }]
+    labels:['Booked','Approved','Rejected','Cancelled'],
+    datasets:[{data:[{{ (status_counts or {}).get('Booked',0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Approved',0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Rejected',0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Cancelled',0) if status_counts is defined else 0 }}],backgroundColor:['#fef3c7','#d1fae5','#fee2e2','#e5e7eb'],borderColor:['#b45309','#006c49','#ba1a1a','#76777d'],borderWidth:1.5}]
   },
-  options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+  options:{cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{family:'Inter',size:12},color:'#45464d',padding:16}}}}
 });
-new Chart(document.getElementById('barChart'),{
-  type:'bar',
-  data:{
-    labels:['Travelers','Packages','Bookings','Approved'],
-    datasets:[{
-      label:'Count',
-      data:[{{ users }},{{ total_packages }},{{ bookings }},{{ approved }}],
-      backgroundColor:['#5b86e5','#8e44ad','#f7971e','#16a34a'],
-      borderRadius:8
-    }]
-  },
-  options:{
-    responsive:true,
-    plugins:{legend:{display:false}},
-    scales:{y:{beginAtZero:true}}
-  }
-});
-</script>
 
+new Chart(document.getElementById('overviewChart'),{
+  type:'bar',
+  data:{labels:['Travelers','Packages','Bookings','Approved'],datasets:[{label:'Count',data:[{{ users }},{{ total_packages }},{{ bookings }},{{ approved }}],backgroundColor:['#dbe1ff','#d1fae5','#fef3c7','#dcfce7'],borderColor:['#003ea8','#006c49','#b45309','#16a34a'],borderWidth:1.5,borderRadius:6}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}
+});
+
+{% if top_packages %}
+new Chart(document.getElementById('topPkgChart'),{
+  type:'bar',
+  data:{labels:[{% for p in top_packages %}'{{ p.category }}'{% if not loop.last %},{% endif %}{% endfor %}],datasets:[{label:'Bookings',data:[{% for p in top_packages %}{{ p.cnt }}{% if not loop.last %},{% endif %}{% endfor %}],backgroundColor:'#d1fae5',borderColor:'#006c49',borderWidth:1.5,borderRadius:6}]},
+  options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#f1f5f9'}},y:{grid:{display:false}}}}
+});
+{% endif %}
+
+{% if monthly_data is defined %}
+new Chart(document.getElementById('revenueChart'),{
+  type:'line',
+  data:{labels:[{% for m in monthly_data %}'{{ m.month }}'{% if not loop.last %},{% endif %}{% endfor %}],datasets:[{label:'Revenue (₹)',data:[{% for m in monthly_data %}{{ m.revenue }}{% if not loop.last %},{% endif %}{% endfor %}],borderColor:'#006c49',backgroundColor:'rgba(0,108,73,0.08)',tension:0.4,fill:true,borderWidth:2,pointBackgroundColor:'#006c49',pointRadius:4}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}
+});
+{% endif %}
+</script>
 {% endblock %}

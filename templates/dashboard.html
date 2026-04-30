@@ -1,339 +1,125 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard — UK Trip{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
 {% block content %}
 
-<!-- PAGE HEADER -->
-<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;">
-  <div>
-    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);">
-      Welcome back, {{ user }} 👋
-    </h1>
-    <p style="font-size:13px;color:var(--text3);margin-top:5px;">
-      Real-time metrics from your UK Trip account.
-    </p>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <a href="/notifications" class="notif-btn">
-      🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}
+<!-- Welcome hero -->
+<div class="card card-featured" style="margin-bottom:28px;background:var(--primary);border:none;color:#fff;padding:32px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--secondary-fixed-dim);margin-bottom:8px;">Welcome back</div>
+      <h2 style="font-size:26px;font-weight:800;letter-spacing:-0.02em;color:#fff;margin-bottom:8px;">
+        Hello, {{ session.get('user','Traveler') }} 👋
+      </h2>
+      <p style="font-size:14px;color:rgba(255,255,255,0.65);max-width:420px;line-height:1.6;">
+        Ready for your next UK adventure? Browse our curated packages and start planning your dream trip.
+      </p>
+    </div>
+    <a href="/packages" class="btn" style="background:var(--secondary);color:var(--on-secondary);padding:12px 24px;font-size:14px;">
+      <span class="material-symbols-outlined" style="font-size:18px;">travel_explore</span>
+      Browse Packages
     </a>
-    <a href="/packages" class="btn btn-primary btn-lg">+ Book a Trip</a>
   </div>
 </div>
 
-<!-- STAT CARDS -->
-<div class="cards-grid">
-
-  <div class="stat-card" style="border-left-color:#2a5298;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">📄</div>
-    </div>
-    <div class="num">{{ total_bookings }}</div>
-    <div class="lbl">Total Bookings</div>
+<!-- Stat cards -->
+<div class="stats-container" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));">
+  <div class="stat-card c-book">
+    <h3>My Bookings</h3>
+    <div class="num">{{ total_bookings or 0 }}</div>
+    <div class="sub">All time</div>
   </div>
-
-  <div class="stat-card" style="border-left-color:#16a34a;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">✅</div>
-      <span style="font-size:10px;font-weight:700;color:var(--green);background:var(--green-dim);padding:2px 8px;border-radius:4px;">Active</span>
-    </div>
-    <div class="num">{{ approved_bookings }}</div>
-    <div class="lbl">Approved Trips</div>
+  <div class="stat-card c-appr">
+    <h3>Approved</h3>
+    <div class="num">{{ approved_bookings or 0 }}</div>
+    <div class="sub">Confirmed trips</div>
   </div>
-
-  <div class="stat-card" style="border-left-color:#d97706;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--orange-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">⏳</div>
-      {% if pending_bookings %}<span style="font-size:10px;font-weight:700;color:var(--orange);background:var(--orange-dim);padding:2px 8px;border-radius:4px;">MTD</span>{% endif %}
-    </div>
-    <div class="num">{{ pending_bookings }}</div>
-    <div class="lbl">Pending Approval</div>
+  <div class="stat-card c-rev">
+    <h3>Wishlist</h3>
+    <div class="num">{{ wishlist_count or 0 }}</div>
+    <div class="sub">Saved packages</div>
   </div>
-
-  <div class="stat-card" style="border-left-color:#8e44ad;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">💰</div>
-    </div>
-    <div class="num">₹{{ total_spent }}</div>
-    <div class="lbl">Total Spent</div>
+  <div class="stat-card c-users">
+    <h3>Reviews</h3>
+    <div class="num">{{ review_count or 0 }}</div>
+    <div class="sub">Submitted</div>
   </div>
-
-  <div class="stat-card" style="border-left-color:#dc2626;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;font-size:16px;">❤️</div>
-    </div>
-    <div class="num">{{ wishlist_count }}</div>
-    <div class="lbl">Wishlist Items</div>
-  </div>
-
 </div>
 
-<!-- RECENT BOOKINGS TABLE -->
-<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:24px;overflow:hidden;">
-  <div style="padding:18px 22px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
-    <span style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:var(--text);">Recent Bookings</span>
-    <a href="/my_bookings" style="font-size:12px;color:var(--accent);text-decoration:none;">View All →</a>
+<!-- Recent bookings + Quick links -->
+<div class="two-col">
+
+  <!-- Recent bookings -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <h3 style="margin-bottom:0;">Recent Bookings</h3>
+      <a href="/my_bookings" class="btn btn-outline btn-sm">View all</a>
+    </div>
+    {% if recent_bookings %}
+    <table>
+      <thead>
+        <tr>
+          <th>Package</th>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in recent_bookings %}
+        <tr>
+          <td style="font-weight:600;color:var(--on-surface);">{{ b.category }}</td>
+          <td>{{ b.travel_date or '—' }}</td>
+          <td style="color:var(--secondary);font-weight:600;">₹{{ b.total_amount }}</td>
+          <td><span class="status {{ b.status }}">{{ b.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:40px 20px;color:var(--on-primary-container);">
+      <span class="material-symbols-outlined" style="font-size:40px;display:block;margin-bottom:10px;color:var(--outline-variant);">receipt_long</span>
+      <p style="font-size:14px;">No bookings yet.</p>
+      <a href="/packages" class="btn btn-primary btn-sm" style="margin-top:12px;">Browse Packages</a>
+    </div>
+    {% endif %}
   </div>
 
-  {% if recent_bookings %}
-  <div style="overflow-x:auto;">
-  <table>
-    <thead>
-      <tr>
-        <th>Traveler</th>
-        <th>Destination</th>
-        <th>Travel Date</th>
-        <th>Amount</th>
-        <th>Vehicle</th>
-        <th>Guide</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for b in recent_bookings %}
-      <tr>
-        <td>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0d1117;flex-shrink:0;">
-              {{ session.get('user','U')[0]|upper }}
-            </div>
-            <span style="font-size:13px;font-weight:600;color:var(--text);">{{ session.get('user','Traveler') }}</span>
-          </div>
-        </td>
-        <td style="font-size:13px;color:var(--text2);">{{ b.category or 'Package #'+b.package_id|string }}</td>
-        <td style="font-size:12.5px;color:var(--text3);">{{ b.travel_date }}</td>
-        <td><span style="font-size:13px;font-weight:700;color:var(--accent);">₹{{ b.total_amount }}</span></td>
-        <td style="font-size:12px;">
-          {% if b.vehicle_type %}
-            <span style="background:rgba(59,125,216,.15);color:var(--blue);padding:2px 8px;border-radius:6px;white-space:nowrap;">
-              🚖 {{ b.vehicle_type }}
-            </span>
-          {% else %}
-            <span style="color:var(--text3);font-size:11px;">Not assigned</span>
-          {% endif %}
-        </td>
-        <td style="font-size:12px;">
-          {% if b.guide_name %}
-            <span style="background:rgba(245,158,11,.15);color:var(--orange);padding:2px 8px;border-radius:6px;white-space:nowrap;">
-              👤 {{ b.guide_name }}
-            </span>
-          {% else %}
-            <span style="color:var(--text3);font-size:11px;">Not assigned</span>
-          {% endif %}
-        </td>
-       <td>
-
-  {% if b.status == 'Approved' %}
-  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--green-dim);color:var(--green);">
-    {{ b.status }}
-  </span>
-
-  {% elif b.status == 'Booked' %}
-  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--orange-dim);color:var(--orange);">
-    {{ b.status }}
-  </span>
-
-  {% elif b.status == 'Rejected' %}
-  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--red-dim);color:var(--red);">
-    {{ b.status }}
-  </span>
-
-  {% else %}
-  <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:rgba(92,122,150,.15);color:var(--text3);">
-    {{ b.status }}
-  </span>
-  {% endif %}
-
-</td>
-        <td>
-          {% if b.status in ['Approved','Booked','Cancelled','Rejected'] %}
-          <a href="/receipt/{{ b.booking_id }}" class="btn btn-outline btn-sm">Receipt</a>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  </div>
-  {% else %}
-  <div style="text-align:center;padding:50px;color:var(--text3);">
-    <div style="font-size:36px;margin-bottom:12px;">✈</div>
-    <p style="font-size:14px;margin-bottom:16px;">No bookings yet.</p>
-    <a href="/packages" class="btn btn-primary">Browse Packages</a>
-  </div>
-  {% endif %}
-</div>
-
-<!-- TRANSPORT & TOUR GUIDE INFO FOR APPROVED BOOKINGS -->
-{% if approved_bookings and approved_bookings > 0 %}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;">
-
-  <!-- MY TRANSPORT -->
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-    <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
-      <span style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--text);">🚖 My Transport</span>
-      <span style="font-size:11px;color:var(--text3);">Assigned vehicles</span>
-    </div>
-    <div style="padding:16px 20px;">
-      {% set has_transport = false %}
-      {% for b in recent_bookings %}
-        {% if b.vehicle_type and b.status == 'Approved' %}
-          {% set has_transport = true %}
-          <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid var(--blue);">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">
-              🚖 {{ b.vehicle_type }}
-              {% if b.vehicle_number %}
-              <span style="font-size:11px;font-family:monospace;background:var(--bg2);padding:1px 6px;border-radius:4px;color:var(--blue);margin-left:6px;">{{ b.vehicle_number }}</span>
-              {% endif %}
-            </div>
-            {% if b.driver_name %}
-            <div style="font-size:12px;color:var(--text2);">👤 Driver: <strong>{{ b.driver_name }}</strong></div>
-            {% endif %}
-            {% if b.driver_mobile %}
-            <div style="font-size:12px;color:var(--text3);">📱 {{ b.driver_mobile }}</div>
-            {% endif %}
-            <div style="font-size:11px;color:var(--text3);margin-top:4px;">Booking #{{ b.booking_id }} · {{ b.category }}</div>
-          </div>
-        {% endif %}
-      {% endfor %}
-      {% if not has_transport %}
-      <div style="text-align:center;padding:20px 0;color:var(--text3);">
-        <div style="font-size:28px;margin-bottom:8px;">🚖</div>
-        <p style="font-size:12px;">No vehicle assigned yet.<br>Admin assigns vehicles after approval.</p>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- MY TOUR GUIDE -->
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-    <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
-      <span style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--text);">👨‍💼 My Tour Guide</span>
-      <span style="font-size:11px;color:var(--text3);">Assigned guides</span>
-    </div>
-    <div style="padding:16px 20px;">
-      {% set has_guide = false %}
-      {% for b in recent_bookings %}
-        {% if b.guide_name and b.status == 'Approved' %}
-          {% set has_guide = true %}
-          <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid var(--orange);">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">
-              👤 {{ b.guide_name }}
-            </div>
-            {% if b.guide_mobile %}
-            <div style="font-size:12px;color:var(--text2);">📱 {{ b.guide_mobile }}</div>
-            {% endif %}
-            {% if b.guide_specialization %}
-            <div style="font-size:11px;color:var(--blue);background:var(--blue-dim);padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;">🧭 {{ b.guide_specialization }}</div>
-            {% endif %}
-            <div style="font-size:11px;color:var(--text3);margin-top:4px;">Booking #{{ b.booking_id }} · {{ b.category }}</div>
-          </div>
-        {% endif %}
-      {% endfor %}
-      {% if not has_guide %}
-      <div style="text-align:center;padding:20px 0;color:var(--text3);">
-        <div style="font-size:28px;margin-bottom:8px;">👨‍💼</div>
-        <p style="font-size:12px;">No guide assigned yet.<br>Admin assigns guides after approval.</p>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-</div>
-{% endif %}
-
-<!-- STRATEGIC ASSETS GRID -->
-<div style="margin-bottom:8px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;color:var(--text);">Quick Access</h2>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
-
-    <!-- Browse Packages -->
-    <a href="/packages" style="text-decoration:none;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
-      <div style="height:100px;background:linear-gradient(135deg,#0d1a2b,#0f2e4a);display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;">
-        🌍
-        <span style="position:absolute;top:8px;left:8px;background:var(--accent);color:#0d1117;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;">PACKAGES</span>
-      </div>
-      <div style="padding:12px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">Browse Packages</div>
-        <div style="font-size:11px;color:var(--text3);">📍 UK Destinations</div>
+  <!-- Quick links -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="card" style="margin-bottom:0;">
+      <h3>Quick Actions</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="/packages" class="btn btn-primary" style="justify-content:flex-start;">
+          <span class="material-symbols-outlined" style="font-size:18px;">travel_explore</span> Browse Packages
+        </a>
+        <a href="/my_bookings" class="btn btn-outline" style="justify-content:flex-start;">
+          <span class="material-symbols-outlined" style="font-size:18px;">receipt_long</span> My Bookings
+        </a>
+        <a href="/wishlist" class="btn btn-outline" style="justify-content:flex-start;">
+          <span class="material-symbols-outlined" style="font-size:18px;">favorite</span> My Wishlist
+        </a>
+        <a href="/guides" class="btn btn-outline" style="justify-content:flex-start;">
+          <span class="material-symbols-outlined" style="font-size:18px;">menu_book</span> Trip Guides
+        </a>
+        <a href="/contact" class="btn btn-outline" style="justify-content:flex-start;">
+          <span class="material-symbols-outlined" style="font-size:18px;">mail</span> Contact Support
+        </a>
       </div>
     </div>
-    </a>
 
-    <!-- My Bookings -->
-    <a href="/my_bookings" style="text-decoration:none;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
-      <div style="height:100px;background:linear-gradient(135deg,#1c1a0d,#3d3310);display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;">
-        📋
-        <span style="position:absolute;top:8px;left:8px;background:var(--orange);color:#0d1117;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;">{% if pending_bookings %}PENDING{% else %}ACTIVE{% endif %}</span>
-      </div>
-      <div style="padding:12px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">My Bookings</div>
-        <div style="font-size:11px;color:var(--text3);">{{ total_bookings }} total · {{ approved_bookings }} approved</div>
+    <div class="card" style="margin-bottom:0;background:color-mix(in srgb, var(--tertiary-fixed) 25%, white);border-color:color-mix(in srgb, var(--tertiary) 15%, transparent);">
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <span class="material-symbols-outlined" style="color:var(--on-tertiary-fixed-variant);font-size:22px;">tips_and_updates</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--on-tertiary-fixed-variant);margin-bottom:4px;">Travel Tip</div>
+          <p style="font-size:13px;color:var(--on-tertiary-fixed-variant);line-height:1.6;">
+            Book early to get the best rates and ensure guide availability for your preferred dates.
+          </p>
+        </div>
       </div>
     </div>
-    </a>
-
-    <!-- Transport -->
-    <a href="/my_bookings?tab=transport" style="text-decoration:none;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
-      <div style="height:100px;background:linear-gradient(135deg,#0d1630,#1e3c72);display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;">
-        🚖
-        <span style="position:absolute;top:8px;left:8px;background:var(--blue);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;">VEHICLE</span>
-      </div>
-      <div style="padding:12px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">My Transport</div>
-        <div style="font-size:11px;color:var(--text3);">View assigned vehicles</div>
-      </div>
-    </div>
-    </a>
-
-    <!-- Tour Guide -->
-    <a href="/my_bookings?tab=guide" style="text-decoration:none;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
-      <div style="height:100px;background:linear-gradient(135deg,#1a1000,#3d2a00);display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;">
-        👨‍💼
-        <span style="position:absolute;top:8px;left:8px;background:var(--orange);color:#0d1117;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;">GUIDE</span>
-      </div>
-      <div style="padding:12px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">My Tour Guide</div>
-        <div style="font-size:11px;color:var(--text3);">View assigned guide</div>
-      </div>
-    </div>
-    </a>
-
-    <!-- Wishlist -->
-    <a href="/wishlist" style="text-decoration:none;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
-      <div style="height:100px;background:linear-gradient(135deg,#1a0d2e,#2d1555);display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;">
-        ❤
-        <span style="position:absolute;top:8px;left:8px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;">SAVED</span>
-      </div>
-      <div style="padding:12px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">My Wishlist</div>
-        <div style="font-size:11px;color:var(--text3);">{{ wishlist_count }} saved item{{ 's' if wishlist_count != 1 }}</div>
-      </div>
-    </div>
-    </a>
-
-    <!-- Trip Guides -->
-    <a href="/guides" style="text-decoration:none;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.2s;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
-      <div style="height:100px;background:linear-gradient(135deg,#0d1f1a,#0f3028);display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;">
-        🧭
-        <span style="position:absolute;top:8px;left:8px;background:var(--accent);color:#0d1117;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;">GUIDES</span>
-      </div>
-      <div style="padding:12px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">Trip Guides</div>
-        <div style="font-size:11px;color:var(--text3);">📍 UK Destinations</div>
-      </div>
-    </div>
-    </a>
-
   </div>
 </div>
 
