@@ -114,22 +114,26 @@ body { display: flex; }
 /* ── SIDEBAR ───────────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
-  min-height: 100vh;
+  height: 100vh;
   background: var(--surface-container-lowest);
   border-right: 1px solid var(--outline-variant);
   display: flex;
   flex-direction: column;
   position: fixed;
   top: 0; left: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   z-index: 200;
 }
 
-.sidebar::-webkit-scrollbar { width: 3px; }
-.sidebar::-webkit-scrollbar-thumb { background: var(--outline-variant); }
+.sb-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sb-nav::-webkit-scrollbar { width: 3px; }
+.sb-nav::-webkit-scrollbar-thumb { background: var(--outline-variant); }
 .sb-scroll-btn {
-  position: sticky;
   width: 100%;
   display: flex;
   align-items: center;
@@ -145,9 +149,8 @@ body { display: flex; }
   flex-shrink: 0;
 }
 .sb-scroll-btn:hover { color: var(--secondary); background: var(--surface-container-low); }
-.sb-scroll-btn.top { top: 0; border-bottom: 1px solid var(--outline-variant); }
-.sb-scroll-btn.bottom { bottom: 0; border-top: 1px solid var(--outline-variant); }
-
+.sb-scroll-btn.top { border-bottom: 1px solid var(--outline-variant); }
+.sb-scroll-btn.bottom { border-top: 1px solid var(--outline-variant); }
 /* Sidebar header / branding */
 .sb-hd {
   padding: 24px 20px 18px;
@@ -233,13 +236,11 @@ body { display: flex; }
 }
 
 /* Sidebar footer */
+ /* Sidebar footer */
 .sb-ft {
   padding: 16px 20px;
   border-top: 1px solid var(--outline-variant);
-  margin-top: auto;
   flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
   background: var(--surface-container-lowest);
   z-index: 1;
 }

@@ -13,7 +13,7 @@
 
 <!-- ADMIN SIDEBAR -->
 <aside class="sidebar" id="sidebar">
-  <button class="sb-scroll-btn top" onclick="document.getElementById('sidebar').scrollBy({top:-200,behavior:'smooth'})">▲</button>
+ 
   <div class="sb-hd">
     <div class="sb-hd-inner">
       <div class="sb-logo">
@@ -30,7 +30,10 @@
       </div>
     </div>
   </div>
+  <button class="sb-scroll-btn top"
+onclick="document.getElementById('sbNav').scrollBy({top:-200,behavior:'smooth'})">▲</button>
 
+<div class="sb-nav" id="sbNav">
   <div class="sb-sec">Overview</div>
   <a href="/admin_dashboard" {% if request.path=='/admin_dashboard' %}class="active"{% endif %}>
     <span class="material-symbols-outlined">space_dashboard</span> Executive Desk
@@ -81,9 +84,7 @@
       <span class="sb-badge">{{ unread_queries_count }}</span>
     {% endif %}
   </a>
-  <a href="/manage_guides_admin" {% if request.path=='/manage_guides_admin' %}class="active"{% endif %}>
-    <span class="material-symbols-outlined">badge</span> Tour Guides
-  </a>
+ 
 
   <div class="sb-sec">Reports</div>
   <a href="/export_bookings">
@@ -92,7 +93,7 @@
   <a href="/export_travelers">
     <span class="material-symbols-outlined">download</span> Export Travelers
   </a>
-
+  </div>
   <div class="sb-ft">
     <div class="sb-ft-user">
       <div class="sb-avatar">{{ session.get('admin', 'A')[0].upper() }}</div>
@@ -105,7 +106,8 @@
       <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
       Sign Out
     </a>
-  </div>  <button class="sb-scroll-btn bottom" onclick="document.getElementById('sidebar').scrollBy({top:200,behavior:'smooth'})">▼</button>
+ <button class="sb-scroll-btn bottom"
+onclick="document.getElementById('sbNav').scrollBy({top:200,behavior:'smooth'})">
 </aside>
 
 <!-- CONTENT -->
