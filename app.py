@@ -707,7 +707,9 @@ def wishlist():
             "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
         ) or []
 
-        available_guides = query("SELECT * FROM trip_guide ORDER BY title") or []
+        available_guides = query(
+            "SELECT * FROM guide WHERE status='Available' ORDER BY name"
+        ) or []
 
         return render_template(
             "wishlist.html",
@@ -715,11 +717,15 @@ def wishlist():
             available_vehicles=available_vehicles,
             available_guides=available_guides
         )
+
     except Exception as e:
         flash(f"Could not load wishlist: {e}", "danger")
-        return render_template("wishlist.html", packages=[], available_vehicles=[], available_guides=[])
-
-
+        return render_template(
+            "wishlist.html",
+            packages=[],
+            available_vehicles=[],
+            available_guides=[]
+        )
 @app.route("/wishlist/add/<int:pid>")
 @login_required
 def wishlist_add(pid):
@@ -751,7 +757,7 @@ def wishlist_remove(pid):
     return redirect("/wishlist")
 
 
-@app.route("/wishlist/toggle/<int:pid>")
+@app.route("/wishlist/toggle/<int:pid>", methods=["GET", "POST"])
 @login_required
 def wishlist_toggle(pid):
     try:
@@ -762,21 +768,20 @@ def wishlist_toggle(pid):
         if existing:
             query("DELETE FROM wishlist WHERE adharno=%s AND package_id=%s",
                   (session["user_id"], pid), commit=True)
-            in_wishlist = False
+            added = False
         else:
             query("INSERT INTO wishlist (adharno, package_id) VALUES (%s,%s)",
                   (session["user_id"], pid), commit=True)
-            in_wishlist = True
+            added = True
 
         count_row = query(
             "SELECT COUNT(*) AS cnt FROM wishlist WHERE adharno=%s",
             (session["user_id"],), one=True
         )
         count = int(count_row["cnt"]) if count_row and count_row.get("cnt") else 0
-        return jsonify({"ok": True, "in_wishlist": in_wishlist, "count": count})
+        return jsonify({"ok": True, "added": added, "count": count})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-
 
 # ══════════════════════════════════════════════════════
 #  USER — PACKAGES
@@ -832,7 +837,10 @@ def packages():
         available_vehicles = query(
             "SELECT * FROM transport WHERE status='Available' ORDER BY vehicle_type"
         ) or []
-        available_guides = query("SELECT * FROM trip_guide ORDER BY title") or []
+
+        available_guides = query(
+            "SELECT * FROM guide WHERE status='Available' ORDER BY name"
+        ) or []
 
         return render_template(
             "packages.html",
@@ -901,7 +909,7 @@ def book_package(package_id):
 @app.route('/pay_booking/<int:booking_id>')
 @login_required
 def pay_booking(booking_id):
-    adharno = session['user_id']   # ← FIXED: was session['user']
+    adharno = session['user_id']
 
     booking = query(
         """SELECT b.*, p.category, p.duration,
@@ -921,14 +929,17 @@ def pay_booking(booking_id):
         flash('Booking not found.', 'danger')
         return redirect('/my_bookings')
 
-    return render_template('payment_gateway.html', booking=booking)
+    if booking['status'] != 'Approved':
+        flash('Payment is only allowed for Approved bookings.', 'danger')
+        return redirect('/my_bookings')
 
+    return render_template('payment_gateway.html', booking=booking)
 
 # FIX 3: process_payment — use query() helper, correct notification table, MySQL placeholders
 @app.route('/process_payment', methods=['POST'])
 @login_required
 def process_payment():
-    adharno        = session['user_id']   # ← FIXED: was session['user']
+    adharno        = session['user_id']
     booking_id     = int(request.form.get('booking_id', 0))
     amount         = float(request.form.get('amount', 0))
     payment_mode   = request.form.get('payment_mode', 'Card')
@@ -947,7 +958,6 @@ def process_payment():
     if not transaction_id:
         transaction_id = 'TXN' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
-    # Insert payment record
     query(
         """INSERT INTO payment
                (booking_id, amount, payment_mode, payment_status,
@@ -958,7 +968,6 @@ def process_payment():
         commit=True
     )
 
-    # Update booking payment info
     query(
         """UPDATE booking
            SET amount_paid    = COALESCE(amount_paid, 0) + %s,
@@ -966,15 +975,13 @@ def process_payment():
                transaction_id = %s,
                payment_status = %s
            WHERE booking_id=%s""",
-        (amount if payment_status == 'Paid' else 0,
-         payment_mode, transaction_id, payment_status, booking_id),
+        (amount, payment_mode, transaction_id, payment_status, booking_id),
         commit=True
     )
 
-    # FIX 4: Use correct notification table and MySQL syntax (not SQLite)
     msg = (f"Payment of ₹{amount:,.0f} {'received' if payment_status == 'Paid' else 'pending'} "
            f"for Booking #{booking_id}. TXN: {transaction_id}")
-    notify(adharno, msg)   # ← FIXED: was wrong table name + SQLite placeholders
+    notify(adharno, msg)
 
     if payment_status == 'Paid':
         flash(f'✅ Payment of ₹{amount:,.0f} successful! TXN ID: {transaction_id}', 'success')

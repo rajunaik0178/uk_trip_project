@@ -315,9 +315,21 @@ body::before{
   <!-- Payment form body -->
   <div class="pay-body">
 
+    {% if booking.status != 'Approved' %}
+    <div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:20px;text-align:center;margin-bottom:18px;">
+      <div style="font-size:28px;margin-bottom:8px;">🚫</div>
+      <div style="font-size:15px;font-weight:700;color:#ef4444;margin-bottom:6px;">Payment Not Allowed</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+        {% if booking.status == 'Rejected' %}Your booking has been <strong>rejected</strong> by the admin. Payment cannot be made.
+        {% else %}Your booking is <strong>{{ booking.status }}</strong>. Payment is only allowed after admin approval.{% endif %}
+      </div>
+      <a href="/my_bookings" style="display:inline-block;padding:10px 22px;background:var(--accent);color:#0d1117;border-radius:8px;font-weight:700;text-decoration:none;">← Back to My Bookings</a>
+    </div>
+    {% else %}
     <div class="demo-notice">
       ℹ️ <strong>Demo Mode:</strong> This is a simulated payment gateway. No real money is charged. Choose any method and click Pay to complete your booking.
     </div>
+    {% endif %}
 
     <!-- Method tabs -->
     <div class="pay-method-tabs">
@@ -405,10 +417,15 @@ body::before{
     </div>
 
     <!-- Pay button -->
+    {% if booking.status == 'Approved' %}
     <button class="pay-btn" id="payBtn" onclick="doPayment()">
       🔒 Pay ₹{{ "{:,.0f}".format(booking.total_amount or 0) }} Securely
     </button>
-
+    {% else %}
+    <button class="pay-btn" id="payBtn" disabled style="opacity:.4;cursor:not-allowed;">
+      🚫 Payment Blocked
+    </button>
+    {% endif %}
     <!-- Security badges -->
     <div class="badges" style="margin-top:14px;">
       <div class="badge-item">🔒 SSL Secured</div>

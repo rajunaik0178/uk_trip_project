@@ -65,7 +65,7 @@
       </div>
 
       <div class="pkg-card-meta">
-        <div class="pkg-price">₹{{ p.price }} <span>/ person</span></div>
+        <div class="pkg-price">₹{{ p.amt_rate }} <span>/ person</span></div>
         <div style="display:flex;gap:8px;">
           <!-- Wishlist toggle -->
           <button class="wish-btn {% if p.package_id in wishlist_ids %}active{% endif %}"
@@ -76,7 +76,7 @@
           <button class="btn btn-primary btn-sm"
                   data-pid="{{ p.package_id }}"
                   data-title="{{ p.category }}"
-                  data-price="{{ p.price }}"
+                  data-price="{{ p.amt_rate }}"
                   onclick="openBookFromCard(this)">
             Book Now
           </button>
@@ -316,7 +316,7 @@ function confirmBook(){
   window.location.href=url;
 }
 function toggleWish(btn, pid){
-  fetch('/toggle_wishlist/'+pid, {method:'POST'})
+  fetch('/wishlist/toggle/'+pid, {method:'POST'})
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.added){btn.textContent='❤️';btn.classList.add('active');}
