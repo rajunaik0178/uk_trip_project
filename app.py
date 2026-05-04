@@ -708,7 +708,7 @@ def wishlist():
         ) or []
 
         available_guides = query(
-            "SELECT * FROM guide WHERE status='Available' ORDER BY name"
+            "SELECT * FROM guide ORDER BY name"
         ) or []
 
         return render_template(
@@ -839,9 +839,8 @@ def packages():
         ) or []
 
         available_guides = query(
-            "SELECT * FROM guide WHERE status='Available' ORDER BY name"
+            "SELECT * FROM guide ORDER BY name"
         ) or []
-
         return render_template(
             "packages.html",
             packages=pkg_list,
@@ -850,7 +849,12 @@ def packages():
         )
     except Exception as e:
         flash(f"Could not load packages: {e}", "danger")
-        return redirect("/dashboard")
+        return render_template(
+            "packages.html",
+            packages=[],
+            available_vehicles=[],
+            available_guides=[]
+        )
 
 
 @app.route("/view_images/<int:id>")
@@ -1035,7 +1039,7 @@ def view_bookings():
            FROM booking b
            LEFT JOIN package    p  ON b.package_id = p.package_id
            LEFT JOIN transport  t  ON b.vehicle_id  = t.id
-           LEFT JOIN guide      g  ON b.guide_id    = g.guide_id
+           LEFT JOIN guide      g  ON g.guide_id = b.guide_id
            LEFT JOIN traveler   tr ON b.adharno     = tr.adharno
            LEFT JOIN (
                SELECT booking_id, SUM(amount) AS paid
@@ -2374,10 +2378,11 @@ def delete_transport(id):
 def manage_guides_admin():
     try:
         all_guides = query(
-            """SELECT g.*, b.booking_id AS assigned_bk, tr.name AS assigned_traveler
+            """SELECT g.*, tr.name AS traveler_name, p.category
                FROM guide g
                LEFT JOIN booking b  ON g.assigned_booking_id = b.booking_id
                LEFT JOIN traveler tr ON b.adharno = tr.adharno
+               LEFT JOIN package p ON b.package_id = p.package_id
                ORDER BY g.guide_id DESC"""
         ) or []
 
@@ -2397,12 +2402,19 @@ def manage_guides_admin():
             'on_leave':  int((query("SELECT COUNT(*) AS c FROM guide WHERE status='On Leave'", one=True) or {}).get("c", 0)),
         }
 
+        fee_row = query(
+            "SELECT COALESCE(SUM(guide_fee),0) AS total FROM guide WHERE fee_paid=0 AND guide_fee IS NOT NULL",
+            one=True
+        )
+        total_guide_fees_due = float(fee_row["total"]) if fee_row else 0.0
+
         return render_template("manage_guides_admin.html",
-                               guides=all_guides, bookings=bookings, stats=stats_data)
+                               guides=all_guides, bookings=bookings, stats=stats_data,
+                               total_guide_fees_due=total_guide_fees_due)
     except Exception as e:
         flash(f"Could not load guides: {e}", "danger")
-        return render_template("manage_guides_admin.html", guides=[], bookings=[], stats={})
-
+        return render_template("manage_guides_admin.html", guides=[], bookings=[], stats={},
+                               total_guide_fees_due=0.0)
 
 @app.route("/add_guide_admin", methods=["POST"])
 @admin_required
