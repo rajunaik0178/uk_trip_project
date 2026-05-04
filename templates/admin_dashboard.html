@@ -234,18 +234,32 @@ function initCharts(){
   if(chartsInited) return;
   chartsInited = true;
 
-  var chartDefaults = {
-    plugins:{ legend:{ labels:{ font:{ family:'Inter', size:12 }, color:'#45464d' }}},
-    scales:{ x:{ ticks:{ font:{family:'Inter',size:11}, color:'#76777d' }, grid:{color:'#f1f5f9'} }, y:{ ticks:{ font:{family:'Inter',size:11}, color:'#76777d' }, grid:{color:'#f1f5f9'} } }
-  };
+  // ✅ FIXED PIE DATA
+  var scBooked   = {{ pending_count|default(0) + approved|default(0) }};
+  var scApproved = {{ approved|default(0) }};
+  var scRejected = 0;
+  var scCancelled= 0;
+
+  {% if status_counts is defined and status_counts %}
+    {% for k,v in status_counts.items() %}
+      {% if k == 'Booked' %}scBooked={{ v }};
+      {% elif k == 'Approved' %}scApproved={{ v }};
+      {% elif k == 'Rejected' %}scRejected={{ v }};
+      {% elif k == 'Cancelled' %}scCancelled={{ v }};
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    scBooked   = {{ bookings|default(0) - approved|default(0) }};
+    scApproved = {{ approved|default(0) }};
+  {% endif %}
 
   // Pie
   new Chart(document.getElementById('pieChart'), {
     type:'doughnut',
     data:{
-      labels:['Booked','Approved','Rejected','Cancelled'],
+      labels:['Pending/Booked','Approved','Rejected','Cancelled'],
       datasets:[{
-        data:[{{ (status_counts or {}).get('Booked', 0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Approved', 0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Rejected', 0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Cancelled', 0) if status_counts is defined else 0 }}],
+        data:[scBooked, scApproved, scRejected, scCancelled],
         backgroundColor:['#fef3c7','#d1fae5','#fee2e2','#e5e7eb'],
         borderColor:['#b45309','#006c49','#ba1a1a','#76777d'],
         borderWidth:1.5
@@ -261,31 +275,31 @@ function initCharts(){
       labels:['Travelers','Packages','Bookings','Approved'],
       datasets:[{
         label:'Count',
-        data:[{{ users }},{{ total_packages }},{{ bookings }},{{ approved }}],
+        data:[{{ users|default(0) }},{{ total_packages|default(0) }},{{ bookings|default(0) }},{{ approved|default(0) }}],
         backgroundColor:['#dbe1ff','#d1fae5','#fef3c7','#dcfce7'],
         borderColor:['#003ea8','#006c49','#b45309','#16a34a'],
         borderWidth:1.5,
         borderRadius:6
       }]
     },
-    options:{ plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, grid:{color:'#f1f5f9'} }, x:{ grid:{display:false} } } }
+    options:{ plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, ticks:{precision:0}, grid:{color:'#f1f5f9'} }, x:{ grid:{display:false} } } }
   });
 
   {% if top_packages %}
   new Chart(document.getElementById('pkgChart'), {
     type:'bar',
     data:{
-      labels:[{% for p in top_packages %}'{{ p.category }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      labels:[{% for p in top_packages %}'{{ p.category | e }}'{% if not loop.last %},{% endif %}{% endfor %}],
       datasets:[{
         label:'Bookings',
-        data:[{% for p in top_packages %}{{ p.cnt }}{% if not loop.last %},{% endif %}{% endfor %}],
-        backgroundColor:'#d1fae5',
+        data:[{% for p in top_packages %}{{ p.cnt | default(0) }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor:['#dbe1ff','#d1fae5','#fef3c7','#fee2e2','#dcfce7'],
         borderColor:'#006c49',
         borderWidth:1.5,
         borderRadius:6
       }]
     },
-    options:{ indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{ beginAtZero:true, grid:{color:'#f1f5f9'} }, y:{ grid:{display:false} } } }
+    options:{ indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{ beginAtZero:true, ticks:{precision:0}, grid:{color:'#f1f5f9'} }, y:{ grid:{display:false} } } }
   });
   {% endif %}
 }

@@ -98,15 +98,33 @@
 <script>
 var defaults={plugins:{legend:{labels:{font:{family:'Inter',size:12},color:'#45464d'}}},scales:{x:{ticks:{font:{family:'Inter',size:11},color:'#76777d'},grid:{color:'#f1f5f9'}},y:{ticks:{font:{family:'Inter',size:11},color:'#76777d'},grid:{color:'#f1f5f9'}}}};
 
+var s_booked=0,s_approved=0,s_rejected=0,s_cancelled=0;
+
+{% if status_counts is defined and status_counts %}
+  {% for k,v in status_counts.items() %}
+    {% if k=='Booked' %}s_booked={{ v }};
+    {% elif k=='Approved' %}s_approved={{ v }};
+    {% elif k=='Rejected' %}s_rejected={{ v }};
+    {% elif k=='Cancelled' %}s_cancelled={{ v }};
+    {% endif %}
+  {% endfor %}
+{% else %}
+  s_booked={{ bookings|default(0) - approved|default(0) }};
+  s_approved={{ approved|default(0) }};
+{% endif %}
+
 new Chart(document.getElementById('statusChart'),{
   type:'doughnut',
   data:{
-    labels:['Booked','Approved','Rejected','Cancelled'],
-    datasets:[{data:[{{ (status_counts or {}).get('Booked',0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Approved',0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Rejected',0) if status_counts is defined else 0 }},{{ (status_counts or {}).get('Cancelled',0) if status_counts is defined else 0 }}],backgroundColor:['#fef3c7','#d1fae5','#fee2e2','#e5e7eb'],borderColor:['#b45309','#006c49','#ba1a1a','#76777d'],borderWidth:1.5}]
-  },
-  options:{cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{family:'Inter',size:12},color:'#45464d',padding:16}}}}
+    labels:['Pending/Booked','Approved','Rejected','Cancelled'],
+    datasets:[{
+      data:[s_booked,s_approved,s_rejected,s_cancelled],
+      backgroundColor:['#fef3c7','#d1fae5','#fee2e2','#e5e7eb'],
+      borderColor:['#b45309','#006c49','#ba1a1a','#76777d'],
+      borderWidth:1.5
+    }]
+  }
 });
-
 new Chart(document.getElementById('overviewChart'),{
   type:'bar',
   data:{labels:['Travelers','Packages','Bookings','Approved'],datasets:[{label:'Count',data:[{{ users }},{{ total_packages }},{{ bookings }},{{ approved }}],backgroundColor:['#dbe1ff','#d1fae5','#fef3c7','#dcfce7'],borderColor:['#003ea8','#006c49','#b45309','#16a34a'],borderWidth:1.5,borderRadius:6}]},
